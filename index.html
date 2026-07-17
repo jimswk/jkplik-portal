@@ -34,7 +34,6 @@
         margin: 0 !important;
         padding: 0 !important;
       }
-      /* Memastikan border jadual hitam pekat semasa cetakan laser */
       table, th, td {
         border: 1px solid #000000 !important;
         border-collapse: collapse !important;
@@ -45,8 +44,6 @@
         print-color-adjust: exact;
       }
     }
-    
-    /* Menghilangkan scrollbar lalai untuk kemasan estetik */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -70,7 +67,6 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // Senarai 5 Sektor Utama KDN
     const SECTORS_LIST = [
       { id: "og", name: "1. Minyak & Gas (Oil & Gas)" },
       { id: "perkhidmatan", name: "2. Perkhidmatan" },
@@ -185,6 +181,19 @@
             <polyline points="1 20 1 14 7 14" />
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </g>
+        ),
+        cloudCheck: (
+          <g>
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 0 1 0 9Z" fill="#10b981" fillOpacity="0.2" stroke="#10b981" strokeWidth="2" />
+            <polyline points="9 13 11 15 15 11" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+        ),
+        cloudAlert: (
+          <g>
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 0 1 0 9Z" fill="#94a3b8" fillOpacity="0.1" stroke="#94a3b8" strokeWidth="2" />
+            <circle cx="12" cy="13" r="1" fill="#f59e0b" stroke="#f59e0b" />
+            <line x1="12" y1="9" x2="12" y2="11" stroke="#f59e0b" strokeWidth="2" />
+          </g>
         )
       };
 
@@ -218,9 +227,9 @@
       });
 
       const [activeSector, setActiveSector] = useState("og");
-      const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
+      const [viewMode, setViewMode] = useState("dashboard"); 
 
-      // Permohonan mula kosong mengikut arahan terdahulu
+      // Data permulaan kosong (Sedia Untuk Pengujian)
       const [dataOG, setDataOG] = useState(() => {
         const saved = localStorage.getItem('jkplik_data_og_v3');
         return saved ? JSON.parse(saved) : [];
@@ -234,21 +243,21 @@
       const [searchQuery, setSearchQuery] = useState("");
       const [statusFilter, setStatusFilter] = useState("semua");
 
-      // Konfigurasi API
+      // Konfigurasi API Google Sheets
       const [sheetUrl, setSheetUrl] = useState(() => {
         return localStorage.getItem('jkplik_sheet_url_v3') || "";
       });
       const [isSyncing, setIsSyncing] = useState(false);
       const [syncLogs, setSyncLogs] = useState([]);
 
-      // Modal & Semakan Pangkalan Data Autolengkap
+      // Modal & Keadaan Auto-suggest
       const [showAddModal, setShowAddModal] = useState(false);
       const [companySearchQuery, setCompanySearchQuery] = useState("");
       const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
       const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
       const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
-      // Borang Permohonan Syarikat Baru
+      // Borang Syarikat Baru
       const [newCompany, setNewCompany] = useState({
         namaSyarikat: "",
         alamat: "",
@@ -258,14 +267,14 @@
         tempohProjek: "",
         ownerProjek: "",
         tempohMohon: "06 BULAN",
-        valB: "01",  // Permohonan Baru
-        valL: "-",   // Lanjutan
-        valTR: "-",  // Tukar Re-entry
-        valWN: "01 MYS 'A'", // Ringkasan Warganegara
-        penyandang: []
+        valB: "01", 
+        valL: "-",  
+        valTR: "-", 
+        valWN: "01 MYS 'A'",
+        penyandang: [],
+        synced: false // Menunjukkan status penyelarasan Google Sheet
       });
 
-      // Pendaftaran Penyandang Individu
       const [newPenyandang, setNewPenyandang] = useState({
         nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000"
       });
@@ -292,7 +301,6 @@
         return result;
       }, [dataOG, dataOthers]);
 
-      // Penyediaan indeks pemilik projek unik
       const uniqueOwners = useMemo(() => {
         const all = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -333,7 +341,6 @@
         });
       }, [currentSectData, searchQuery, statusFilter]);
 
-      // Simpan perubahan ke LocalStorage secara automatik
       useEffect(() => {
         localStorage.setItem('jkplik_data_og_v3', JSON.stringify(dataOG));
       }, [dataOG]);
@@ -371,7 +378,69 @@
         return () => window.removeEventListener('keydown', handleKeyDown);
       }, [viewMode, filteredData]);
 
-      // Simpan keputusan dan selaras terus ke Google Sheets
+      const getSheetName = () => {
+        const cleanOfficer = officerName.trim() ? ` (${officerName.trim()})` : '';
+        return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
+      };
+
+      const syncAddRowToGoogleSheets = async (item) => {
+        if (!sheetUrl) return;
+        const sheetName = getSheetName();
+        addLog(`[AUTO-SYNC] Menghantar permohonan baru "${item.namaSyarikat}" ke Google Sheets...`, "info");
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              action: "add_row", 
+              item, 
+              activeSector,
+              sheetName: sheetName
+            })
+          });
+          addLog(`[AUTO-SYNC] "${item.namaSyarikat}" berjaya ditambah ke Google Sheets.`, "success");
+          
+          // Tandakan item sebagai disinkronkan
+          markAsSynced(item.id, true);
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Gagal menambah baris ke Google Sheets: ${err.message}`, "error");
+        }
+      };
+
+      const syncDeleteRowFromGoogleSheets = async (id) => {
+        if (!sheetUrl) return;
+        const sheetName = getSheetName();
+        addLog(`[AUTO-SYNC] Memadam ID ${id} daripada Google Sheets...`, "info");
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              action: "delete_row", 
+              id,
+              sheetName: sheetName
+            })
+          });
+          addLog(`[AUTO-SYNC] ID ${id} berjaya dipadam daripada Google Sheets.`, "success");
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Gagal memadam ID ${id} daripada Google Sheets: ${err.message}`, "error");
+        }
+      };
+
+      const markAsSynced = (id, status) => {
+        if (activeSector === "og") {
+          setDataOG(prev => prev.map(item => item.id === id ? { ...item, synced: status } : item));
+        } else {
+          setDataOthers(prev => {
+            const sectorData = prev[activeSector] || [];
+            const updated = sectorData.map(item => item.id === id ? { ...item, synced: status } : item);
+            return { ...prev, [activeSector]: updated };
+          });
+        }
+      };
+
       const handleSaveDecision = (id, keputusan, ulasan) => {
         if (activeSector === "og") {
           setDataOG(prev => prev.map(item => item.id === id ? { ...item, keputusan, ulasan } : item));
@@ -388,7 +457,30 @@
         }
       };
 
-      // Mendaftarkan permohonan mesyuarat baru
+      const syncSingleRowToGoogleSheets = async (id, keputusan, ulasan) => {
+        const sheetName = getSheetName();
+        addLog(`[AUTO-SYNC] Menghantar kemas kini keputusan ID: ${id}...`, "info");
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              action: "update", 
+              id, 
+              keputusan, 
+              ulasan, 
+              activeSector,
+              sheetName: sheetName
+            })
+          });
+          addLog(`[AUTO-SYNC] Keputusan ID ${id} berjaya dikemas kini di Google Sheets.`, "success");
+          markAsSynced(id, true);
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Gagal mengemas kini keputusan: ${err.message}`, "error");
+        }
+      };
+
       const handleRegisterCompany = (e) => {
         e.preventDefault();
         if (!newCompany.namaSyarikat) return;
@@ -398,7 +490,8 @@
           id: `${activeSector.toUpperCase()}-${Date.now()}`,
           bil: currentSectData.length + 1,
           keputusan: "",
-          ulasan: ""
+          ulasan: "",
+          synced: !!sheetUrl // Ditandakan sebagai disinkronkan secara automatik jika API berjaya
         };
 
         if (activeSector === "og") {
@@ -410,7 +503,11 @@
           });
         }
 
-        // Tetapkan semula borang
+        // Cetus Auto-Sync ke Google Sheets
+        if (sheetUrl) {
+          syncAddRowToGoogleSheets(newItem);
+        }
+
         setNewCompany({
           namaSyarikat: "",
           alamat: "",
@@ -424,7 +521,8 @@
           valL: "-",
           valTR: "-",
           valWN: "01 MYS 'A'",
-          penyandang: []
+          penyandang: [],
+          synced: false
         });
         setCompanySearchQuery("");
         setOwnerSearchQuery("");
@@ -462,7 +560,7 @@
       };
 
       const handleDeleteItem = (id) => {
-        if (confirm("Adakah anda pasti untuk memadam rekod permohonan ini?")) {
+        if (confirm("Adakah anda pasti untuk memadam rekod permohonan ini secara kekal?")) {
           if (activeSector === "og") {
             setDataOG(prev => prev.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 })));
           } else {
@@ -471,40 +569,14 @@
               return { ...prev, [activeSector]: filtered.map((item, i) => ({ ...item, bil: i + 1 })) };
             });
           }
+
+          // Cetus auto-delete daripada Google Sheets
+          if (sheetUrl) {
+            syncDeleteRowFromGoogleSheets(id);
+          }
         }
       };
 
-      // Membina format nama tab dokumen Google Sheet dinamik
-      const getSheetName = () => {
-        const cleanOfficer = officerName.trim() ? ` (${officerName.trim()})` : '';
-        return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
-      };
-
-      // Menghantar rekod tunggal ke Google Sheet
-      const syncSingleRowToGoogleSheets = async (id, keputusan, ulasan) => {
-        const sheetName = getSheetName();
-        addLog(`Menghantar kemas kini keputusan ID: ${id} ke tab [${sheetName}]...`, "info");
-        try {
-          await fetch(sheetUrl, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              action: "update", 
-              id, 
-              keputusan, 
-              ulasan, 
-              activeSector,
-              sheetName: sheetName
-            })
-          });
-          addLog(`Keputusan ${id} berjaya dihantar ke Google Sheets.`, "success");
-        } catch (err) {
-          addLog(`Gagal menyegerakan keputusan ke Sheets: ${err.message}`, "error");
-        }
-      };
-
-      // Menghantar kesemua rekod dalam sektor aktif ke Google Sheets
       const handleFullSync = async () => {
         if (!sheetUrl) {
           alert("Sila masukkan URL Google Web App yang sah di tetingkap Tetapan.");
@@ -528,7 +600,19 @@
           });
           
           addLog(`Penyelarasan penuh berjaya dihantar ke Google Sheets [Tab: ${sheetName}]!`, "success");
-          alert("Data berjaya disegerakkan sepenuhnya ke Google Sheets!");
+          
+          // Tandakan semua item semasa sebagai tersinkron
+          if (activeSector === "og") {
+            setDataOG(prev => prev.map(item => ({ ...item, synced: true })));
+          } else {
+            setDataOthers(prev => {
+              const sectorData = prev[activeSector] || [];
+              const updated = sectorData.map(item => ({ ...item, synced: true }));
+              return { ...prev, [activeSector]: updated };
+            });
+          }
+
+          alert("Semua data sektor semasa berjaya disegerakkan sepenuhnya ke Google Sheets!");
         } catch (err) {
           addLog(`Penyelarasan penuh gagal: ${err.message}`, "error");
           alert("Gagal menyegerakkan data.");
@@ -546,7 +630,6 @@
         window.print();
       };
 
-      // Mengira statistik mesyuarat semasa
       const stats = useMemo(() => {
         const total = currentSectData.length;
         let lulus = 0;
@@ -568,7 +651,6 @@
         return { total, lulus, lulusBersyarat, tolak, semakan, belum, totalApplicants };
       }, [currentSectData]);
 
-      // Menyediakan cadangan semasa pendaftaran
       const filteredCompanySuggestions = useMemo(() => {
         if (!companySearchQuery) return [];
         return uniqueCompanies.filter(c => 
@@ -602,6 +684,7 @@
             valWN: "01 MYS 'A'",
             keputusan: "",
             ulasan: "",
+            synced: false,
             penyandang: [
               {
                 nama: "AHMAD AQMAL BIN RAHMAT",
@@ -632,6 +715,7 @@
             valWN: "04 MYS 'A'",
             keputusan: "LULUS BERSYARAT",
             ulasan: "Melalui Naziran Latihan Tempatan",
+            synced: false,
             penyandang: [
               { nama: "MUHD RIDHWAN BIN MUHD ALI", jantina: "L", warganegara: "MYS", pasport: "A958060", tarikhLahir: "24.09.1995", umur: "31 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
               { nama: "MUHAMAD SAHRIN BIN MUSTAFA", jantina: "L", warganegara: "MYS", pasport: "A71240648", tarikhLahir: "23.12.1992", umur: "34 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
@@ -852,18 +936,18 @@
                   </div>
                 </div>
 
-                {}
+                {/* Jadual Utama */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
                         <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase">
                           <th className="px-4 py-3 text-center border-r border-slate-200" rowSpan={2}>Bil</th>
-                          <th className="px-4 py-3 border-r border-slate-200" rowSpan={2}>Nama Syarikat</th>
+                          <th className="px-4 py-3 border-r border-slate-200" rowSpan={2}>Nama Syarikat & Alamat</th>
                           <th className="px-4 py-3 border-r border-slate-200" rowSpan={2}>Butiran Penyandang</th>
                           <th className="px-4 py-3 text-center border-r border-slate-200" rowSpan={2}>Tempoh Mohon</th>
                           <th className="px-4 py-2 text-center border-r border-slate-200" colSpan={4}>Permohonan / Warganegara</th>
-                          <th className="px-4 py-3 border-r border-slate-200" rowSpan={2}>Nama Projek</th>
+                          <th className="px-4 py-3 border-r border-slate-200" rowSpan={2}>Nama Projek & Kegiatan</th>
                           <th className="px-4 py-3 border-r border-slate-200" rowSpan={2}>Keputusan</th>
                           <th className="px-4 py-3 text-right" rowSpan={2}>Tindakan</th>
                         </tr>
@@ -888,8 +972,15 @@
                               <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
                                 <td className="px-4 py-4 text-center font-bold text-slate-500 border-r border-slate-100">{index + 1}.</td>
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[200px]">
-                                  <div className="font-bold text-blue-950 uppercase">{item.namaSyarikat}</div>
-                                  <div className="text-[10px] text-slate-500 mt-1 uppercase leading-tight">{item.alamat}</div>
+                                  <div className="flex items-start gap-1.5">
+                                    <div className="mt-0.5" title={item.synced ? "Tersinkron dengan Google Sheets" : "Hanya disimpan di dalam pelayar (Tempatan)"}>
+                                      {item.synced ? <Icon name="cloudCheck" size={16} /> : <Icon name="cloudAlert" size={16} />}
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-blue-950 uppercase">{item.namaSyarikat}</div>
+                                      <div className="text-[10px] text-slate-500 mt-1 uppercase leading-tight">{item.alamat}</div>
+                                    </div>
+                                  </div>
                                 </td>
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[250px]">
                                   <div className="flex flex-col gap-2">
@@ -1004,6 +1095,9 @@
                                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
                                   Sektor: {activeSector.toUpperCase()}
                                 </span>
+                                <div className="ml-auto" title={item.synced ? "Status: Tersinkron di Google Sheets" : "Status: Hanya di pelayar tempatan"}>
+                                  {item.synced ? <span className="text-emerald-600 text-xs font-semibold flex items-center gap-1"><Icon name="cloudCheck" size={16}/> Tersinkron</span> : <span className="text-slate-400 text-xs font-semibold flex items-center gap-1"><Icon name="cloudAlert" size={16}/> Tempatan</span>}
+                                </div>
                               </div>
                               <h2 className="text-xl font-black text-blue-950 mt-2 leading-tight uppercase">
                                 {item.namaSyarikat}
@@ -1223,7 +1317,7 @@
                               <Icon name="database" size={12} className={sheetUrl ? "text-emerald-400" : "text-slate-600"} />
                               {sheetUrl ? `Google Sheet Aktif` : "Mod Simpanan Tempatan"}
                             </span>
-                            <span className="text-emerald-400 font-bold">Auto-Simpan Aktif</span>
+                            <span className="text-emerald-400 font-bold">Auto-Simpan Masa Nyata Aktif</span>
                           </div>
 
                         </div>
@@ -1334,7 +1428,6 @@
           </main>
 
           {/* ================================= DOKUMEN CETAKAN PDF RASMI (KERAJAAN LANDSKAP) ================================= */}
-          {}
           <div className="hidden print:block bg-white text-black p-4 min-h-screen print-page font-serif">
             <div className="text-center flex flex-col gap-1 pb-4 mb-4 border-b border-black">
               <h1 className="text-sm font-bold uppercase tracking-tight">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</h1>
@@ -1410,7 +1503,7 @@
                       </div>
                     </td>
                     
-                    {/* Lajur 10: KEPUTUSAN (Format image_566509.png Checkboxes & Ulasan Bertitik) */}
+                    {/* Lajur 10: KEPUTUSAN */}
                     <td className="p-2 align-top text-left">
                       <div className="flex flex-col gap-1.5 text-[10px] font-semibold text-black">
                         <div className="flex items-center gap-1.5">
@@ -1796,7 +1889,6 @@
       );
     }
 
-    // Melakukan Render ke HTML Element
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
