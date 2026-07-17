@@ -14,16 +14,22 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
     @media print {
       @page {
         size: A4 landscape;
-        margin: 1.2cm;
+        margin: 1.0cm;
       }
       body {
         background-color: white !important;
         color: black !important;
         font-family: "Times New Roman", Times, serif !important;
-        font-size: 11px !important;
+        font-size: 10px !important;
       }
       .no-print {
         display: none !important;
@@ -39,11 +45,13 @@
         border-collapse: collapse !important;
       }
       th {
-        background-color: #e2e8f0 !important;
+        background-color: #f1f5f9 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
     }
+    
+    /* Custom scrollbar style */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -60,7 +68,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
   <div id="root"></div>
 
@@ -75,6 +83,7 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
+    // Komponen Ikon SVG Tempatan Tanpa Library Import Luaran
     function Icon({ name, size = 16, className = "" }) {
       const paths = {
         users: (
@@ -215,6 +224,45 @@
       );
     }
 
+    // Helper Pintar untuk Pengiraan lajur B (Baru) dan W/N (Warganegara) mengikut Pasport
+    const calculateBAndWN = (penyandangs) => {
+      if (!penyandangs || penyandangs.length === 0) {
+        return { valB: "-", valWN: "-" };
+      }
+      
+      // Lajur B dikira daripada jumlah penyandang semasa
+      const valB = String(penyandangs.length).padStart(2, '0');
+      
+      // Grouping mengikut warganegara penyandang
+      const groups = {};
+      penyandangs.forEach(p => {
+        const wn = (p.warganegara || "MYS").trim().toUpperCase();
+        if (!groups[wn]) {
+          groups[wn] = [];
+        }
+        groups[wn].push(p);
+      });
+      
+      const wnParts = [];
+      Object.keys(groups).forEach(wn => {
+        const count = String(groups[wn].length).padStart(2, '0');
+        if (wn === "MYS") {
+          // Hanya jika MYS: ambil huruf pertama pasport (default 'A' jika tiada pasport)
+          const firstP = groups[wn][0];
+          const letter = firstP.pasport ? firstP.pasport.trim().charAt(0).toUpperCase() : 'A';
+          wnParts.push(`${count} MYS '${letter}'`);
+        } else {
+          // Jika asing: format ringkas cth "01 GBR"
+          wnParts.push(`${count} ${wn}`);
+        }
+      });
+      
+      return {
+        valB,
+        valWN: wnParts.join('\n') // Gunakan pemisah baris baharu
+      };
+    };
+
     function App() {
       const [meetingNumber, setMeetingNumber] = useState(() => {
         return localStorage.getItem('jkplik_meeting_number') || "14";
@@ -227,9 +275,9 @@
       });
 
       const [activeSector, setActiveSector] = useState("og");
-      const [viewMode, setViewMode] = useState("dashboard"); 
+      const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
 
-      // Data permulaan kosong (Sedia Untuk Pengujian)
+      // Pangkalan data bersih dari data contoh (sedia diuji)
       const [dataOG, setDataOG] = useState(() => {
         const saved = localStorage.getItem('jkplik_data_og_v3');
         return saved ? JSON.parse(saved) : [];
@@ -250,7 +298,18 @@
       const [isSyncing, setIsSyncing] = useState(false);
       const [syncLogs, setSyncLogs] = useState([]);
 
-      // Modal & Keadaan Auto-suggest
+      // Custom notification toasts (Gantian kepada standard alert)
+      const [toasts, setToasts] = useState([]);
+      const showToast = (message, type = "info") => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+          setToasts(prev => prev.filter(t => t.id !== id));
+        }, 4000);
+      };
+
+      // Custom Modal States (Gantian kepada standard confirm)
+      const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: "" });
       const [showAddModal, setShowAddModal] = useState(false);
       const [companySearchQuery, setCompanySearchQuery] = useState("");
       const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
@@ -272,13 +331,14 @@
         valTR: "-", 
         valWN: "01 MYS 'A'",
         penyandang: [],
-        synced: false // Menunjukkan status penyelarasan Google Sheet
+        synced: false
       });
 
       const [newPenyandang, setNewPenyandang] = useState({
         nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000"
       });
 
+      // Auto-suggest Syarikat Sedia Ada
       const uniqueCompanies = useMemo(() => {
         const all = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -301,6 +361,7 @@
         return result;
       }, [dataOG, dataOthers]);
 
+      // Auto-suggest Pemilik Projek Sedia Ada
       const uniqueOwners = useMemo(() => {
         const all = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -383,10 +444,11 @@
         return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
       };
 
+      // Hantar rekod permohonan baharu ke Sheets secara terus
       const syncAddRowToGoogleSheets = async (item) => {
         if (!sheetUrl) return;
         const sheetName = getSheetName();
-        addLog(`[AUTO-SYNC] Menghantar permohonan baru "${item.namaSyarikat}" ke Google Sheets...`, "info");
+        addLog(`[AUTO-SYNC] Menghantar "${item.namaSyarikat}" ke Google Sheets...`, "info");
         try {
           await fetch(sheetUrl, {
             method: "POST",
@@ -399,19 +461,20 @@
               sheetName: sheetName
             })
           });
-          addLog(`[AUTO-SYNC] "${item.namaSyarikat}" berjaya ditambah ke Google Sheets.`, "success");
-          
-          // Tandakan item sebagai disinkronkan
+          addLog(`[AUTO-SYNC] "${item.namaSyarikat}" berjaya disegerakkan.`, "success");
           markAsSynced(item.id, true);
+          showToast(`Syarikat ${item.namaSyarikat} telah dihantar ke Google Sheets!`, "success");
         } catch (err) {
-          addLog(`[AUTO-SYNC] Gagal menambah baris ke Google Sheets: ${err.message}`, "error");
+          addLog(`[AUTO-SYNC] Gagal disegerakkan ke Google Sheets: ${err.message}`, "error");
+          showToast("Isu jaringan dikesan semasa penyelarasan awan.", "error");
         }
       };
 
+      // Padam rekod secara dinamik dari Google Sheets
       const syncDeleteRowFromGoogleSheets = async (id) => {
         if (!sheetUrl) return;
         const sheetName = getSheetName();
-        addLog(`[AUTO-SYNC] Memadam ID ${id} daripada Google Sheets...`, "info");
+        addLog(`[AUTO-SYNC] Memadam ID ${id} di Google Sheets...`, "info");
         try {
           await fetch(sheetUrl, {
             method: "POST",
@@ -423,9 +486,9 @@
               sheetName: sheetName
             })
           });
-          addLog(`[AUTO-SYNC] ID ${id} berjaya dipadam daripada Google Sheets.`, "success");
+          addLog(`[AUTO-SYNC] Rekod ID ${id} berjaya dipadam daripada Google Sheets.`, "success");
         } catch (err) {
-          addLog(`[AUTO-SYNC] Gagal memadam ID ${id} daripada Google Sheets: ${err.message}`, "error");
+          addLog(`[AUTO-SYNC] Gagal padam di Google Sheets: ${err.message}`, "error");
         }
       };
 
@@ -474,13 +537,14 @@
               sheetName: sheetName
             })
           });
-          addLog(`[AUTO-SYNC] Keputusan ID ${id} berjaya dikemas kini di Google Sheets.`, "success");
+          addLog(`[AUTO-SYNC] ID ${id} dikemas kini di Google Sheets.`, "success");
           markAsSynced(id, true);
         } catch (err) {
           addLog(`[AUTO-SYNC] Gagal mengemas kini keputusan: ${err.message}`, "error");
         }
       };
 
+      // Pendaftaran Permohonan Baharu
       const handleRegisterCompany = (e) => {
         e.preventDefault();
         if (!newCompany.namaSyarikat) return;
@@ -491,7 +555,7 @@
           bil: currentSectData.length + 1,
           keputusan: "",
           ulasan: "",
-          synced: !!sheetUrl // Ditandakan sebagai disinkronkan secara automatik jika API berjaya
+          synced: !!sheetUrl 
         };
 
         if (activeSector === "og") {
@@ -503,9 +567,10 @@
           });
         }
 
-        // Cetus Auto-Sync ke Google Sheets
         if (sheetUrl) {
           syncAddRowToGoogleSheets(newItem);
+        } else {
+          showToast(`Syarikat ${newCompany.namaSyarikat} berjaya disimpan secara tempatan!`, "success");
         }
 
         setNewCompany({
@@ -533,12 +598,13 @@
         if (!newPenyandang.nama) return;
         setNewCompany(prev => {
           const updatedPenyandang = [...prev.penyandang, newPenyandang];
-          const newCount = String(updatedPenyandang.length).padStart(2, '0');
+          // Gunakan logik pintar pengiraan dynamic B & WN
+          const { valB, valWN } = calculateBAndWN(updatedPenyandang);
           return {
             ...prev,
             penyandang: updatedPenyandang,
-            valB: newCount,
-            valWN: `${newCount} MYS 'A'`
+            valB,
+            valWN
           };
         });
         setNewPenyandang({
@@ -549,37 +615,47 @@
       const removePenyandangFromNewCompany = (idx) => {
         setNewCompany(prev => {
           const filtered = prev.penyandang.filter((_, i) => i !== idx);
-          const newCount = String(filtered.length).padStart(2, '0');
+          const { valB, valWN } = calculateBAndWN(filtered);
           return {
             ...prev,
             penyandang: filtered,
-            valB: filtered.length > 0 ? newCount : "-",
-            valWN: filtered.length > 0 ? `${newCount} MYS 'A'` : "-"
+            valB,
+            valWN
           };
         });
       };
 
-      const handleDeleteItem = (id) => {
-        if (confirm("Adakah anda pasti untuk memadam rekod permohonan ini secara kekal?")) {
-          if (activeSector === "og") {
-            setDataOG(prev => prev.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 })));
-          } else {
-            setDataOthers(prev => {
-              const filtered = (prev[activeSector] || []).filter(item => item.id !== id);
-              return { ...prev, [activeSector]: filtered.map((item, i) => ({ ...item, bil: i + 1 })) };
-            });
-          }
-
-          // Cetus auto-delete daripada Google Sheets
-          if (sheetUrl) {
-            syncDeleteRowFromGoogleSheets(id);
-          }
-        }
+      // Gantian Custom Modal Confirm Deletion
+      const triggerDeleteItem = (id) => {
+        setConfirmModal({
+          show: true,
+          message: "Adakah anda pasti untuk memadam rekod permohonan ini secara kekal daripada sistem dan Google Sheets?",
+          action: () => executeDeleteItem(id)
+        });
       };
 
+      const executeDeleteItem = (id) => {
+        if (activeSector === "og") {
+          setDataOG(prev => prev.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 })));
+        } else {
+          setDataOthers(prev => {
+            const filtered = (prev[activeSector] || []).filter(item => item.id !== id);
+            return { ...prev, [activeSector]: filtered.map((item, i) => ({ ...item, bil: i + 1 })) };
+          });
+        }
+
+        if (sheetUrl) {
+          syncDeleteRowFromGoogleSheets(id);
+        }
+        
+        showToast("Rekod berjaya dipadam.", "success");
+        setConfirmModal({ show: false, action: null, message: "" });
+      };
+
+      // Penyelarasan penuh dengan Sheets
       const handleFullSync = async () => {
         if (!sheetUrl) {
-          alert("Sila masukkan URL Google Web App yang sah di tetingkap Tetapan.");
+          showToast("Masukkan URL Google Web App terlebih dahulu di Mod Tetapan.", "error");
           return;
         }
         setIsSyncing(true);
@@ -601,7 +677,6 @@
           
           addLog(`Penyelarasan penuh berjaya dihantar ke Google Sheets [Tab: ${sheetName}]!`, "success");
           
-          // Tandakan semua item semasa sebagai tersinkron
           if (activeSector === "og") {
             setDataOG(prev => prev.map(item => ({ ...item, synced: true })));
           } else {
@@ -612,10 +687,10 @@
             });
           }
 
-          alert("Semua data sektor semasa berjaya disegerakkan sepenuhnya ke Google Sheets!");
+          showToast("Semua data sektor semasa disegerakkan sepenuhnya!", "success");
         } catch (err) {
           addLog(`Penyelarasan penuh gagal: ${err.message}`, "error");
-          alert("Gagal menyegerakkan data.");
+          showToast("Gagal menyegerakkan data.", "error");
         } finally {
           setIsSyncing(false);
         }
@@ -665,6 +740,7 @@
         );
       }, [ownerSearchQuery, uniqueOwners]);
 
+      // Suntikan Data Contoh (Format Lampiran Asal O&G SUFFARI dengan Dynamic WN)
       const loadDemoData = () => {
         const demoData = [
           {
@@ -672,8 +748,8 @@
             bil: 1,
             namaSyarikat: "BARISAN SAMUDERA SDN BHD (514578-X)",
             alamat: "LOT NO. 23A, BLOCK C, 1ST & 2ND FLOOR, BUNDUSAN SQUARE, KOTA KINABALU SABAH.",
-            kegiatan: "SYARIKAT MENJALANKAN KEGIATAN REPAIR AND MAINTENANCE OF INDUSTRIAL MACHINERY AND EQUIPMENT, GENERAL CONSTRUCTION, HOUSEKEEPING, GRASS CUTTING AND LANDSCAPING, ELECTRICAL/ELECTRONIC COMPONENTS AND ACCESSORIES.",
-            projek: "SYARIKAT MENDAPAT \"CONTRACT PROVISION OF HEAT EXCHANGER, PRESSURE VESSEL AND UTILITY TANK MAINTENANCE SERVICES FOR PETRONAS CARIGALI SDN BHD (PACKAGE A).",
+            kegiatan: "REPAIR AND MAINTENANCE OF INDUSTRIAL MACHINERY AND EQUIPMENT, GENERAL CONSTRUCTION, HOUSEKEEPING, GRASS CUTTING AND LANDSCAPING, ELECTRICAL/ELECTRONIC COMPONENTS AND ACCESSORIES.",
+            projek: "CONTRACT PROVISION OF HEAT EXCHANGER, PRESSURE VESSEL AND UTILITY TANK MAINTENANCE SERVICES FOR PETRONAS CARIGALI SDN BHD (PACKAGE A).",
             noKontrak: "RFP-000000032393(A)",
             tempohProjek: "11 JAN 2026 – 10 JAN 2027",
             ownerProjek: "PETRONAS CARIGALI SDN BHD",
@@ -686,16 +762,7 @@
             ulasan: "",
             synced: false,
             penyandang: [
-              {
-                nama: "AHMAD AQMAL BIN RAHMAT",
-                jantina: "L",
-                warganegara: "MYS",
-                pasport: "A72545666",
-                tarikhLahir: "25.02.1988",
-                umur: "38 THN",
-                jawatan: "TECHNICAL EXPERTISE",
-                gaji: "RM15,000"
-              }
+              { nama: "AHMAD AQMAL BIN RAHMAT", jantina: "L", warganegara: "MYS", pasport: "A72545666", tarikhLahir: "25.02.1988", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000" }
             ]
           },
           {
@@ -703,8 +770,8 @@
             bil: 2,
             namaSyarikat: "BUMITECH GLOBAL ENERGY SDN BHD (781730-D)",
             alamat: "NO 47 & 47-1 JALAN INDUSTRI TMP 1, TAMAN PERINDUSTRIAN TANJUNG MINYAK PERDANA, 75260 MELAKA.",
-            kegiatan: "SYARIKAT MENJALANKAN KEGIATAN ENGINEERING INSPECTION AND SERVICES",
-            projek: "SYARIKAT MENDAPAT \"CONTRACT PROVISION OF PAN MALAYSIA – ADVANCE NDT INSPECTION SERVICES (PACKAGE A) FOR MALAYSIA LNG SDN BHD BERTARIKH 17 AUG 2023",
+            kegiatan: "ENGINEERING INSPECTION AND SERVICES",
+            projek: "CONTRACT PROVISION OF PAN MALAYSIA – ADVANCE NDT INSPECTION SERVICES (PACKAGE A) FOR MALAYSIA LNG SDN BHD BERTARIKH 17 AUG 2023",
             noKontrak: "RFP-000000041163/MLNG",
             tempohProjek: "17 AUG 2023 – 14 JUN 2028",
             ownerProjek: "PETRONAS CARIGALI SDN BHD",
@@ -713,35 +780,112 @@
             valL: "-",
             valTR: "-",
             valWN: "04 MYS 'A'",
-            keputusan: "LULUS BERSYARAT",
-            ulasan: "Melalui Naziran Latihan Tempatan",
+            keputusan: "",
+            ulasan: "",
             synced: false,
             penyandang: [
               { nama: "MUHD RIDHWAN BIN MUHD ALI", jantina: "L", warganegara: "MYS", pasport: "A958060", tarikhLahir: "24.09.1995", umur: "31 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
               { nama: "MUHAMAD SAHRIN BIN MUSTAFA", jantina: "L", warganegara: "MYS", pasport: "A71240648", tarikhLahir: "23.12.1992", umur: "34 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { name: "MUHAMMAD IRFAN BIN AZMI", jantina: "L", warganegara: "MYS", pasport: "A72522080", tarikhLahir: "18.01.2001", umur: "25 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
+              { nama: "MUHAMMAD IRFAN BIN AZMI", jantina: "L", warganegara: "MYS", pasport: "A72522080", tarikhLahir: "18.01.2001", umur: "25 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
               { nama: "MOHD REEZA BIN MOHD ROSLI", jantina: "L", warganegara: "MYS", pasport: "A71072026", tarikhLahir: "07.06.1981", umur: "45 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" }
+            ]
+          },
+          {
+            id: `OG-${Date.now()}-11`,
+            bil: 3,
+            namaSyarikat: "MKN ODYSSEY VENTURES SDN. BHD. (879940-H)",
+            alamat: "8-09-03, JALAN MEDAN PUSAT BANDAR 7A BANGI SENTRAL, SEKSYEN 9, 43650 BANDAR BARU BANGI, SELANGOR.",
+            kegiatan: "OIL AND GAS SERVICES",
+            projek: "LETTER OF AWARD FOR PROVISION OF JACK UP DRILLING RIG AND BUNDLED SERVICES FOR PETRONAS CARIGALI DRILLING PROGRAM.",
+            noKontrak: "CHO/2022/WELLS/1020",
+            tempohProjek: "05.01.2026 – 04.01.2028",
+            ownerProjek: "PETRONAS CARIGALI SDN BHD",
+            tempohMohon: "06 BULAN",
+            valB: "25",
+            valL: "-",
+            valTR: "-",
+            valWN: "22 VNM\n01 CAN\n01 NLD\n01 GBR",
+            keputusan: "",
+            ulasan: "",
+            synced: false,
+            penyandang: [
+              { nama: "PAYNE EUGENE LAWRENCE", jantina: "L", warganegara: "CAN", pasport: "AH672543", tarikhLahir: "18.01.1974", umur: "52 THN", jawatan: "MAINTENANCE SUPERINTENDENT", gaji: "RM26,400" },
+              { nama: "KOK BART JOHANNES", jantina: "L", warganegara: "NLD", pasport: "BRDD31222", tarikhLahir: "22.04.1966", umur: "60 THN", jawatan: "SENIOR TOOLPUSHER", gaji: "RM37,800" },
+              { nama: "BARTLEY STEPHEN GARETH", jantina: "L", warganegara: "GBR", pasport: "GBR149577", tarikhLahir: "11.02.1972", umur: "54 THN", jawatan: "BARGE CAPTAIN", gaji: "RM20,000" },
+              ...Array(22).fill(null).map((_, i) => ({
+                nama: `WARGANEGARA VIETNAM ${i + 1}`,
+                jantina: "L",
+                warganegara: "VNM",
+                pasport: `VN${100000 + i}`,
+                tarikhLahir: "01.01.1985",
+                umur: "41 THN",
+                jawatan: "ELECTRICIAN/DERRICK MAN/DRILLER",
+                gaji: "RM6,000"
+              }))
             ]
           }
         ];
         
         setDataOG(demoData);
-        alert("2 Rekod contoh O&G SUFFARI berjaya dimuatkan ke dalam Sektor Minyak & Gas!");
+        showToast("Tiga data ujian (termasuk kes MKN Odyssey warganegara bercampur) berjaya dimuatkan!", "success");
         setViewMode("dashboard");
       };
 
       return (
         <div className="flex-1 flex flex-col min-h-screen">
           
+          {/* TOAST SYSTEM (Gantian standard alert) */}
+          <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 no-print">
+            {toasts.map(t => (
+              <div key={t.id} className={`p-4 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-2.5 transition-all animate-bounce ${
+                t.type === "success" ? "bg-emerald-500 text-white border-emerald-600" :
+                t.type === "error" ? "bg-red-500 text-white border-red-600" : "bg-blue-900 text-white border-blue-950"
+              }`}>
+                <span>{t.message}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CUSTOM CONFIRM MODAL (Gantian standard confirm) */}
+          {confirmModal.show && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 no-print">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                  <Icon name="alertTriangle" size={24} />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">Sila Sahkan Tindakan</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">{confirmModal.message}</p>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <button
+                    onClick={() => setConfirmModal({ show: false, action: null, message: "" })}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-bold transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={confirmModal.action}
+                    className="bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                  >
+                    Ya, Padam
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ================================= HEADER / NAVIGASI KERAJAAN ================================= */}
           <header className="sticky top-0 z-40 bg-white border-b-4 border-amber-500 shadow-md px-6 py-4 flex flex-wrap items-center justify-between gap-4 no-print">
             <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-tr from-blue-900 to-blue-800 p-2.5 rounded-xl text-white shadow-md">
-                <div className="w-12 h-12 flex flex-col items-center justify-center font-bold text-center text-[10px] leading-tight border border-amber-400 rounded p-1 bg-blue-950">
-                  <span className="text-amber-400">KDN</span>
-                  <span className="border-t border-slate-500 w-full my-0.5" />
-                  <span>JIM</span>
-                </div>
+              <div className="bg-white p-1 rounded-xl shadow-md border border-slate-200/60 flex items-center justify-center">
+                <img 
+                  src="https://ik.imagekit.io/487xv3vag/logo_jim.png?updatedAt=1782964387425" 
+                  alt="Logo Jabatan Imigresen Malaysia" 
+                  className="h-14 w-auto object-contain"
+                  onError={(e) => {
+                    e.target.onerror = null; 
+                    e.target.src = "https://placehold.co/100x100/1e3a8a/ffffff?text=JIM";
+                  }}
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-blue-950 flex items-center gap-2">
@@ -777,10 +921,10 @@
               </div>
               <button 
                 onClick={() => setMeetingNumber(prev => String(Number(prev) + 1))}
-                className="bg-blue-900 hover:bg-blue-850 text-white rounded px-2 py-0.5 text-[10px] font-bold"
-                title="Tambah Sesi Bilangan Mesyuarat"
+                className="bg-blue-900 hover:bg-blue-800 text-white rounded px-2 py-0.5 text-[10px] font-bold"
+                title="Sesi Seterusnya"
               >
-                +1 Bil
+                +1 Sesi
               </button>
             </div>
 
@@ -815,7 +959,7 @@
                     ? "bg-blue-900 text-white border-blue-900"
                     : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
                 }`}
-                title="Integrasi Google Sheets & Nama Pegawai"
+                title="Tetapan Pegawai & API"
               >
                 <Icon name="settings" size={15} />
               </button>
@@ -962,7 +1106,7 @@
                         {filteredData.length === 0 ? (
                           <tr>
                             <td colSpan={11} className="text-center py-12 text-slate-400 font-medium">
-                              Tiada rekod ditemui. Sila guna butang 'Daftar Permohonan Baru' atau muat data demo di tetingkap Tetapan.
+                              Tiada rekod ditemui. Daftar permohonan baru atau muat data ujian di tetingkap Tetapan.
                             </td>
                           </tr>
                         ) : (
@@ -973,7 +1117,7 @@
                                 <td className="px-4 py-4 text-center font-bold text-slate-500 border-r border-slate-100">{index + 1}.</td>
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[200px]">
                                   <div className="flex items-start gap-1.5">
-                                    <div className="mt-0.5" title={item.synced ? "Tersinkron dengan Google Sheets" : "Hanya disimpan di dalam pelayar (Tempatan)"}>
+                                    <div className="mt-0.5" title={item.synced ? "Tersinkron dengan Google Sheets" : "Simpanan Tempatan"}>
                                       {item.synced ? <Icon name="cloudCheck" size={16} /> : <Icon name="cloudAlert" size={16} />}
                                     </div>
                                     <div>
@@ -996,7 +1140,7 @@
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valB || "-"}</td>
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valL || "-"}</td>
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valTR || "-"}</td>
-                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-blue-950 text-[10px] whitespace-nowrap">{item.valWN || "-"}</td>
+                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-blue-950 text-[10px] whitespace-pre-line leading-relaxed">{item.valWN || "-"}</td>
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[280px]">
                                   <div className="flex flex-col gap-2 text-[11px] leading-relaxed">
                                     <div>
@@ -1047,7 +1191,7 @@
                                       <Icon name="presentation" size={15} />
                                     </button>
                                     <button
-                                      onClick={() => handleDeleteItem(item.id)}
+                                      onClick={() => triggerDeleteItem(item.id)}
                                       className="p-1 hover:bg-red-50 hover:text-red-600 rounded transition-colors text-slate-500"
                                       title="Padam Rekod"
                                     >
@@ -1067,7 +1211,7 @@
               </div>
             )}
 
-            {/* VIEW 2: MOD SLAID PRESENTASI */}
+            {/* ================================= VIEW 2: MOD SLAID PRESENTASI ================================= */}
             {viewMode === "meeting" && (
               <div className="flex-1 flex flex-col gap-6">
                 {filteredData.length === 0 ? (
@@ -1154,6 +1298,7 @@
                               </span>
                               <div className="flex gap-2 text-[10px]">
                                 <span className="bg-blue-50 text-blue-900 font-bold px-2 py-0.5 rounded border border-blue-150">B: {item.valB}</span>
+                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200 whitespace-pre-line">WN: {item.valWN}</span>
                                 <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">Tempoh Mohon: {item.tempohMohon}</span>
                               </div>
                             </div>
@@ -1202,7 +1347,7 @@
                                 <Icon name="chevronRight" size={16} />
                               </button>
                               <span className="text-[10px] font-semibold text-slate-500 ml-2">
-                                Gunakan <kbd className="bg-slate-150 px-1 py-0.5 rounded">←</kbd> & <kbd className="bg-slate-150 px-1 py-0.5 rounded">→</kbd> papan kekunci.
+                                Gunakan papan kekunci <kbd className="bg-slate-150 px-1 py-0.5 rounded">←</kbd> & <kbd className="bg-slate-150 px-1 py-0.5 rounded">→</kbd> untuk kawalan pantas.
                               </span>
                             </div>
                             
@@ -1223,7 +1368,7 @@
                             <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
                               Panel Pilihan Keputusan
                             </h3>
-                            <p className="text-[10px] text-slate-400 font-medium">Klik keputusan untuk mengemas kini data terus ke sistem.</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Keputusan diselaraskan secara auto-sync.</p>
                           </div>
 
                           {/* Senarai Tindakan */}
@@ -1304,7 +1449,7 @@
                             </label>
                             <textarea
                               rows={4}
-                              placeholder="Nyatakan justifikasi atau syarat permohonan di sini..."
+                              placeholder="Nyatakan justifikasi di sini..."
                               value={item.ulasan || ""}
                               onChange={(e) => handleSaveDecision(item.id, item.keputusan, e.target.value)}
                               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500 transition-colors placeholder:text-slate-600 resize-none font-sans"
@@ -1317,7 +1462,7 @@
                               <Icon name="database" size={12} className={sheetUrl ? "text-emerald-400" : "text-slate-600"} />
                               {sheetUrl ? `Google Sheet Aktif` : "Mod Simpanan Tempatan"}
                             </span>
-                            <span className="text-emerald-400 font-bold">Auto-Simpan Masa Nyata Aktif</span>
+                            <span className="text-emerald-400 font-bold">Auto-Simpan Aktif</span>
                           </div>
 
                         </div>
@@ -1330,7 +1475,7 @@
               </div>
             )}
 
-            {/* VIEW 3: SETTINGS & GOOGLE SHEET SYNCHRONIZATION */}
+            {/* ================================= VIEW 3: SETTINGS & GOOGLE SHEET CONFIG ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -1350,13 +1495,13 @@
                   </label>
                   <input
                     type="text"
-                    placeholder="Masukkan nama penuh atau jawatan pegawai..."
+                    placeholder="Masukkan nama penuh pegawai..."
                     value={officerName}
                     onChange={(e) => setOfficerName(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-semibold"
                   />
                   <p className="text-[10px] text-slate-600 mt-1">
-                    Nama tab yang akan dijana di Google Sheets: <strong className="text-blue-900 font-bold">{getSheetName()}</strong>
+                    Nama tab Google Sheets: <strong className="text-blue-900 font-bold">{getSheetName()}</strong>
                   </p>
                 </div>
 
@@ -1370,7 +1515,7 @@
                     onChange={(e) => setSheetUrl(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-mono"
                   />
-                  <span className="text-[10px] text-slate-400 font-medium">Sila pastikan Web App disebarkan (*deploy*) sebagai **Anyone** untuk akses lancar tanpa ralat 401.</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Pastikan Web App disebarkan (*deploy*) sebagai **Anyone** untuk akses lancar tanpa ralat 401.</span>
                 </div>
 
                 {/* Kawalan Pengujian Laju */}
@@ -1378,11 +1523,11 @@
                   <h4 className="text-xs font-bold text-slate-700 mb-2">Mod Pengujian & Data Contoh</h4>
                   <button
                     onClick={loadDemoData}
-                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-sm"
+                    className="bg-amber-650 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-sm"
                   >
-                    Muat Data Demo (O&G SUFFARI)
+                    Muat Data Demo (Sertakan MKN Odyssey)
                   </button>
-                  <p className="text-[10px] text-slate-500 mt-1">Suntik rekod ujian pangkalan data secara terus untuk menguji format jana PDF landskap.</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Suntik rekod ujian yang mempunya warganegara bercampur untuk melihat ketepatan pengisian lajur B dan W/N.</p>
                 </div>
 
                 <div className="flex items-center gap-3 border-t border-slate-200 pt-4 mt-2">
@@ -1408,7 +1553,7 @@
                   <span className="text-xs font-bold text-slate-700">Log Aktiviti Sambungan API</span>
                   <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 h-40 overflow-y-auto font-mono text-[10px] flex flex-col gap-1.5">
                     {syncLogs.length === 0 ? (
-                      <span className="text-slate-400 italic">Tiada log pemprosesan dikesan buat masa ini.</span>
+                      <span className="text-slate-400 italic">Tiada log pemprosesan dikesan.</span>
                     ) : (
                       syncLogs.map((log, i) => (
                         <div key={i} className={`flex gap-2 ${
@@ -1459,13 +1604,11 @@
                   <tr key={item.id} className="border-b border-black font-serif">
                     <td className="p-2 text-center font-bold border-r border-black align-top">{idx + 1}.</td>
                     
-                    {/* Lajur 2: NAMA SYARIKAT */}
                     <td className="p-2 border-r border-black align-top">
                       <div className="font-bold uppercase text-black leading-tight">{item.namaSyarikat}</div>
                       <div className="text-[9px] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
                     </td>
                     
-                    {/* Lajur 3: BUTIRAN PENYANDANG */}
                     <td className="p-2 border-r border-black align-top">
                       <div className="flex flex-col gap-2">
                         {(item.penyandang || []).map((p, pidx) => (
@@ -1477,16 +1620,14 @@
                       </div>
                     </td>
                     
-                    {/* Lajur 4: TEMPOH MOHON */}
                     <td className="p-2 text-center border-r border-black align-top font-semibold">{item.tempohMohon}</td>
                     
-                    {/* Sub-lajur: B, L, TR, WN */}
                     <td className="p-2 text-center border-r border-black align-top font-bold">{item.valB || "-"}</td>
                     <td className="p-2 text-center border-r border-black align-top font-bold">{item.valL || "-"}</td>
                     <td className="p-2 text-center border-r border-black align-top font-bold">{item.valTR || "-"}</td>
-                    <td className="p-2 text-center border-r border-black align-top font-bold text-[9px] uppercase whitespace-nowrap">{item.valWN || "-"}</td>
+                    {/* Menggunakan whitespace-pre-line untuk paparan grouping baris demi baris */}
+                    <td className="p-2 text-center border-r border-black align-top font-bold text-[9px] uppercase whitespace-pre-line leading-relaxed">{item.valWN || "-"}</td>
                     
-                    {/* Lajur 9: NAMA PROJEK */}
                     <td className="p-2 border-r border-black align-top">
                       <div className="flex flex-col gap-2 text-[9.5px] leading-relaxed">
                         <div>
@@ -1503,7 +1644,6 @@
                       </div>
                     </td>
                     
-                    {/* Lajur 10: KEPUTUSAN */}
                     <td className="p-2 align-top text-left">
                       <div className="flex flex-col gap-1.5 text-[10px] font-semibold text-black">
                         <div className="flex items-center gap-1.5">
@@ -1528,7 +1668,7 @@
                           {item.ulasan ? (
                             <p className="text-slate-900 italic mt-1 leading-normal font-bold">"{item.ulasan}"</p>
                           ) : (
-                            <div className="flex flex-col gap-1.5 mt-2 text-slate-400">
+                            <div className="flex flex-col gap-1.5 mt-2 text-slate-400 font-mono">
                               <div>.......................................................................</div>
                               <div>.......................................................................</div>
                               <div>.......................................................................</div>
@@ -1567,7 +1707,7 @@
                     <div className="flex flex-col gap-1.5 relative">
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Syarikat & No. Pendaftaran</span>
-                        <span className="text-[9px] text-blue-700 italic font-medium">Auto-semak pangkalan data</span>
+                        <span className="text-[9px] text-blue-700 italic font-medium">Sistem menyemak pangkalan data</span>
                       </label>
                       <input
                         type="text"
@@ -1714,8 +1854,9 @@
                         <input
                           type="text"
                           value={newCompany.valB}
-                          onChange={(e) => setNewCompany({...newCompany, valB: e.target.value})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
+                          readOnly
+                          className="bg-slate-100 border border-amber-300 rounded p-1 text-center font-bold text-xs text-slate-500 cursor-not-allowed"
+                          title="Dikira secara automatik berdasarkan bilangan penyandang."
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1724,7 +1865,7 @@
                           type="text"
                           value={newCompany.valL}
                           onChange={(e) => setNewCompany({...newCompany, valL: e.target.value})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
+                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs focus:outline-none"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1733,7 +1874,7 @@
                           type="text"
                           value={newCompany.valTR}
                           onChange={(e) => setNewCompany({...newCompany, valTR: e.target.value})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
+                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs focus:outline-none"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1741,8 +1882,9 @@
                         <input
                           type="text"
                           value={newCompany.valWN}
-                          onChange={(e) => setNewCompany({...newCompany, valWN: e.target.value})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
+                          readOnly
+                          className="bg-slate-100 border border-amber-300 rounded p-1 text-center font-bold text-xs text-slate-500 cursor-not-allowed whitespace-pre-line"
+                          title="Dijana secara automatik."
                         />
                       </div>
                     </div>
@@ -1787,23 +1929,23 @@
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">No. Pasport</span>
+                        <span className="text-[10px] text-slate-500 font-bold">No. Pasport (Mulakan dgn huruf)</span>
                         <input
                           type="text"
-                          placeholder="Contoh: A58331694"
+                          placeholder="Contoh: A72545666"
                           value={newPenyandang.pasport}
                           onChange={(e) => setNewPenyandang({...newPenyandang, pasport: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Warganegara</span>
+                        <span className="text-[10px] text-slate-500 font-bold">Warganegara (MYS/GBR/VNM)</span>
                         <input
                           type="text"
                           placeholder="Contoh: MYS"
                           value={newPenyandang.warganegara}
                           onChange={(e) => setNewPenyandang({...newPenyandang, warganegara: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1831,7 +1973,7 @@
                         <button
                           type="button"
                           onClick={addPenyandangToNewCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-850 text-white font-bold py-1.5 rounded text-xs border border-blue-900 shadow-sm transition-colors"
+                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-1.5 rounded text-xs border border-blue-900 shadow-sm transition-colors"
                         >
                           + Tambah Pemohon
                         </button>
@@ -1843,11 +1985,11 @@
                       <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
                         {newCompany.penyandang.map((p, idx) => (
                           <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji})</span>
+                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji} • Pasport: {p.pasport || "-"} • WN: {p.warganegara})</span>
                             <button
                               type="button"
                               onClick={() => removePenyandangFromNewCompany(idx)}
-                              className="text-red-600 hover:text-red-800 font-bold text-[10px]"
+                              className="text-red-600 hover:text-red-850 font-bold text-[10px]"
                             >
                               Padam Rekod Kakitangan
                             </button>
