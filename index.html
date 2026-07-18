@@ -267,7 +267,7 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbV9rOzjZ1EFxbVN2NRAM0SRaJNSCOz57SaByxUT4RqskgnXgpHdtAI-2Txms6AANqh/exec";
+    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbxeVc7-GLNZ-Paqe1K22eR_yoyCNvlx4Yai3vSyjTRQySTRYLB5khrXxnoM80XWG6Q/exec";
 
     function App() {
       const [meetingNumber, setMeetingNumber] = useState(() => {
@@ -314,13 +314,20 @@
         }, 4000);
       };
 
-      // Custom Modal States (Gantian kepada standard confirm)
+      // Custom Modal States
       const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: "" });
       const [showAddModal, setShowAddModal] = useState(false);
       const [companySearchQuery, setCompanySearchQuery] = useState("");
       const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
       const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
       const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
+
+      // Carian Arkib Masa Nyata
+      const [pastSheets, setPastSheets] = useState([]);
+      const [showArchiveModal, setShowArchiveModal] = useState(false);
+      const [globalCompanies, setGlobalCompanies] = useState([]);
+      const [globalOwners, setGlobalOwners] = useState([]);
+      const [isLoadingArchive, setIsLoadingArchive] = useState(false);
 
       // Borang Syarikat Baru
       const [newCompany, setNewCompany] = useState({
@@ -344,15 +351,115 @@
         nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000"
       });
 
-      // Auto-suggest Syarikat Sedia Ada
+      // Panggil API Google Sheets untuk memuatkan kesemua pangkalan data sejarah rentas tab
+      const fetchGlobalHistory = async () => {
+        if (!sheetUrl) return;
+        try {
+          const res = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "get_global_history" })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            setGlobalCompanies(result.companies || []);
+            setGlobalOwners(result.owners || []);
+            addLog(`Berjaya memuatkan ${result.companies.length} rekod syarikat sejarah dari Google Sheets.`, "success");
+          }
+        } catch (err) {
+          addLog("Gagal menghubungi pangkalan data awan untuk carian sejarah.", "error");
+        }
+      };
+
+      // Panggil carian sejarah sebaik sahaja tetingkap pendaftaran dibuka
+      useEffect(() => {
+        if (showAddModal) {
+          fetchGlobalHistory();
+        }
+      }, [showAddModal]);
+
+      // Ambil senarai tab arkib daripada helaian Google Sheets
+      const fetchArchiveSheets = async () => {
+        if (!sheetUrl) {
+          showToast("URL Google Apps Script tidak ditemui.", "error");
+          return;
+        }
+        setIsLoadingArchive(true);
+        try {
+          const res = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "get_sheets_list" })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            setPastSheets(result.sheets || []);
+            setShowArchiveModal(true);
+          } else {
+            showToast("Gagal memuatkan senarai arkib.", "error");
+          }
+        } catch (err) {
+          showToast("Ralat sambungan API dikesan.", "error");
+        } finally {
+          setIsLoadingArchive(false);
+        }
+      };
+
+      // Muatkan data dari tab arkib tertentu ke skrin utama
+      const loadPastSheetData = async (selectedSheetName) => {
+        setIsLoadingArchive(true);
+        addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
+        try {
+          const res = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "load_sheet_data", sheetName: selectedSheetName })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            const records = result.records || [];
+            
+            // Masukkan mengikut sektor data aktif
+            if (activeSector === "og") {
+              setDataOG(records);
+            } else {
+              setDataOthers(prev => ({ ...prev, [activeSector]: records }));
+            }
+
+            // Laraskan input bilangan mesyuarat dan tahun berdasarkan nama helaian
+            const match = selectedSheetName.match(/Bil\.\s*(\d+)\/(\d+)/i);
+            if (match) {
+              setMeetingNumber(match[1]);
+              setMeetingYear(match[2]);
+            }
+
+            showToast(`Berjaya memuatkan ${records.length} data daripada tab ${selectedSheetName}!`, "success");
+            setShowArchiveModal(false);
+          } else {
+            showToast("Isu dikesan semasa memuat turun data arkib.", "error");
+          }
+        } catch (err) {
+          showToast("Ralat semasa memanggil API Sheets.", "error");
+        } finally {
+          setIsLoadingArchive(false);
+        }
+      };
+
+      // Auto-suggest Syarikat Sedia Ada (Campuran tempatan + sejarah Google Sheets)
       const uniqueCompanies = useMemo(() => {
-        const all = [...dataOG];
+        const local = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
-          if (Array.isArray(arr)) all.push(...arr);
+          if (Array.isArray(arr)) local.push(...arr);
         });
+        
         const seen = new Set();
         const result = [];
-        all.forEach(item => {
+        
+        // Letakkan rekod tempatan dahulu
+        local.forEach(item => {
           if (!item.namaSyarikat) return;
           const cleanName = item.namaSyarikat.trim().toUpperCase();
           if (!seen.has(cleanName)) {
@@ -364,26 +471,47 @@
             });
           }
         });
-        return result;
-      }, [dataOG, dataOthers]);
 
-      // Auto-suggest Pemilik Projek Sedia Ada
-      const uniqueOwners = useMemo(() => {
-        const all = [...dataOG];
-        Object.values(dataOthers).forEach(arr => {
-          if (Array.isArray(arr)) all.push(...arr);
+        // Letakkan rekod global sejarah dari Sheets
+        globalCompanies.forEach(item => {
+          const cleanName = item.namaSyarikat.trim().toUpperCase();
+          if (!seen.has(cleanName)) {
+            seen.add(cleanName);
+            result.push(item);
+          }
         });
+
+        return result;
+      }, [dataOG, dataOthers, globalCompanies]);
+
+      // Auto-suggest Pemilik Projek Sedia Ada (Tempatan + Sejarah Google Sheets)
+      const uniqueOwners = useMemo(() => {
+        const local = [...dataOG];
+        Object.values(dataOthers).forEach(arr => {
+          if (Array.isArray(arr)) local.push(...arr);
+        });
+        
         const seen = new Set();
         const result = [];
-        all.forEach(item => {
+        
+        local.forEach(item => {
           const cleanOwner = item.ownerProjek?.trim().toUpperCase();
           if (cleanOwner && !seen.has(cleanOwner)) {
             seen.add(cleanOwner);
             result.push(item.ownerProjek);
           }
         });
+
+        globalOwners.forEach(owner => {
+          const cleanOwner = owner.trim().toUpperCase();
+          if (cleanOwner && !seen.has(cleanOwner)) {
+            seen.add(cleanOwner);
+            result.push(owner);
+          }
+        });
+
         return result;
-      }, [dataOG, dataOthers]);
+      }, [dataOG, dataOthers, globalOwners]);
 
       const currentSectData = useMemo(() => {
         if (activeSector === "og") return dataOG;
@@ -604,7 +732,6 @@
         if (!newPenyandang.nama) return;
         setNewCompany(prev => {
           const updatedPenyandang = [...prev.penyandang, newPenyandang];
-          // Gunakan logik pintar pengiraan dynamic B & WN
           const { valB, valWN } = calculateBAndWN(updatedPenyandang);
           return {
             ...prev,
@@ -840,7 +967,7 @@
       return (
         <div className="flex-1 flex flex-col min-h-screen">
           
-          {/* TOAST SYSTEM (Gantian kepada standard alert) */}
+          {/* TOAST SYSTEM */}
           <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 no-print">
             {toasts.map(t => (
               <div key={t.id} className={`p-4 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-2.5 transition-all animate-bounce ${
@@ -852,7 +979,7 @@
             ))}
           </div>
 
-          {/* CUSTOM CONFIRM MODAL (Gantian kepada standard confirm) */}
+          {/* CUSTOM CONFIRM MODAL */}
           {confirmModal.show && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 no-print">
               <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 text-center">
@@ -905,9 +1032,8 @@
               </div>
             </div>
 
-            {}
             {/* Kawalan Bilangan Mesyuarat Dinamik */}
-            <div className="flex items-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-300">
+            <div className="flex items-center gap-3 bg-slate-100 p-2.5 rounded-xl border border-slate-300">
               <div className="flex items-center gap-1">
                 <span className="text-xs font-bold text-slate-700">Bil:</span>
                 <input 
@@ -926,12 +1052,14 @@
                   className="w-16 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-blue-900 focus:outline-none focus:border-blue-700"
                 />
               </div>
-              <button 
-                onClick={() => setMeetingNumber(prev => String(Number(prev) + 1))}
-                className="bg-blue-900 hover:bg-blue-800 text-white rounded px-2 py-0.5 text-[10px] font-bold"
-                title="Sesi Seterusnya"
+              
+              <button
+                onClick={fetchArchiveSheets}
+                disabled={isLoadingArchive}
+                className="bg-blue-950 hover:bg-blue-900 text-white rounded px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 transition-all"
+                title="Imbas Arkib Google Sheets"
               >
-                +1 Sesi
+                <Icon name="database" size={10} /> Semak Arkib Sheets
               </button>
             </div>
 
@@ -1087,7 +1215,6 @@
                   </div>
                 </div>
 
-                {}
                 {/* Jadual Utama */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
@@ -1219,7 +1346,6 @@
               </div>
             )}
 
-            {}
             {/* ================================= VIEW 2: MOD SLAID PRESENTASI ================================= */}
             {viewMode === "meeting" && (
               <div className="flex-1 flex flex-col gap-6">
@@ -1370,7 +1496,6 @@
 
                         </div>
 
-                        {}
                         {/* Panel Kanan: Membuat Keputusan */}
                         <div className="lg:col-span-4 bg-slate-900 text-white p-6 rounded-2xl flex flex-col gap-6 relative shadow-lg">
                           
@@ -1485,7 +1610,6 @@
               </div>
             )}
 
-            {}
             {/* ================================= VIEW 3: SETTINGS & GOOGLE SHEET CONFIG ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
@@ -1583,7 +1707,6 @@
 
           </main>
 
-          {}
           {/* ================================= DOKUMEN CETAKAN PDF RASMI (KERAJAAN LANDSKAP) ================================= */}
           <div className="hidden print:block bg-white text-black p-4 min-h-screen print-page font-serif">
             <div className="text-center flex flex-col gap-1 pb-4 mb-4 border-b border-black">
@@ -1637,7 +1760,6 @@
                     <td className="p-2 text-center border-r border-black align-top font-bold">{item.valB || "-"}</td>
                     <td className="p-2 text-center border-r border-black align-top font-bold">{item.valL || "-"}</td>
                     <td className="p-2 text-center border-r border-black align-top font-bold">{item.valTR || "-"}</td>
-                    {/* Menggunakan whitespace-pre-line untuk paparan grouping baris demi baris */}
                     <td className="p-2 text-center border-r border-black align-top font-bold text-[9px] uppercase whitespace-pre-line leading-relaxed">{item.valWN || "-"}</td>
                     
                     <td className="p-2 border-r border-black align-top">
@@ -1695,7 +1817,6 @@
             </table>
           </div>
 
-          {}
           {/* ================================= MODAL PENDAFTARAN PERMOHONAN BARU ================================= */}
           {showAddModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -1720,7 +1841,7 @@
                     <div className="flex flex-col gap-1.5 relative">
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Syarikat & No. Pendaftaran</span>
-                        <span className="text-[9px] text-blue-700 italic font-medium">Sistem menyemak pangkalan data</span>
+                        <span className="text-[9px] text-blue-700 italic font-medium">Sistem menyemak pangkalan data sejarah</span>
                       </label>
                       <input
                         type="text"
@@ -2035,7 +2156,52 @@
             </div>
           )}
 
-          {}
+          {/* ================================= MODAL CARIAN ARKIB SHEETS ================================= */}
+          {showArchiveModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <h3 className="text-sm font-bold text-blue-950 flex items-center gap-1.5">
+                    <Icon name="database" size={18} className="text-blue-900" /> Arkib Helaian Google Sheets
+                  </h3>
+                  <button onClick={() => setShowArchiveModal(false)} className="text-slate-400 hover:text-slate-600 text-xs font-bold">
+                    Tutup
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Sila pilih mesyuarat sejarah daripada senarai tab Google Sheets di bawah untuk memuat turun data lampiran yang berkaitan.
+                </p>
+
+                <div className="flex-1 max-h-60 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-150">
+                  {pastSheets.length === 0 ? (
+                    <div className="p-4 text-center text-[11px] text-slate-400 italic">Tiada tab dijumpai.</div>
+                  ) : (
+                    pastSheets.map((shName, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => loadPastSheetData(shName)}
+                        className="p-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition-colors group"
+                      >
+                        <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900">{shName}</span>
+                        <span className="text-[10px] text-blue-900 font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Pilih & Import</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-2 border-t border-slate-200">
+                  <button
+                    onClick={() => setShowArchiveModal(false)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs transition-all"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Footer Kerajaan Rasmi */}
           <footer className="bg-blue-950 text-slate-400 text-[10px] font-semibold tracking-wider text-center py-4 border-t-2 border-amber-500 mt-auto no-print">
             SISTEM KEPUTUSAN JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK) &copy; {meetingYear} MALAYSIA. HAK CIPTA JAWATANKUASA TERPELIHARA.
