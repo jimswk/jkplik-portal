@@ -13,10 +13,9 @@
   <!-- React & ReactDOM CDN -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel Standalone CDN (untuk parsing JSX dalam browser) -->
+  <!-- Babel Standalone CDN -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- STREAMING_CHUNK: Mengemas kini gaya cetakan dan susun atur halaman... -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     
@@ -27,13 +26,13 @@
     @media print {
       @page {
         size: A4 landscape;
-        margin: 1.2cm;
+        margin: 1.0cm;
       }
       body {
         background-color: white !important;
         color: black !important;
         font-family: "Times New Roman", Times, serif !important;
-        font-size: 10px !important;
+        font-size: 9.5px !important;
       }
       .no-print {
         display: none !important;
@@ -48,11 +47,11 @@
         border: 1px solid #000000 !important;
         border-collapse: collapse !important;
       }
-      /* Mengelakkan pengulangan header jadual pada setiap page baru semasa cetakan */
+      /* Mengelakkan pengulangan header jadual secara automatik pada setiap page cetakan */
       thead {
         display: table-row-group !important;
       }
-      /* Menjamin baris (line) terputus dengan kemas di antara sempadan page, tidak terbelah tengah */
+      /* Menjamin baris permohonan tidak terputus/terbelah di tengah di antara halaman cetakan */
       tr {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
@@ -62,8 +61,7 @@
         break-inside: avoid !important;
       }
       th {
-        background-color: #e2e8f0 !important;
-        color: black !important;
+        background-color: #f1f5f9 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -93,7 +91,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // STREAMING_CHUNK: Menambah fungsi ikon SVG terbina-dalam...
+    // Komponen pembantu Icon untuk menyelesaikan ralat "Icon is not defined" secara kekal
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -257,10 +255,9 @@
       );
     }
 
-    // STREAMING_CHUNK: Menyediakan helper pengiraan lajur B dan W/N...
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
-        return { valB: "0", valWN: "-" };
+        return { valB: "01", valWN: "-" };
       }
 
       const totalPenyandang = penyandangList.length;
@@ -316,14 +313,12 @@
       const [activeSector, setActiveSector] = useState("og");
       const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
 
-      // State Pembatasan Tetingkap Edit & Tambah
       const [showEditModal, setShowEditModal] = useState(false);
       const [editingCompany, setEditingCompany] = useState(null);
       const [editPenyandang, setEditPenyandang] = useState({
         nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      // Pengisytiharan state pangkalan data utama bermula kosong (Sifar)
       const [dataOG, setDataOG] = useState(() => {
         const saved = localStorage.getItem('jkplik_data_og_v3');
         return saved ? JSON.parse(saved) : [];
@@ -333,21 +328,16 @@
         return saved ? JSON.parse(saved) : {};
       });
 
-      // State Pembentangan Slaid
       const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-
-      // State Carian & Penapisan
       const [searchQuery, setSearchQuery] = useState("");
       const [statusFilter, setStatusFilter] = useState("semua");
 
-      // Integrasi Google Sheet
       const [sheetUrl, setSheetUrl] = useState(() => {
         return localStorage.getItem('jkplik_sheet_url_v3') || DEFAULT_SHEET_URL;
       });
       const [isSyncing, setIsSyncing] = useState(false);
       const [syncLogs, setSyncLogs] = useState([]);
 
-      // Notifikasi Toast
       const [toasts, setToasts] = useState([]);
       const showToast = (message, type = "info") => {
         const id = Date.now();
@@ -357,17 +347,14 @@
         }, 4000);
       };
 
-      // Modal Pengesahan Tersuai (Custom Confirmation Modal)
       const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: "" });
 
-      // Modal Pendaftaran & State Auto-suggest Sejarah
       const [showAddModal, setShowAddModal] = useState(false);
       const [companySearchQuery, setCompanySearchQuery] = useState("");
       const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
       const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
       const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
-      // State Pengisytiharan Pencarian Arkib Rentas Pegawai Penilai
       const [pastSheets, setPastSheets] = useState([]);
       const [showArchiveModal, setShowArchiveModal] = useState(false);
       const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
@@ -397,7 +384,7 @@
       });
 
       const triggerEditItem = (item) => {
-        setEditingCompany(JSON.parse(JSON.stringify(item))); // Deep clone permohonan pilihan
+        setEditingCompany(JSON.parse(JSON.stringify(item)));
         setShowEditModal(true);
       };
 
@@ -496,7 +483,6 @@
         }
       };
 
-      // Memuat turun semua rekod sejarah syarikat dari tab-tab lampiran lepas di Google Sheets
       const fetchGlobalHistory = async () => {
         if (!sheetUrl) return;
         try {
@@ -523,7 +509,6 @@
         }
       }, [showAddModal]);
 
-      // Mengambil senarai tab arkib mesyuarat sejarah dari Google Sheets
       const fetchArchiveSheets = async () => {
         if (!sheetUrl) {
           showToast("URL Google Apps Script tidak ditemui.", "error");
@@ -551,7 +536,6 @@
         }
       };
 
-      // Memuat turun keseluruhan rekod lampiran daripada tab mesyuarat sejarah terpilih
       const loadPastSheetData = async (selectedSheetName) => {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
@@ -590,7 +574,6 @@
         }
       };
 
-      // STREAMING_CHUNK: Menambah fungsi eksport Word dinamik...
       const exportToWord = () => {
         const sheetName = getSheetName();
         addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
@@ -603,7 +586,7 @@
             <style>
               @page Section1 {
                 size: 297mm 210mm; /* A4 Landscape */
-                margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+                margin: 1.0cm 1.0cm 1.0cm 1.0cm;
                 mso-header-margin: 0.5in;
                 mso-footer-margin: 0.5in;
               }
@@ -769,7 +752,6 @@
         showToast("Dokumen format Word berjaya dijana dan dimuat turun!", "success");
       };
 
-      // Mengumpul dan menapis cadangan syarikat unik tempatan + sejarah
       const uniqueCompanies = useMemo(() => {
         const local = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -803,7 +785,6 @@
         return result;
       }, [dataOG, dataOthers, globalCompanies]);
 
-      // Mengumpul cadangan nama pemilik projek unik
       const uniqueOwners = useMemo(() => {
         const local = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -837,7 +818,6 @@
         return dataOthers[activeSector] || [];
       }, [activeSector, dataOG, dataOthers]);
 
-      // Penapisan data skrin utama
       const filteredData = useMemo(() => {
         return currentSectData.filter(item => {
           const matchSearch = item.namaSyarikat.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -880,7 +860,6 @@
         }
       }, [filteredData, currentSlideIndex]);
 
-      // Navigasi Papan Kekunci
       useEffect(() => {
         const handleKeyDown = (e) => {
           if (viewMode !== 'meeting') return;
@@ -899,7 +878,6 @@
         return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
       };
 
-      // PENGIRAAN AUTOMATIK UMUR PENYANDANG
       const handleBirthDateChange = (dateValue) => {
         if (!dateValue) {
           setNewPenyandang(prev => ({ ...prev, tarikhLahir: "", umur: "" }));
@@ -920,7 +898,6 @@
         }));
       };
 
-      // Penyelarasan Real-time hantar ke Google Sheets
       const syncAddRowToGoogleSheets = async (item) => {
         if (!sheetUrl) return;
         const sheetName = getSheetName();
@@ -1218,7 +1195,6 @@
         );
       }, [archiveSearchQuery, pastSheets]);
 
-      // STREAMING_CHUNK: Menyediakan fungsi memuatkan data demo format Word/docx...
       const loadDemoData = () => {
         const demoData = [
           {
@@ -1374,7 +1350,7 @@
               </button>
             </div>
 
-            {/* STREAMING_CHUNK: Menambah butang eksport baharu pada antaramuka... */}
+            {/* Butang Kawalan Pandangan */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode("dashboard")}
@@ -1492,7 +1468,7 @@
               </div>
             )}
 
-            {/* VIEW 1: UTAMA / JADUAL */}
+            {}
             {viewMode === "dashboard" && (
               <div className="flex flex-col gap-6">
                 
@@ -1721,6 +1697,7 @@
                             </div>
                           </div>
 
+                          {}
                           {/* Maklumat Sektor & Kontrak */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 text-xs">
                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-2">
@@ -1840,6 +1817,7 @@
                             <p className="text-[9px] text-slate-400 font-medium">Keputusan diselaraskan secara auto-sync.</p>
                           </div>
 
+                          {/* Senarai Tindakan */}
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
@@ -2040,6 +2018,7 @@
 
           </main>
 
+          {}
           {/* ================================= DOKUMEN CETAKAN PDF RASMI (KERAJAAN LANDSKAP) ================================= */}
           <div className="hidden print:block bg-white text-black p-4 min-h-screen print-page font-serif">
             <div className="text-center flex flex-col gap-1 pb-4 mb-4 border-b border-black">
