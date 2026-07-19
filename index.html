@@ -339,11 +339,6 @@
       const [globalOwners, setGlobalOwners] = useState([]);
       const [isLoadingArchive, setIsLoadingArchive] = useState(false);
 
-      // Borang Syarikat Baru dengan Pilihan Mod Kalkulator Tarikh Projek
-      const [isDateCalculatorActive, setIsDateCalculatorActive] = useState(false);
-      const [projectStartDate, setProjectStartDate] = useState("");
-      const [projectEndDate, setProjectEndDate] = useState("");
-
       const [newCompany, setNewCompany] = useState({
         namaSyarikat: "",
         alamat: "",
@@ -615,44 +610,6 @@
         }));
       };
 
-      // PENGIRAAN AUTOMATIK TEMPOH PROJEK & TEMPOH MOHON
-      useEffect(() => {
-        if (!isDateCalculatorActive || !projectStartDate || !projectEndDate) return;
-
-        const start = new Date(projectStartDate);
-        const end = new Date(projectEndDate);
-        if (isNaN(start) || isNaN(end)) return;
-
-        // Kira jarak perbezaan bulan
-        let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-        
-        // Pelarasan jika tarikh tamat melepasi tarikh mula hari bulan
-        if (end.getDate() >= start.getDate() - 5) {
-          months += 1;
-        }
-        if (months <= 0) months = 1;
-
-        const formattedMonths = months < 10 ? `0${months}` : `${months}`;
-
-        const monthsShort = ["JAN", "FEB", "MAC", "APR", "MEI", "JUN", "JUL", "OGOS", "SEPT", "OKT", "NOV", "DIS"];
-        const formatDateStr = (d) => {
-          const day = String(d.getDate()).padStart(2, '0');
-          const monthName = monthsShort[d.getMonth()];
-          const year = d.getFullYear();
-          return `${day} ${monthName} ${year}`;
-        };
-
-        const resultRangeText = `${formatDateStr(start)} – ${formatDateStr(end)}`;
-        const resultDurationText = `${formattedMonths} BULAN`;
-
-        setNewCompany(prev => ({
-          ...prev,
-          tempohProjek: resultRangeText,
-          tempohMohon: resultDurationText
-        }));
-
-      }, [isDateCalculatorActive, projectStartDate, projectEndDate]);
-
       // Penyelarasan Real-time hantar ke Google Sheets
       const syncAddRowToGoogleSheets = async (item) => {
         if (!sheetUrl) return;
@@ -798,9 +755,6 @@
         });
         setCompanySearchQuery("");
         setOwnerSearchQuery("");
-        setProjectStartDate("");
-        setProjectEndDate("");
-        setIsDateCalculatorActive(false);
         setShowAddModal(false);
       };
 
@@ -2066,64 +2020,29 @@
                       />
                     </div>
 
-                    {/* Pilihan Cara Input Tempoh Projek */}
+                    {/* Tempoh Kontrak Projek (Input Teks Sahaja) */}
                     <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-700">Tempoh Kontrak Projek</label>
-                        <button
-                          type="button"
-                          onClick={() => setIsDateCalculatorActive(!isDateCalculatorActive)}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded transition-all ${
-                            isDateCalculatorActive ? 'bg-blue-900 text-white' : 'bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          {isDateCalculatorActive ? " Guna Mod Tarikh" : "✍️ Guna Mod Teks"}
-                        </button>
-                      </div>
-
-                      {isDateCalculatorActive ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <span className="text-[9px] text-slate-500 font-bold uppercase">Tarikh Mula</span>
-                            <input
-                              type="date"
-                              required
-                              value={projectStartDate}
-                              onChange={(e) => setProjectStartDate(e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs text-slate-800 focus:outline-none"
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-slate-500 font-bold uppercase">Tarikh Tamat</span>
-                            <input
-                              type="date"
-                              required
-                              value={projectEndDate}
-                              onChange={(e) => setProjectEndDate(e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs text-slate-800 focus:outline-none"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          required
-                          placeholder="Contoh: 06 MONTH, 06 BULAN, atau 11 JAN 2026 – 10 JAN 2027"
-                          value={newCompany.tempohProjek}
-                          onChange={(e) => setNewCompany({...newCompany, tempohProjek: e.target.value})}
-                          className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none font-semibold"
-                        />
-                      )}
+                      <label className="text-xs font-bold text-slate-700">Tempoh Kontrak Projek</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: 11 JAN 2026 – 10 JAN 2027 atau UNTIL COMPLETION"
+                        value={newCompany.tempohProjek}
+                        onChange={(e) => setNewCompany({...newCompany, tempohProjek: e.target.value})}
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-semibold"
+                      />
                     </div>
 
+                    {/* Tempoh Mohon (Input Teks Sahaja secara Manual) */}
                     <div className="flex flex-col gap-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-700">Tempoh Mohon</label>
                       <input
                         type="text"
-                        placeholder="Contoh: 06 BULAN, 06 MONTH, atau 12 BULAN"
+                        required
+                        placeholder="Contoh: 06 BULAN, 12 BULAN, atau 06 MONTH"
                         value={newCompany.tempohMohon}
                         onChange={(e) => setNewCompany({...newCompany, tempohMohon: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none font-semibold"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-semibold"
                       />
                     </div>
 
