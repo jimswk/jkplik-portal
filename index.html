@@ -8,13 +8,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
   <link rel="manifest" href="site.webmanifest">
-  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React & ReactDOM CDN -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel Standalone CDN -->
+  <!-- Babel Standalone CDN (untuk parsing JSX dalam browser) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
@@ -79,6 +78,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
+    // Komponen Ikon SVG Tempatan (Siri Lucide & FontAwesome Tanpa Pustaka Luar)
     function Icon({ name, size = 16, className = "" }) {
       const icons = {
         alertTriangle: (
@@ -225,6 +225,7 @@
       );
     }
 
+    // Fungsi Pengiraan Automatik B dan W/N Dinamik berdasarkan senarai penyandang
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
         return { valB: "0", valWN: "-" };
@@ -269,6 +270,7 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
+    // Menyimpan URL Google Web App sebagai nilai terpasang secara lalai (hardcoded)
     const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzV9rOzjZ1EFxbVN2NRAM0SRaJNSCOz57SaByxUT4RqskgnXgpHdtAI-2Txms6AANqh/exec";
 
     function App() {
@@ -285,6 +287,7 @@
       const [activeSector, setActiveSector] = useState("og");
       const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
 
+      // Pengisytiharan state pangkalan data utama bermula kosong (Sifar)
       const [dataOG, setDataOG] = useState(() => {
         const saved = localStorage.getItem('jkplik_data_og_v3');
         return saved ? JSON.parse(saved) : [];
@@ -294,16 +297,21 @@
         return saved ? JSON.parse(saved) : {};
       });
 
+      // State Pembentangan Slaid
       const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+      // State Carian & Penapisan
       const [searchQuery, setSearchQuery] = useState("");
       const [statusFilter, setStatusFilter] = useState("semua");
 
+      // Integrasi Google Sheet
       const [sheetUrl, setSheetUrl] = useState(() => {
         return localStorage.getItem('jkplik_sheet_url_v3') || DEFAULT_SHEET_URL;
       });
       const [isSyncing, setIsSyncing] = useState(false);
       const [syncLogs, setSyncLogs] = useState([]);
 
+      // Notifikasi Toast
       const [toasts, setToasts] = useState([]);
       const showToast = (message, type = "info") => {
         const id = Date.now();
@@ -313,14 +321,17 @@
         }, 4000);
       };
 
+      // Modal Pengesahan Tersuai (Custom Confirmation Modal)
       const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: "" });
+
+      // Modal Pendaftaran & State Auto-suggest Sejarah
       const [showAddModal, setShowAddModal] = useState(false);
       const [companySearchQuery, setCompanySearchQuery] = useState("");
       const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
       const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
       const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
-      // Carian Arkib Masa Nyata
+      // State Pengisytiharan Pencarian Arkib Rentas Pegawai Penilai
       const [pastSheets, setPastSheets] = useState([]);
       const [showArchiveModal, setShowArchiveModal] = useState(false);
       const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
@@ -328,7 +339,11 @@
       const [globalOwners, setGlobalOwners] = useState([]);
       const [isLoadingArchive, setIsLoadingArchive] = useState(false);
 
-      // Borang Syarikat Baru
+      // Borang Syarikat Baru dengan Pilihan Mod Kalkulator Tarikh Projek
+      const [isDateCalculatorActive, setIsDateCalculatorActive] = useState(false);
+      const [projectStartDate, setProjectStartDate] = useState("");
+      const [projectEndDate, setProjectEndDate] = useState("");
+
       const [newCompany, setNewCompany] = useState({
         namaSyarikat: "",
         alamat: "",
@@ -347,9 +362,10 @@
       });
 
       const [newPenyandang, setNewPenyandang] = useState({
-        nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000"
+        nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
+      // Memuat turun semua rekod sejarah syarikat dari tab-tab lampiran lepas di Google Sheets
       const fetchGlobalHistory = async () => {
         if (!sheetUrl) return;
         try {
@@ -376,6 +392,7 @@
         }
       }, [showAddModal]);
 
+      // Mengambil senarai tab arkib mesyuarat sejarah dari Google Sheets
       const fetchArchiveSheets = async () => {
         if (!sheetUrl) {
           showToast("URL Google Apps Script tidak ditemui.", "error");
@@ -403,6 +420,7 @@
         }
       };
 
+      // Memuat turun keseluruhan rekod lampiran daripada tab mesyuarat sejarah terpilih
       const loadPastSheetData = async (selectedSheetName) => {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
@@ -443,6 +461,7 @@
         }
       };
 
+      // Mengumpul dan menapis cadangan syarikat unik tempatan + sejarah
       const uniqueCompanies = useMemo(() => {
         const local = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -478,6 +497,7 @@
         return result;
       }, [dataOG, dataOthers, globalCompanies]);
 
+      // Mengumpul cadangan nama pemilik projek unik
       const uniqueOwners = useMemo(() => {
         const local = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -511,6 +531,7 @@
         return dataOthers[activeSector] || [];
       }, [activeSector, dataOG, dataOthers]);
 
+      // Penapisan data skrin utama
       const filteredData = useMemo(() => {
         return currentSectData.filter(item => {
           const matchSearch = item.namaSyarikat.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -553,6 +574,7 @@
         }
       }, [filteredData, currentSlideIndex]);
 
+      // Navigasi Papan Kekunci
       useEffect(() => {
         const handleKeyDown = (e) => {
           if (viewMode !== 'meeting') return;
@@ -571,6 +593,67 @@
         return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
       };
 
+      // PENGIRAAN AUTOMATIK UMUR PENYANDANG (Tarikh Lahir -> Umur THN)
+      const handleBirthDateChange = (dateValue) => {
+        if (!dateValue) {
+          setNewPenyandang(prev => ({ ...prev, tarikhLahir: "", umur: "" }));
+          return;
+        }
+
+        const birthDate = new Date(dateValue);
+        if (isNaN(birthDate)) return;
+
+        const birthYear = birthDate.getFullYear();
+        const currentYearNum = parseInt(meetingYear) || 2026;
+        const calculatedAge = currentYearNum - birthYear;
+
+        // Auto-set umur dinamik berdasarkan tahun mesyuarat semasa
+        setNewPenyandang(prev => ({
+          ...prev,
+          tarikhLahir: dateValue,
+          umur: calculatedAge > 0 ? `${calculatedAge} THN` : ""
+        }));
+      };
+
+      // PENGIRAAN AUTOMATIK TEMPOH PROJEK & TEMPOH MOHON
+      useEffect(() => {
+        if (!isDateCalculatorActive || !projectStartDate || !projectEndDate) return;
+
+        const start = new Date(projectStartDate);
+        const end = new Date(projectEndDate);
+        if (isNaN(start) || isNaN(end)) return;
+
+        // Kira jarak perbezaan bulan
+        let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+        
+        // Pelarasan jika tarikh tamat melepasi tarikh mula hari bulan
+        if (end.getDate() >= start.getDate() - 5) {
+          months += 1;
+        }
+        if (months <= 0) months = 1;
+
+        const formattedMonths = months < 10 ? `0${months}` : `${months}`;
+
+        const monthsShort = ["JAN", "FEB", "MAC", "APR", "MEI", "JUN", "JUL", "OGOS", "SEPT", "OKT", "NOV", "DIS"];
+        const formatDateStr = (d) => {
+          const day = String(d.getDate()).padStart(2, '0');
+          const monthName = monthsShort[d.getMonth()];
+          const year = d.getFullYear();
+          return `${day} ${monthName} ${year}`;
+        };
+
+        const resultRangeText = `${formatDateStr(start)} – ${formatDateStr(end)}`;
+        const resultDurationText = `${formattedMonths} BULAN`;
+
+        setNewCompany(prev => ({
+          ...prev,
+          tempohProjek: resultRangeText,
+          tempohMohon: resultDurationText
+        }));
+
+      }, [isDateCalculatorActive, projectStartDate, projectEndDate]);
+
+      // Penyelarasan Real-time hantar ke Google Sheets
       const syncAddRowToGoogleSheets = async (item) => {
         if (!sheetUrl) return;
         const sheetName = getSheetName();
@@ -715,6 +798,9 @@
         });
         setCompanySearchQuery("");
         setOwnerSearchQuery("");
+        setProjectStartDate("");
+        setProjectEndDate("");
+        setIsDateCalculatorActive(false);
         setShowAddModal(false);
       };
 
@@ -731,7 +817,7 @@
           };
         });
         setNewPenyandang({
-          nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000"
+          nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
         });
       };
 
@@ -868,6 +954,7 @@
         );
       }, [archiveSearchQuery, pastSheets]);
 
+      // Memuat naik data demo yang mengandungi struktur kes MKN Odyssey warganegara campuran
       const loadDemoData = () => {
         const demoData = [
           {
@@ -889,7 +976,7 @@
             ulasan: "",
             synced: false,
             penyandang: [
-              { nama: "AHMAD AQMAL BIN RAHMAT", jantina: "L", warganegara: "MYS", pasport: "A72545666", tarikhLahir: "25.02.1988", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000" }
+              { nama: "AHMAD AQMAL BIN RAHMAT", jantina: "L", warganegara: "MYS", pasport: "A72545666", tarikhLahir: "1988-02-25", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000" }
             ]
           },
           {
@@ -911,10 +998,10 @@
             ulasan: "",
             synced: false,
             penyandang: [
-              { nama: "MUHD RIDHWAN BIN MUHD ALI", jantina: "L", warganegara: "MYS", pasport: "A958060", tarikhLahir: "24.09.1995", umur: "31 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MUHAMAD SAHRIN BIN MUSTAFA", jantina: "L", warganegara: "MYS", pasport: "A71240648", tarikhLahir: "23.12.1992", umur: "34 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MUHAMMAD IRFAN BIN AZMI", jantina: "L", warganegara: "MYS", pasport: "A72522080", tarikhLahir: "18.01.2001", umur: "25 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MOHD REEZA BIN MOHD ROSLI", jantina: "L", warganegara: "MYS", pasport: "A71072026", tarikhLahir: "07.06.1981", umur: "45 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" }
+              { nama: "MUHD RIDHWAN BIN MUHD ALI", jantina: "L", warganegara: "MYS", pasport: "A958060", tarikhLahir: "1995-09-24", umur: "31 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
+              { nama: "MUHAMAD SAHRIN BIN MUSTAFA", jantina: "L", warganegara: "MYS", pasport: "A71240648", tarikhLahir: "1992-12-23", umur: "34 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
+              { nama: "MUHAMMAD IRFAN BIN AZMI", jantina: "L", warganegara: "MYS", pasport: "A72522080", tarikhLahir: "2001-01-18", umur: "25 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
+              { nama: "MOHD REEZA BIN MOHD ROSLI", jantina: "L", warganegara: "MYS", pasport: "A71072026", tarikhLahir: "1981-06-07", umur: "45 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" }
             ]
           },
           {
@@ -936,15 +1023,15 @@
             ulasan: "",
             synced: false,
             penyandang: [
-              { nama: "PAYNE EUGENE LAWRENCE", jantina: "L", warganegara: "CAN", pasport: "AH672543", tarikhLahir: "18.01.1974", umur: "52 THN", jawatan: "MAINTENANCE SUPERINTENDENT", gaji: "RM26,400" },
-              { nama: "KOK BART JOHANNES", jantina: "L", warganegara: "NLD", pasport: "BRDD31222", tarikhLahir: "22.04.1966", umur: "60 THN", jawatan: "SENIOR TOOLPUSHER", gaji: "RM37,800" },
-              { nama: "BARTLEY STEPHEN GARETH", jantina: "L", warganegara: "GBR", pasport: "GBR149577", tarikhLahir: "11.02.1972", umur: "54 THN", jawatan: "BARGE CAPTAIN", gaji: "RM20,000" },
+              { nama: "PAYNE EUGENE LAWRENCE", jantina: "L", warganegara: "CAN", pasport: "AH672543", tarikhLahir: "1974-01-18", umur: "52 THN", jawatan: "MAINTENANCE SUPERINTENDENT", gaji: "RM26,400" },
+              { nama: "KOK BART JOHANNES", jantina: "L", warganegara: "NLD", pasport: "BRDD31222", tarikhLahir: "1966-04-22", umur: "60 THN", jawatan: "SENIOR TOOLPUSHER", gaji: "RM37,800" },
+              { nama: "BARTLEY STEPHEN GARETH", jantina: "L", warganegara: "GBR", pasport: "GBR149577", tarikhLahir: "1972-02-11", umur: "54 THN", jawatan: "BARGE CAPTAIN", gaji: "RM20,000" },
               ...Array(22).fill(null).map((_, i) => ({
                 nama: `WARGANEGARA VIETNAM ${i + 1}`,
                 jantina: "L",
                 warganegara: "VNM",
                 pasport: `VN${100000 + i}`,
-                tarikhLahir: "01.01.1985",
+                tarikhLahir: "1985-01-01",
                 umur: "41 THN",
                 jawatan: "ELECTRICIAN/DERRICK MAN/DRILLER",
                 gaji: "RM6,000"
@@ -1167,6 +1254,7 @@
               </div>
             )}
 
+            {}
             {/* VIEW 1: UTAMA / JADUAL */}
             {viewMode === "dashboard" && (
               <div className="flex flex-col gap-6">
@@ -1819,6 +1907,7 @@
             </table>
           </div>
 
+          {}
           {/* ================================= MODAL PENDAFTARAN PERMOHONAN BARU ================================= */}
           {showAddModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -1829,7 +1918,12 @@
                     <Icon name="plusCircle" size={18} className="text-emerald-600" /> Daftar Permohonan Baru
                   </h3>
                   <button 
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setIsDateCalculatorActive(false);
+                      setProjectStartDate("");
+                      setProjectEndDate("");
+                    }}
                     className="text-slate-400 hover:text-slate-600 text-xs font-bold"
                   >
                     Tutup Tetingkap
@@ -1972,14 +2066,64 @@
                       />
                     </div>
 
+                    {/* Pilihan Cara Input Tempoh Projek */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-700">Tempoh Kontrak Projek</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700">Tempoh Kontrak Projek</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsDateCalculatorActive(!isDateCalculatorActive)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded transition-all ${
+                            isDateCalculatorActive ? 'bg-blue-900 text-white' : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {isDateCalculatorActive ? " Guna Mod Tarikh" : "✍️ Guna Mod Teks"}
+                        </button>
+                      </div>
+
+                      {isDateCalculatorActive ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[9px] text-slate-500 font-bold uppercase">Tarikh Mula</span>
+                            <input
+                              type="date"
+                              required
+                              value={projectStartDate}
+                              onChange={(e) => setProjectStartDate(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs text-slate-800 focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 font-bold uppercase">Tarikh Tamat</span>
+                            <input
+                              type="date"
+                              required
+                              value={projectEndDate}
+                              onChange={(e) => setProjectEndDate(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs text-slate-800 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          required
+                          placeholder="Contoh: 06 MONTH, 06 BULAN, atau 11 JAN 2026 – 10 JAN 2027"
+                          value={newCompany.tempohProjek}
+                          onChange={(e) => setNewCompany({...newCompany, tempohProjek: e.target.value})}
+                          className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none font-semibold"
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-700">Tempoh Mohon</label>
                       <input
                         type="text"
-                        placeholder="Contoh: 11 JAN 2026 – 10 JAN 2027"
-                        value={newCompany.tempohProjek}
-                        onChange={(e) => setNewCompany({...newCompany, tempohProjek: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none"
+                        placeholder="Contoh: 06 BULAN, 06 MONTH, atau 12 BULAN"
+                        value={newCompany.tempohMohon}
+                        onChange={(e) => setNewCompany({...newCompany, tempohMohon: e.target.value})}
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none font-semibold"
                       />
                     </div>
 
@@ -2027,6 +2171,7 @@
 
                   </div>
 
+                  {}
                   {/* Tambah Kumpulan Penyandang */}
                   <div className="border-t border-slate-200 pt-4 mt-2 flex flex-col gap-3">
                     <span className="text-xs font-bold text-blue-950 uppercase tracking-wider">
@@ -2075,6 +2220,15 @@
                         />
                       </div>
                       <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-slate-500 font-bold">Tarikh Lahir</span>
+                        <input
+                          type="date"
+                          value={newPenyandang.tarikhLahir}
+                          onChange={(e) => handleBirthDateChange(e.target.value)}
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
                         <span className="text-[10px] text-slate-500 font-bold">Warganegara (MYS/GBR/VNM)</span>
                         <input
                           type="text"
@@ -2085,7 +2239,7 @@
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Umur (Tahun)</span>
+                        <span className="text-[10px] text-slate-500 font-bold">Umur (Boleh ubah manual)</span>
                         <input
                           type="text"
                           placeholder="Contoh: 38 THN"
@@ -2105,13 +2259,13 @@
                           <option value="P">Perempuan</option>
                         </select>
                       </div>
-                      <div className="flex items-end">
+                      <div className="flex items-end md:col-span-4 mt-2">
                         <button
                           type="button"
                           onClick={addPenyandangToNewCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-1.5 rounded text-xs border border-blue-900 shadow-sm transition-colors"
+                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 rounded text-xs border border-blue-900 shadow-sm transition-colors"
                         >
-                          + Tambah Pemohon
+                          + Tambah Pemohon Kakitangan ke Senarai
                         </button>
                       </div>
                     </div>
@@ -2121,7 +2275,7 @@
                       <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
                         {newCompany.penyandang.map((p, idx) => (
                           <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji} • Pasport: {p.pasport || "-"} • WN: {p.warganegara})</span>
+                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji} • Pasport: {p.pasport || "-"} • WN: {p.warganegara} • Umur: {p.umur})</span>
                             <button
                               type="button"
                               onClick={() => removePenyandangFromNewCompany(idx)}
@@ -2138,7 +2292,12 @@
                   <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 mt-4">
                     <button
                       type="button"
-                      onClick={() => setShowAddModal(false)}
+                      onClick={() => {
+                        setShowAddModal(false);
+                        setIsDateCalculatorActive(false);
+                        setProjectStartDate("");
+                        setProjectEndDate("");
+                      }}
                       className="bg-transparent text-slate-500 hover:text-slate-700 text-xs font-bold px-4 py-2"
                     >
                       Batal Pendaftaran
@@ -2158,6 +2317,7 @@
             </div>
           )}
 
+          {}
           {/* ================================= MODAL CARIAN ARKIB SHEETS ================================= */}
           {showArchiveModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -2241,6 +2401,7 @@
       );
     }
 
+    // Melakukan render aplikasi React ke dalam DOM Element
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
