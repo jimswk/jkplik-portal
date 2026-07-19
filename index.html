@@ -16,6 +16,7 @@
   <!-- Babel Standalone CDN (untuk parsing JSX dalam browser) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <!-- STREAMING_CHUNK: Mengemas kini gaya cetakan dan susun atur halaman... -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     
@@ -26,7 +27,7 @@
     @media print {
       @page {
         size: A4 landscape;
-        margin: 1.0cm;
+        margin: 1.2cm;
       }
       body {
         background-color: white !important;
@@ -47,8 +48,22 @@
         border: 1px solid #000000 !important;
         border-collapse: collapse !important;
       }
+      /* Mengelakkan pengulangan header jadual pada setiap page baru semasa cetakan */
+      thead {
+        display: table-row-group !important;
+      }
+      /* Menjamin baris (line) terputus dengan kemas di antara sempadan page, tidak terbelah tengah */
+      tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      td, th {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
       th {
-        background-color: #f1f5f9 !important;
+        background-color: #e2e8f0 !important;
+        color: black !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -78,7 +93,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // Komponen pembantu Icon untuk menyelesaikan ralat "Icon is not defined" secara kekal
+    // STREAMING_CHUNK: Menambah fungsi ikon SVG terbina-dalam...
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -107,6 +122,14 @@
             <polyline points="6 9 6 2 18 2 18 9" />
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
             <rect x="6" y="14" width="12" height="8" />
+          </g>
+        ),
+        word: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <path d="M9 15h1l1-3 1 3h1" />
+            <path d="M10 11h4" />
           </g>
         ),
         search: (
@@ -234,6 +257,7 @@
       );
     }
 
+    // STREAMING_CHUNK: Menyediakan helper pengiraan lajur B dan W/N...
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
         return { valB: "0", valWN: "-" };
@@ -242,7 +266,6 @@
       const totalPenyandang = penyandangList.length;
       const formattedB = totalPenyandang < 10 ? `0${totalPenyandang}` : `${totalPenyandang}`;
 
-      // Pengumpulan mengikut warganegara
       const group = {};
       penyandangList.forEach(p => {
         const wn = (p.warganegara || "").trim().toUpperCase();
@@ -257,7 +280,6 @@
         group[displayWN] = (group[displayWN] || 0) + 1;
       });
 
-      // Format rentetan WN baris demi baris
       const wnRows = Object.keys(group).map(key => {
         const count = group[key];
         const formattedCount = count < 10 ? `0${count}` : `${count}`;
@@ -278,7 +300,6 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    // Menyimpan URL Google Web App sebagai nilai terpasang secara lalai (hardcoded)
     const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzV9rOzjZ1EFxbVN2NRAM0SRaJNSCOz57SaByxUT4RqskgnXgpHdtAI-2Txms6AANqh/exec";
 
     function App() {
@@ -545,14 +566,12 @@
           if (result.status === "success") {
             const records = result.records || [];
             
-            // Masukkan mengikut sektor data aktif
             if (activeSector === "og") {
               setDataOG(records);
             } else {
               setDataOthers(prev => ({ ...prev, [activeSector]: records }));
             }
 
-            // Laraskan input bilangan mesyuarat dan tahun berdasarkan nama helaian
             const match = selectedSheetName.match(/Bil\.\s*(\d+)\/(\d+)/i);
             if (match) {
               setMeetingNumber(match[1]);
@@ -571,6 +590,185 @@
         }
       };
 
+      // STREAMING_CHUNK: Menambah fungsi eksport Word dinamik...
+      const exportToWord = () => {
+        const sheetName = getSheetName();
+        addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
+        
+        let wordContent = `
+          <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <meta charset="utf-8">
+            <title>Format Rasmi Mesyuarat JKPLIK</title>
+            <style>
+              @page Section1 {
+                size: 297mm 210mm; /* A4 Landscape */
+                margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+                mso-header-margin: 0.5in;
+                mso-footer-margin: 0.5in;
+              }
+              div.Section1 { page: Section1; }
+              body { 
+                font-family: "Times New Roman", Times, serif; 
+                font-size: 10pt; 
+                color: black;
+              }
+              .title-container {
+                text-align: center;
+                margin-bottom: 20px;
+              }
+              .title-header {
+                font-size: 12pt;
+                font-weight: bold;
+                text-transform: uppercase;
+                margin: 2px 0;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              th, td {
+                border: 1px solid #000000;
+                padding: 6px;
+                vertical-align: top;
+                font-size: 9.5pt;
+                line-height: 1.3;
+              }
+              th {
+                background-color: #E2E8F0;
+                font-weight: bold;
+                text-align: center;
+                text-transform: uppercase;
+              }
+              .align-center { text-align: center; }
+              .font-bold { font-weight: bold; }
+              .uppercase { text-transform: uppercase; }
+              .italic { font-style: italic; }
+              .dotted-line {
+                margin-top: 6px;
+                border-top: 1px dotted #333333;
+                height: 1px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="Section1">
+              <div class="title-container">
+                <p class="title-header">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</p>
+                <p class="title-header">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</p>
+                <p class="title-header">BIL. ${meetingNumber}/${meetingYear} &ndash; SEKTOR ${activeSector.toUpperCase()}</p>
+                ${officerName ? `<p style="font-size: 10pt; margin: 4px 0 0 0;">Disediakan Oleh Pegawai Penilai: ${officerName}</p>` : ''}
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th rowspan="2" style="width: 5%;">BIL</th>
+                    <th rowspan="2" style="width: 20%;">NAMA SYARIKAT</th>
+                    <th rowspan="2" style="width: 25%;">BUTIRAN PENYANDANG</th>
+                    <th rowspan="2" style="width: 10%;">TEMPOH MOHON</th>
+                    <th colspan="4" style="width: 15%;">PERMOHONAN / WARGANEGARA</th>
+                    <th rowspan="2" style="width: 25%;">NAMA PROJEK</th>
+                    <th rowspan="2" style="width: 15%;">KEPUTUSAN</th>
+                  </tr>
+                  <tr>
+                    <th style="width: 3.75%;">B</th>
+                    <th style="width: 3.75%;">L</th>
+                    <th style="width: 3.75%;">T/R</th>
+                    <th style="width: 3.75%;">W/N</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+
+        if (currentSectData.length === 0) {
+          wordContent += `
+            <tr>
+              <td colspan="10" class="align-center" style="padding: 20px;">Tiada permohonan berdaftar dalam pangkalan data semasa.</td>
+            </tr>
+          `;
+        } else {
+          currentSectData.forEach((item, index) => {
+            const hasDecision = !!item.keputusan;
+            let penyandangRows = "";
+            (item.penyandang || []).forEach((p, idx) => {
+              penyandangRows += `<div><b>${idx + 1}. ${p.nama}</b> / ${p.jantina} / ${p.warganegara} / ${p.pasport || "-"} / ${p.umur} &ndash; <i>${p.jawatan}</i><br/><b>GAJI: ${p.gaji || "-"}</b></div><br/>`;
+            });
+
+            const escapedKegiatan = (item.kegiatan || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const escapedProjek = (item.projek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const escapedNoKontrak = (item.noKontrak || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const escapedTempohProjek = (item.tempohProjek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const escapedOwner = (item.ownerProjek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            const projectDetails = `
+              <div><b>KEGIATAN SYARIKAT</b><br/>&#10148; ${escapedKegiatan}</div><br/>
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 5px;">
+                <b>PROJECT:</b><br/>
+                &#10148; ${escapedProjek}<br/>
+                ${escapedNoKontrak ? `&#10148; NO. KONTRAK: ${escapedNoKontrak}<br/>` : ''}
+                ${escapedTempohProjek ? `&#10148; TEMPOH PROJEK: ${escapedTempohProjek}<br/>` : ''}
+                ${escapedOwner ? `&#10148; OWNER PROJECT: ${escapedOwner}` : ''}
+              </div>
+            `;
+
+            const checkLulus = item.keputusan === "LULUS" ? "&#9746;" : "&#9744;";
+            const checkLulusBersyarat = item.keputusan === "LULUS BERSYARAT" ? "&#9746;" : "&#9744;";
+            const checkTolak = item.keputusan === "TOLAK" ? "&#9746;" : "&#9744;";
+            const checkSemakan = item.keputusan === "SEMAKAN / NAZIRAN" ? "&#9746;" : "&#9744;";
+
+            const decisionCol = `
+              <div style="font-size: 8.5pt;">
+                <div>${checkLulus} LULUS</div>
+                <div style="margin-top: 3px;">${checkLulusBersyarat} LULUS BERSYARAT</div>
+                <div style="margin-top: 3px;">${checkTolak} TOLAK</div>
+                <div style="margin-top: 3px;">${checkSemakan} SEMAKAN / NAZIRAN</div>
+                <div style="margin-top: 10px; font-weight: bold;">ULASAN :</div>
+                ${item.ulasan ? `<div style="font-style: italic; margin-top: 4px;">"${item.ulasan}"</div>` : `
+                  <div class="dotted-line"></div>
+                  <div class="dotted-line"></div>
+                  <div class="dotted-line"></div>
+                `}
+              </div>
+            `;
+
+            wordContent += `
+              <tr>
+                <td class="align-center font-bold">${index + 1}.</td>
+                <td class="font-bold uppercase">${item.namaSyarikat}<br/><span style="font-size: 8pt; font-weight: normal;">${item.alamat || ""}</span></td>
+                <td>${penyandangRows}</td>
+                <td class="align-center font-bold">${item.tempohMohon || "-"}</td>
+                <td class="align-center font-bold">${item.valB || "-"}</td>
+                <td class="align-center font-bold">${item.valL || "-"}</td>
+                <td class="align-center font-bold">${item.valTR || "-"}</td>
+                <td class="align-center font-bold" style="font-size: 8pt; white-space: pre-line;">${item.valWN || "-"}</td>
+                <td>${projectDetails}</td>
+                <td>${decisionCol}</td>
+              </tr>
+            `;
+          });
+        }
+
+        wordContent += `
+                </tbody>
+              </table>
+            </div>
+          </body>
+          </html>
+        `;
+
+        const blob = new Blob([wordContent], { type: "application/msword;charset=utf-8" });
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `JKPLIK_Sektor_${activeSector.toUpperCase()}_Bil_${meetingNumber}_${meetingYear}.doc`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+        showToast("Dokumen format Word berjaya dijana dan dimuat turun!", "success");
+      };
+
       // Mengumpul dan menapis cadangan syarikat unik tempatan + sejarah
       const uniqueCompanies = useMemo(() => {
         const local = [...dataOG];
@@ -581,7 +779,6 @@
         const seen = new Set();
         const result = [];
         
-        // Letakkan rekod tempatan dahulu
         local.forEach(item => {
           if (!item.namaSyarikat) return;
           const cleanName = item.namaSyarikat.trim().toUpperCase();
@@ -595,7 +792,6 @@
           }
         });
 
-        // Letakkan rekod global sejarah dari Sheets
         globalCompanies.forEach(item => {
           const cleanName = item.namaSyarikat.trim().toUpperCase();
           if (!seen.has(cleanName)) {
@@ -703,7 +899,7 @@
         return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
       };
 
-      // PENGIRAAN AUTOMATIK UMUR PENYANDANG (Tarikh Lahir -> Umur THN)
+      // PENGIRAAN AUTOMATIK UMUR PENYANDANG
       const handleBirthDateChange = (dateValue) => {
         if (!dateValue) {
           setNewPenyandang(prev => ({ ...prev, tarikhLahir: "", umur: "" }));
@@ -717,7 +913,6 @@
         const currentYearNum = parseInt(meetingYear) || 2026;
         const calculatedAge = currentYearNum - birthYear;
 
-        // Auto-set umur dinamik berdasarkan tahun mesyuarat semasa
         setNewPenyandang(prev => ({
           ...prev,
           tarikhLahir: dateValue,
@@ -1023,7 +1218,7 @@
         );
       }, [archiveSearchQuery, pastSheets]);
 
-      // Memuat naik data demo yang mengandungi struktur kes MKN Odyssey warganegara campuran
+      // STREAMING_CHUNK: Menyediakan fungsi memuatkan data demo format Word/docx...
       const loadDemoData = () => {
         const demoData = [
           {
@@ -1072,45 +1267,11 @@
               { nama: "MUHAMMAD IRFAN BIN AZMI", jantina: "L", warganegara: "MYS", pasport: "A72522080", tarikhLahir: "2001-01-18", umur: "25 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
               { nama: "MOHD REEZA BIN MOHD ROSLI", jantina: "L", warganegara: "MYS", pasport: "A71072026", tarikhLahir: "1981-06-07", umur: "45 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" }
             ]
-          },
-          {
-            id: `OG-${Date.now()}-11`,
-            bil: 3,
-            namaSyarikat: "MKN ODYSSEY VENTURES SDN. BHD. (879940-H)",
-            alamat: "8-09-03, JALAN MEDAN PUSAT BANDAR 7A BANGI SENTRAL, SEKSYEN 9, 43650 BANDAR BARU BANGI, SELANGOR.",
-            kegiatan: "OIL AND GAS SERVICES",
-            projek: "LETTER OF AWARD FOR PROVISION OF JACK UP DRILLING RIG AND BUNDLED SERVICES FOR PETRONAS CARIGALI DRILLING PROGRAM.",
-            noKontrak: "CHO/2022/WELLS/1020",
-            tempohProjek: "05.01.2026 – 04.01.2028",
-            ownerProjek: "PETRONAS CARIGALI SDN BHD",
-            tempohMohon: "06 BULAN",
-            valB: "25",
-            valL: "-",
-            valTR: "-",
-            valWN: "22 VNM\n01 CAN\n01 NLD\n01 GBR",
-            keputusan: "",
-            ulasan: "",
-            synced: false,
-            penyandang: [
-              { nama: "PAYNE EUGENE LAWRENCE", jantina: "L", warganegara: "CAN", pasport: "AH672543", tarikhLahir: "1974-01-18", umur: "52 THN", jawatan: "MAINTENANCE SUPERINTENDENT", gaji: "RM26,400" },
-              { nama: "KOK BART JOHANNES", jantina: "L", warganegara: "NLD", pasport: "BRDD31222", tarikhLahir: "1966-04-22", umur: "60 THN", jawatan: "SENIOR TOOLPUSHER", gaji: "RM37,800" },
-              { nama: "BARTLEY STEPHEN GARETH", jantina: "L", warganegara: "GBR", pasport: "GBR149577", tarikhLahir: "1972-02-11", umur: "54 THN", jawatan: "BARGE CAPTAIN", gaji: "RM20,000" },
-              ...Array(22).fill(null).map((_, i) => ({
-                nama: `WARGANEGARA VIETNAM ${i + 1}`,
-                jantina: "L",
-                warganegara: "VNM",
-                pasport: `VN${100000 + i}`,
-                tarikhLahir: "1985-01-01",
-                umur: "41 THN",
-                jawatan: "ELECTRICIAN/DERRICK MAN/DRILLER",
-                gaji: "RM6,000"
-              }))
-            ]
           }
         ];
         
         setDataOG(demoData);
-        showToast("Tiga data ujian (termasuk kes MKN Odyssey warganegara bercampur) berjaya dimuatkan!", "success");
+        showToast("Dua data ujian JKPLIK berjaya dimuatkan!", "success");
         setViewMode("dashboard");
       };
 
@@ -1171,7 +1332,7 @@
                 />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-blue-950 flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-blue-955 flex items-center gap-2">
                   PORTAL KEPUTUSAN JKPLIK MALAYSIA
                 </h1>
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider flex items-center gap-2">
@@ -1206,14 +1367,14 @@
               <button
                 onClick={fetchArchiveSheets}
                 disabled={isLoadingArchive}
-                className="bg-blue-950 hover:bg-blue-900 text-white rounded px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 transition-all"
+                className="bg-blue-955 hover:bg-blue-900 text-white rounded px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 transition-all"
                 title="Imbas Arkib Google Sheets"
               >
                 <Icon name="database" size={10} /> Semak Arkib Sheets
               </button>
             </div>
 
-            {/* Butang Kawalan Pandangan */}
+            {/* STREAMING_CHUNK: Menambah butang eksport baharu pada antaramuka... */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode("dashboard")}
@@ -1250,6 +1411,14 @@
               </button>
 
               <button
+                onClick={exportToWord}
+                className="p-2 bg-blue-50 text-blue-900 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
+                title="Eksport Fail Word (.doc)"
+              >
+                <Icon name="word" size={15} />
+              </button>
+
+              <button
                 onClick={handlePrint}
                 className="p-2 bg-white text-slate-700 hover:text-blue-900 rounded-lg border border-slate-300 transition-all"
                 title="Cetak Laporan / PDF"
@@ -1260,7 +1429,7 @@
           </header>
 
           {/* Sektor Sub-Header */}
-          <div className="bg-blue-950 text-white py-3 px-6 flex items-center gap-2 overflow-x-auto no-print shadow-inner">
+          <div className="bg-blue-955 text-white py-3 px-6 flex items-center gap-2 overflow-x-auto no-print shadow-inner">
             <span className="text-xs font-bold text-amber-400 uppercase tracking-widest whitespace-nowrap mr-3">SEKTOR KDN:</span>
             <div className="flex gap-2">
               {SECTORS_LIST.map((sect) => (
@@ -1406,7 +1575,7 @@
                                       {item.synced ? <Icon name="cloudCheck" size={16} className="text-emerald-500" /> : <Icon name="cloudAlert" size={16} className="text-slate-400" />}
                                     </div>
                                     <div>
-                                      <div className="font-bold text-blue-950 uppercase">{item.namaSyarikat}</div>
+                                      <div className="font-bold text-blue-955 uppercase">{item.namaSyarikat}</div>
                                       <div className="text-[10px] text-slate-500 mt-1 uppercase leading-tight">{item.alamat}</div>
                                     </div>
                                   </div>
@@ -1425,7 +1594,7 @@
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valB || "-"}</td>
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valL || "-"}</td>
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valTR || "-"}</td>
-                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-blue-950 text-[10px] whitespace-pre-line leading-relaxed">{item.valWN || "-"}</td>
+                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-blue-955 text-[10px] whitespace-pre-line leading-relaxed">{item.valWN || "-"}</td>
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[280px]">
                                   <div className="flex flex-col gap-2 text-[11px] leading-relaxed">
                                     <div>
@@ -1437,7 +1606,7 @@
                                       <p className="text-slate-700 font-medium">➢ {item.projek}</p>
                                       {item.noKontrak && <p className="text-slate-600 mt-1">➢ NO. KONTRAK: {item.noKontrak}</p>}
                                       {item.tempohProjek && <p className="text-slate-600">➢ TEMPOH PROJEK: {item.tempohProjek}</p>}
-                                      {item.ownerProjek && <p className="text-blue-950 font-bold mt-1">➢ OWNER PROJECT: {item.ownerProjek}</p>}
+                                      {item.ownerProjek && <p className="text-blue-955 font-bold mt-1">➢ OWNER PROJECT: {item.ownerProjek}</p>}
                                     </div>
                                   </div>
                                 </td>
@@ -1477,7 +1646,7 @@
                                     </button>
                                     <button
                                       onClick={() => triggerEditItem(item)}
-                                      className="p-1 hover:bg-slate-100 hover:text-blue-950 rounded transition-colors text-slate-500"
+                                      className="p-1 hover:bg-slate-100 hover:text-blue-955 rounded transition-colors text-slate-500"
                                       title="Edit Maklumat"
                                     >
                                       <Icon name="edit" size={15} />
@@ -1520,7 +1689,7 @@
                       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px]">
                         
                         {/* Panel Kiri: Butiran Permohonan */}
-                        <div className="lg:col-span-8 flex flex-col gap-5 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="lg:col-span-9 flex flex-col gap-5 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                           
                           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5">
                             <div className="flex flex-col gap-1.5 flex-1">
@@ -1567,22 +1736,22 @@
                               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
                                 Perincian Projek & Pemilik
                               </span>
-                              <div className="flex flex-col gap-1.5 text-xs">
+                              <div className="flex flex-col gap-2 text-xs">
                                 <div>
                                   <span className="text-slate-400 text-[9px] uppercase block font-bold">Butiran Projek</span>
                                   <p className="text-slate-800 font-semibold">{item.projek || "N/A"}</p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
+                                <div className="pt-1.5 border-t border-slate-200 flex flex-col gap-1.5">
                                   <div>
                                     <span className="text-slate-400 text-[9px] uppercase block font-bold">No. Kontrak</span>
-                                    <p className="text-slate-800 font-semibold">{item.noKontrak || "N/A"}</p>
+                                    <p className="text-slate-800 font-bold break-all leading-normal">{item.noKontrak || "N/A"}</p>
                                   </div>
                                   <div>
                                     <span className="text-slate-400 text-[9px] uppercase block font-bold">Tempoh Projek</span>
-                                    <p className="text-slate-800 font-semibold">{item.tempohProjek || "N/A"}</p>
+                                    <p className="text-slate-800 font-semibold leading-normal">{item.tempohProjek || "N/A"}</p>
                                   </div>
                                 </div>
-                                <div className="pt-1 border-t border-slate-200">
+                                <div className="pt-1.5 border-t border-slate-200">
                                   <span className="text-slate-400 text-[9px] uppercase block font-bold">Pemilik Projek</span>
                                   <p className="text-blue-955 font-bold uppercase">{item.ownerProjek || "N/A"}</p>
                                 </div>
@@ -1662,93 +1831,92 @@
                         </div>
 
                         {/* Panel Kanan: Membuat Keputusan */}
-                        <div className="lg:col-span-4 bg-slate-900 text-white p-6 rounded-2xl flex flex-col gap-6 relative shadow-lg">
+                        <div className="lg:col-span-3 bg-slate-900 text-white p-4.5 rounded-2xl flex flex-col gap-4.5 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
                               Panel Pilihan Keputusan
                             </h3>
-                            <p className="text-[10px] text-slate-400 font-medium">Keputusan diselaraskan secara auto-sync.</p>
+                            <p className="text-[9px] text-slate-400 font-medium">Keputusan diselaraskan secara auto-sync.</p>
                           </div>
 
-                          {/* Senarai Tindakan */}
-                          <div className="flex flex-col gap-2.5">
+                          <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
-                              className={`w-full p-3 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS"
                                   ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-3 text-xs">
+                              <div className="flex items-center gap-2.5 text-xs">
                                 <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
-                                  <Icon name="checkCircle" size={14} />
+                                  <Icon name="checkCircle" size={13} />
                                 </div>
-                                <span>LULUS</span>
+                                <span className="text-[11px] tracking-wide">LULUS</span>
                               </div>
-                              {item.keputusan === "LULUS" && <Icon name="check" size={14} />}
+                              {item.keputusan === "LULUS" && <Icon name="check" size={13} />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS BERSYARAT", item.ulasan)}
-                              className={`w-full p-3 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS BERSYARAT"
                                   ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-3 text-xs">
+                              <div className="flex items-center gap-2.5 text-xs">
                                 <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
-                                  <Icon name="alertTriangle" size={14} />
+                                  <Icon name="alertTriangle" size={13} />
                                 </div>
-                                <span>LULUS BERSYARAT</span>
+                                <span className="text-[11px] tracking-wide">LULUS BERSYARAT</span>
                               </div>
-                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={14} />}
+                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "TOLAK", item.ulasan)}
-                              className={`w-full p-3 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "TOLAK"
                                   ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-3 text-xs">
+                              <div className="flex items-center gap-2.5 text-xs">
                                 <div className={`p-1.5 rounded-full ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
-                                  <Icon name="xCircle" size={14} />
+                                  <Icon name="xCircle" size={13} />
                                 </div>
-                                <span>TOLAK</span>
+                                <span className="text-[11px] tracking-wide">TOLAK</span>
                               </div>
-                              {item.keputusan === "TOLAK" && <Icon name="check" size={14} />}
+                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "SEMAKAN / NAZIRAN", item.ulasan)}
-                              className={`w-full p-3 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "SEMAKAN / NAZIRAN"
                                   ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-3 text-xs">
+                              <div className="flex items-center gap-2.5 text-xs">
                                 <div className={`p-1.5 rounded-full ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
-                                  <Icon name="fileText" size={14} />
+                                  <Icon name="fileText" size={13} />
                                 </div>
-                                <span>SEMAKAN / NAZIRAN</span>
+                                <span className="text-[11px] tracking-wide">SEMAKAN / NAZIRAN</span>
                               </div>
-                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={14} />}
+                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} />}
                             </button>
                           </div>
 
                           {/* Catatan Sampingan */}
-                          <div className="flex flex-col gap-2 mt-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                              <Icon name="edit" size={12} className="text-amber-400" /> Catatan & Ulasan Rasmi Mesyuarat
+                          <div className="flex flex-col gap-2 mt-1">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                              <Icon name="edit" size={11} className="text-amber-400" /> Catatan & Ulasan Rasmi Mesyuarat
                             </label>
                             <textarea
-                              rows={4}
+                              rows={3}
                               placeholder="Nyatakan justifikasi di sini..."
                               value={item.ulasan || ""}
                               onChange={(e) => handleSaveDecision(item.id, item.keputusan, e.target.value)}
@@ -1757,12 +1925,12 @@
                           </div>
 
                           {/* Status Automanage */}
-                          <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                          <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-400 font-semibold">
                             <span className="flex items-center gap-1.5">
-                              <Icon name="database" size={12} className={sheetUrl ? "text-emerald-400" : "text-slate-600"} />
+                              <Icon name="database" size={11} className={sheetUrl ? "text-emerald-400" : "text-slate-600"} />
                               {sheetUrl ? `Google Sheet Aktif` : "Mod Simpanan Tempatan"}
                             </span>
-                            <span className="text-emerald-400 font-bold">Auto-Simpan Aktif</span>
+                            <span className="text-emerald-400 font-bold">Auto-Simpan</span>
                           </div>
 
                         </div>
@@ -1825,9 +1993,9 @@
                     onClick={loadDemoData}
                     className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-sm"
                   >
-                    Muat Data Demo (Sertakan MKN Odyssey)
+                    Muat Data Demo (Format Word)
                   </button>
-                  <p className="text-[10px] text-slate-500 mt-1">Suntik rekod ujian yang mempunyai warganegara bercampur untuk melihat ketepatan pengisian lajur B dan W/N.</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Suntik rekod ujian yang mempunyai warganegara bercampur untuk melihat ketepatan pengisian lajur B, W/N, serta layout eksport Word.</p>
                 </div>
 
                 <div className="flex items-center gap-3 border-t border-slate-200 pt-4 mt-2">
@@ -1988,7 +2156,7 @@
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col p-6 shadow-2xl relative">
                 
                 <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-4">
-                  <h3 className="text-base font-bold text-blue-950 flex items-center gap-1.5">
+                  <h3 className="text-base font-bold text-blue-955 flex items-center gap-1.5">
                     <Icon name="plusCircle" size={18} className="text-emerald-600" /> Daftar Permohonan Baru
                   </h3>
                   <button 
@@ -2137,7 +2305,7 @@
                       />
                     </div>
 
-                    {/* Tempoh Kontrak Projek (Input Teks Sahaja) */}
+                    {/* Tempoh Kontrak Projek */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-slate-700">Tempoh Kontrak Projek</label>
                       <input
@@ -2150,7 +2318,7 @@
                       />
                     </div>
 
-                    {/* Tempoh Mohon (Input Teks Sahaja secara Manual) */}
+                    {/* Tempoh Mohon */}
                     <div className="flex flex-col gap-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-700">Tempoh Mohon</label>
                       <input
@@ -2163,7 +2331,7 @@
                       />
                     </div>
 
-                    {/* Kawalan Lajur image_566509.png */}
+                    {/* Kawalan Lajur */}
                     <div className="grid grid-cols-4 gap-2 md:col-span-2 bg-amber-50 p-3 rounded-lg border border-amber-200">
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-bold text-amber-900">B (Baru)</span>
@@ -2194,7 +2362,7 @@
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-bold text-amber-900">W/N (Ringkasan W/N)</span>
+                        <span className="text-[10px] font-bold text-amber-900">W/N (Ringkasan)</span>
                         <input
                           type="text"
                           value={newCompany.valWN}
@@ -2274,7 +2442,7 @@
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Umur (Boleh ubah manual)</span>
+                        <span className="text-[10px] text-slate-500 font-bold">Umur</span>
                         <input
                           type="text"
                           placeholder="Contoh: 38 THN"
@@ -2627,7 +2795,7 @@
                     </button>
                     <button
                       type="submit"
-                      className="bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg"
+                      className="bg-blue-955 hover:bg-blue-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg"
                     >
                       Simpan Perubahan & Kemaskini Sheets
                     </button>
