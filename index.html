@@ -51,15 +51,6 @@
       thead {
         display: table-row-group !important;
       }
-      /* Menjamin baris permohonan tidak terputus/terbelah di tengah di antara halaman cetakan */
-      tr {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
-      td, th {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
       th {
         background-color: #f1f5f9 !important;
         -webkit-print-color-adjust: exact;
@@ -1808,7 +1799,7 @@
                         </div>
 
                         {/* Panel Kanan: Membuat Keputusan */}
-                        <div className="lg:col-span-3 bg-slate-900 text-white p-4.5 rounded-2xl flex flex-col gap-4.5 relative shadow-lg">
+                        <div className="lg:col-span-3 bg-slate-900 text-white p-4 rounded-2xl flex flex-col gap-4 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
@@ -1821,70 +1812,70 @@
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS"
                                   ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="checkCircle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">LULUS</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide truncate">LULUS</span>
                               </div>
-                              {item.keputusan === "LULUS" && <Icon name="check" size={13} />}
+                              {item.keputusan === "LULUS" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS BERSYARAT", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS BERSYARAT"
                                   ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="alertTriangle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">LULUS BERSYARAT</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide whitespace-normal leading-tight">LULUS BERSYARAT</span>
                               </div>
-                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} />}
+                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "TOLAK", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "TOLAK"
                                   ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="xCircle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">TOLAK</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide truncate">TOLAK</span>
                               </div>
-                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} />}
+                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "SEMAKAN / NAZIRAN", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "SEMAKAN / NAZIRAN"
                                   ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="fileText" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">SEMAKAN / NAZIRAN</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide whitespace-normal leading-tight">SEMAKAN / NAZIRAN</span>
                               </div>
-                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} />}
+                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
                           </div>
 
