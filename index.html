@@ -80,7 +80,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbwYISUKccznkrSA9GOTMzPrv6u3wM64ORRPDiM5IE1DGvNwviLaWsaC2d9vcGSXqahlIg/exec";
+    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbyAMRyDUD4cWVNg-CxOxm5PJHG7GVhKs-ZJh6x5Tglf1tZdFDuADyuu7Ma3-LzKkZEP_g/exec";
 
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
@@ -183,21 +183,19 @@
         let gaji = "";
         let tarikhLahir = "";
 
-        // Ekstrak Gaji
         const gajiMatch = rest.match(/GAJI:\s*([^)]+)/i) || rest.match(/(RM\s*[0-9,.]+)/i);
         if (gajiMatch) {
           gaji = gajiMatch[1].trim();
           rest = rest.replace(/\(?GAJI:\s*[^)]+\)?/i, '').trim();
+          rest = rest.replace(/(RM\s*[0-9,.]+)/i, "").trim();
         }
 
-        // Ekstrak Tarikh Lahir
         const tlMatch = rest.match(/([0-9]{2}[.\/-][0-9]{2}[.\/-][0-9]{4})/) || rest.match(/TL:\s*([0-9\-\/\.]{8,10})/i) || rest.match(/T\.?\s*LAHIR:\s*([0-9\-\/\.]{8,10})/i);
         if (tlMatch) {
           tarikhLahir = tlMatch[1] || tlMatch[0];
           rest = rest.replace(tarikhLahir, '').replace(/TL:/i, '').replace(/T\.?LAHIR:/i, '').trim();
         }
 
-        // Ekstrak Umur
         const umurMatch = rest.match(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i);
         if (umurMatch) {
           umur = umurMatch[1].trim();
@@ -502,7 +500,6 @@
       const [meetingYear, setMeetingYear] = useState("2026");
       const [officerName, setOfficerName] = useState("");
 
-      // Satu-satunya punca kebenaran (Source of Truth) bagi semua draf penilai secara dinamik
       const [sessionData, setSessionData] = useState({});
 
       const [activeSector, setActiveSector] = useState("og");
@@ -510,19 +507,16 @@
       const [isFullscreen, setIsFullscreen] = useState(false);
       const meetingContainerRef = useRef(null);
 
-      // Autocomplete warganegara dinamik
       const [nationalityQuery, setNationalityQuery] = useState("");
       const [showNationalityDropdown, setShowWarganegaraDropdown] = useState(false);
       const [editNationalityQuery, setEditNationalityQuery] = useState("");
       const [showEditNationalityDropdown, setShowEditWarganegaraDropdown] = useState(false);
 
-      // Autocomplete Ahli/Penyandang Sejarah
       const [applicantSearchQuery, setApplicantSearchQuery] = useState("");
       const [showApplicantDropdown, setShowApplicantDropdown] = useState(false);
       const [editApplicantSearchQuery, setEditApplicantSearchQuery] = useState("");
       const [showEditApplicantDropdown, setShowEditApplicantDropdown] = useState(false);
 
-      // State Pembatasan Tetingkap Edit & Tambah
       const [showEditModal, setShowEditModal] = useState(false);
       const [editingCompany, setEditingCompany] = useState(null);
       
@@ -530,13 +524,9 @@
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      // Senarai semua pegawai penilai yang dikesan dari tab Google Sheets
       const [availableEvaluators, setAvailableEvaluators] = useState([]);
-
-      // State Pembentangan Slaid
       const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-      // State Carian & Penapisan
       const [searchQuery, setSearchQuery] = useState("");
       const [statusFilter, setStatusFilter] = useState("semua");
 
@@ -978,7 +968,6 @@
 
             const escapedKegiatan = (item.kegiatan || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             
-            // Format pelbagai projek pembentangan untuk fail Word
             const rawProjekArray = getProjekArray(item.projek);
             const formattedProjekWord = rawProjekArray
               .map(p => `&#10148; ${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}`)
@@ -1089,7 +1078,6 @@
                 }
               });
 
-              // Kemas kini terus ke tab penilai sasaran secara kalis tindihan
               setSessionData(prev => ({
                 ...prev,
                 [activeCacheKey]: {
@@ -1488,7 +1476,7 @@ function doPost(e) {
     var sheetName = params.sheetName || "Utama";
 
     function parsePenyandangLine(line) {
-      var cleanLine = line.replace(/^\\d+[\\.\\)\\s\\-–]*/, '').trim();
+      var cleanLine = line.replace(/^\d+[\.\)\s\-–]*/, '').trim();
       if (!cleanLine) return null;
 
       var parts = cleanLine.split('/').map(function(p) { return p.trim(); });
@@ -1504,29 +1492,29 @@ function doPost(e) {
       var gaji = "";
 
       // 1. Ekstrak GAJI
-      var gajiMatch = restOfLine.match(/GAJI:\\s*([^)]+)/i) || restOfLine.match(/(RM\\s*[0-9,.]+)/i);
+      var gajiMatch = restOfLine.match(/GAJI:\s*([^)]+)/i) || restOfLine.match(/(RM\s*[0-9,.]+)/i);
       if (gajiMatch) {
         gaji = gajiMatch[1].trim();
-        restOfLine = restOfLine.replace(/GAJI:\\s*.*$/i, "").trim();
+        restOfLine = restOfLine.replace(/GAJI:\s*.*$/i, "").trim();
       }
 
       // 2. Ekstrak Tarikh Lahir (Format DD.MM.YYYY atau YYYY-MM-DD)
-      var dateMatch = restOfLine.match(/([0-9]{2}[.\\/-][0-9]{2}[.\\/-][0-9]{4})/) || restOfLine.match(/([0-9]{4}[.\\/-][0-9]{2}[.\\/-][0-9]{2})/);
+      var dateMatch = restOfLine.match(/([0-9]{2}[.\/-][0-9]{2}[.\/-][0-9]{4})/) || restOfLine.match(/([0-9]{4}[.\/-][0-9]{2}[.\/-][0-9]{2})/);
       if (dateMatch) {
         tarikhLahir = dateMatch[1].trim();
         restOfLine = restOfLine.replace(tarikhLahir, "").trim();
       }
 
       // 3. Ekstrak UMUR
-      var umurMatch = restOfLine.match(/(\\d+\\s*THN|\\d+\\s*TAHUN|\\d+\\s*YEARS?)/i);
+      var umurMatch = restOfLine.match(/(\d+\s*THN|\d+\s*TAHUN|\d+\s*YEARS?)/i);
       if (umurMatch) {
         umur = umurMatch[1].trim();
         restOfLine = restOfLine.replace(umurMatch[1], "").trim();
-        restOfLine = restOfLine.replace(/\\(\\s*\\)/g, "").trim();
+        restOfLine = restOfLine.replace(/\(\s*\)/g, "").trim();
       }
 
       // 4. Sisa baris bersih adalah Jawatan
-      var jawatanClean = restOfLine.replace(/^[\\s–\\-]+/, "").replace(/[\\s–\\-]+$/, "").replace(/^\\s*\\(\\s*/, "").replace(/\\s*\\)\\s*$/, "").trim();
+      var jawatanClean = restOfLine.replace(/^[\s–\-]+/, "").replace(/[\s–\-]+$/, "").replace(/^\s*\(\s*/, "").replace(/\s*\)\s*$/, "").trim();
       if (jawatanClean) {
         jawatan = jawatanClean;
       }
@@ -1798,7 +1786,9 @@ function appendSingleRow(sheet, item, bilNum, activeSector) {
   if (!item) return;
 
   var penyandangStr = "";
-  if (item.penyandang && Array.isArray(item.penyandang) && item.penyandang.length > 0) {
+  if (typeof item.penyandang === 'string') {
+    penyandangStr = item.penyandang;
+  } else if (item.penyandang && Array.isArray(item.penyandang) && item.penyandang.length > 0) {
     penyandangStr = item.penyandang.map(function(p, idx) {
       if (!p) return "";
       var pName = p.nama || "";
@@ -1806,26 +1796,29 @@ function appendSingleRow(sheet, item, bilNum, activeSector) {
       var pWarganegara = p.warganegara || "";
       var pPasport = p.pasport || "-";
       
-      var formattedDate = p.tarikhLahir || "";
-      if (formattedDate.indexOf("-") !== -1) {
-        var s = formattedDate.split("-");
-        if (s.length === 3 && s[0].length === 4) {
-          formattedDate = s[2] + "." + s[1] + "." + s[0];
+      var dateAndAge = "";
+      if (p.tarikhLahir) {
+        var formattedDate = p.tarikhLahir;
+        if (formattedDate.indexOf("-") !== -1) {
+          var s = formattedDate.split("-");
+          if (s.length === 3 && s[0].length === 4) {
+            formattedDate = s[2] + "." + s[1] + "." + s[0];
+          }
         }
-      }
-
-      var dateAndAge = formattedDate;
-      if (p.umur) {
-        if (dateAndAge) {
+        dateAndAge = formattedDate;
+        if (p.umur) {
           dateAndAge += " (" + p.umur + ")";
-        } else {
-          dateAndAge = p.umur;
         }
+      } else if (p.umur) {
+        dateAndAge = p.umur;
       } else {
-        if (!dateAndAge) dateAndAge = "-";
+        dateAndAge = "-";
       }
 
-      return (idx + 1) + ". " + pName + " / " + pJantina + " / " + pWarganegara + " / " + pPasport + " / " + dateAndAge + " – " + (p.jawatan || "") + " GAJI: " + (p.gaji || "-");
+      var jawStr = p.jawatan ? " – " + p.jawatan : "";
+      var gajiStr = p.gaji ? " GAJI: " + p.gaji : "";
+
+      return (idx + 1) + ". " + pName + " / " + pJantina + " / " + pWarganegara + " / " + pPasport + " / " + dateAndAge + " – " + jawStr + " GAJI: " + gajiStr;
     }).filter(Boolean).join("\\n");
   }
 
@@ -2461,7 +2454,7 @@ function doGet(e) {
 
                                 <td className="px-4 py-4 text-center border-r border-slate-100 font-medium">{item.tempohMohon}</td>
                                 
-                                {/* Jangan muat data B, L, TR, WN sekiranya tiada penyandang */}
+                                {/* JANGAN MUAT DATA SEHINGGA ADA PENYANDANG BAGI MENGELAKKAN KEKELIRUAN */}
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">
                                   {hasPenyandang ? (item.valB || "-") : "-"}
                                 </td>
@@ -2674,6 +2667,12 @@ function doGet(e) {
                               <div className="flex gap-2 text-[10px]">
                                 <span className="bg-blue-50 text-blue-900 font-bold px-2 py-0.5 rounded border border-blue-150">
                                   B: {hasPenyandang ? item.valB : "-"}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">
+                                  L: {hasPenyandang ? item.valL : "-"}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">
+                                  T/R: {hasPenyandang ? item.valTR : "-"}
                                 </span>
                                 <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200 whitespace-pre-line">
                                   WN: {hasPenyandang ? item.valWN : "-"}
@@ -3039,6 +3038,7 @@ function doGet(e) {
                       
                       <td className="p-2 text-center border-r border-black align-top font-semibold">{item.tempohMohon}</td>
                       
+                      {/* JANGAN MUAT DATA SEHINGGA ADA BUTIRAN PENYANDANG UNTUK MENGELAK KEKELIRUAN */}
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valB || "-") : "-"}</td>
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valL || "-") : "-"}</td>
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valTR || "-") : "-"}</td>
@@ -3416,7 +3416,7 @@ function doGet(e) {
                         <span className="text-[10px] text-slate-500 font-bold">Jawatan</span>
                         <input
                           type="text"
-                          placeholder="Contoh: Specialist Surveyor"
+                          placeholder="Jawatan Pemohon"
                           value={newPenyandang.jawatan}
                           onChange={(e) => setNewPenyandang({...newPenyandang, jawatan: e.target.value.toUpperCase()})}
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
@@ -3809,7 +3809,7 @@ function doGet(e) {
                         <span className="text-[10px] text-slate-500 font-bold">Jawatan</span>
                         <input
                           type="text"
-                          placeholder="Jawatan dalam syarikat"
+                          placeholder="Jawatan Pemohon"
                           value={editPenyandang.jawatan}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jawatan: e.target.value.toUpperCase()})}
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:outline-none"
