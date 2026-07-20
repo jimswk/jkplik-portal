@@ -82,6 +82,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
+    /* STREAMING_CHUNK: Mendefinisikan data warganegara global kementerian... */
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
       { name: "INDONESIA", code: "IDN" },
@@ -119,6 +120,7 @@
       { name: "BRAZIL", code: "BRA" }
     ];
 
+    /* STREAMING_CHUNK: Mendefinisikan senarai sektor KDN rasmi... */
     const SECTORS_LIST = [
       { id: "og", name: "1. Minyak & Gas (Oil & Gas)" },
       { id: "perkhidmatan", name: "2. Perkhidmatan" },
@@ -127,7 +129,48 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    // Komponen pembantu Icon SVG terbina-dalam
+    /* STREAMING_CHUNK: Mendefinisikan pembantu penjanaan nama helaian Google Sheets secara global (Hoisting-Safe)... */
+    function getSheetName(meetingNumber, meetingYear, officerName) {
+      const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim()})` : '';
+      return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
+    }
+
+    /* STREAMING_CHUNK: Menyediakan helper penarafan kod baru warganegara... */
+    function calculateBAndWN(penyandangList) {
+      if (!penyandangList || penyandangList.length === 0) {
+        return { valB: "01", valWN: "-" };
+      }
+
+      const totalPenyandang = penyandangList.length;
+      const formattedB = totalPenyandang < 10 ? `0${totalPenyandang}` : `${totalPenyandang}`;
+
+      const group = {};
+      penyandangList.forEach(p => {
+        const wn = (p.warganegara || "").trim().toUpperCase();
+        const passport = (p.pasport || "").trim();
+        
+        let displayWN = wn;
+        if (wn === "MYS" && passport.length > 0) {
+          const code = passport.charAt(0).toUpperCase();
+          displayWN = `MYS '${code}'`;
+        }
+
+        group[displayWN] = (group[displayWN] || 0) + 1;
+      });
+
+      const wnRows = Object.keys(group).map(key => {
+        const count = group[key];
+        const formattedCount = count < 10 ? `0${count}` : `${count}`;
+        return `${formattedCount} ${key}`;
+      });
+
+      return {
+        valB: formattedB,
+        valWN: wnRows.join("\n")
+      };
+    }
+
+    /* STREAMING_CHUNK: Membina komponen SVG Icon yang sifar-import... */
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -301,42 +344,9 @@
       );
     }
 
-    function calculateBAndWN(penyandangList) {
-      if (!penyandangList || penyandangList.length === 0) {
-        return { valB: "01", valWN: "-" };
-      }
-
-      const totalPenyandang = penyandangList.length;
-      const formattedB = totalPenyandang < 10 ? `0${totalPenyandang}` : `${totalPenyandang}`;
-
-      const group = {};
-      penyandangList.forEach(p => {
-        const wn = (p.warganegara || "").trim().toUpperCase();
-        const passport = (p.pasport || "").trim();
-        
-        let displayWN = wn;
-        if (wn === "MYS" && passport.length > 0) {
-          const code = passport.charAt(0).toUpperCase();
-          displayWN = `MYS '${code}'`;
-        }
-
-        group[displayWN] = (group[displayWN] || 0) + 1;
-      });
-
-      const wnRows = Object.keys(group).map(key => {
-        const count = group[key];
-        const formattedCount = count < 10 ? `0${count}` : `${count}`;
-        return `${formattedCount} ${key}`;
-      });
-
-      return {
-        valB: formattedB,
-        valWN: wnRows.join("\n")
-      };
-    }
-
     const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbzyK9wblCLxIYJj13Ry8w6j8dNol9pFkgC0QSCB1LIPypY9-T8hNoz5iSiFFLEXjPMyxw/exec";
 
+    /* STREAMING_CHUNK: Membina komponen App utama kementerian... */
     function App() {
       const [meetingNumber, setMeetingNumber] = useState(() => {
         return localStorage.getItem('jkplik_meeting_number') || "14";
@@ -446,29 +456,6 @@
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      // Fungsi bertukar Mod Skrin Penuh untuk Slide Presentasi
-      const toggleFullscreen = () => {
-        if (!meetingContainerRef.current) return;
-        if (!document.fullscreenElement) {
-          meetingContainerRef.current.requestFullscreen().then(() => {
-            setIsFullscreen(true);
-          }).catch(err => {
-            showToast("Gagal menukar ke mod skrin penuh.", "error");
-          });
-        } else {
-          document.exitFullscreen();
-          setIsFullscreen(false);
-        }
-      };
-
-      useEffect(() => {
-        const handleFullscreenChange = () => {
-          setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener("fullscreenchange", handleFullscreenChange);
-        return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      }, []);
-
       const triggerEditItem = (item) => {
         setEditingCompany(JSON.parse(JSON.stringify(item))); // Deep clone permohonan pilihan
         setShowEditModal(true);
@@ -491,6 +478,7 @@
         }));
       };
 
+      /* STREAMING_CHUNK: Menguruskan kemasukan ahli penyandang di mod edit... */
       const addPenyandangToEditingCompany = () => {
         if (!editPenyandang.nama) return;
         setEditingCompany(prev => {
@@ -547,9 +535,10 @@
         showToast(`Permohonan ${editingCompany.namaSyarikat} berjaya dikemas kini!`, "success");
       };
 
+      /* STREAMING_CHUNK: Mengemas kini fetch dengan standard follow redirect untuk memintas CORS... */
       const syncEditRowToGoogleSheets = async (updatedItem, allItems) => {
         if (!sheetUrl) return;
-        const sheetName = getSheetName();
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
         try {
           await fetch(sheetUrl, {
@@ -665,7 +654,7 @@
         }
       };
 
-      // STREAMING_CHUNK: Mengaktifkan pengesanan draf berbilang penilai di awan...
+      /* STREAMING_CHUNK: Mengaktifkan pemandu multi-penilai di awan... */
       // SCANNING TAB KEMENTERIAN UNTUK MENGESAN SEBARANG PENILAI AKTIF YANG LAIN
       useEffect(() => {
         if (!sheetUrl) return;
@@ -744,7 +733,7 @@
               });
 
               // Kemaskini state HANYA sekiranya tab semasa yang aktif masih sama!
-              if (targetTabName === getSheetName()) {
+              if (targetTabName === getSheetName(meetingNumber, meetingYear, officerName)) {
                 setDataOG(ogRecords);
                 setDataOthers(newOthers);
                 addLog(`[AUTO-SYNC] Berjaya memuatkan ${records.length} rekod dari Google Sheets. Data selari!`, "success");
@@ -754,7 +743,7 @@
           } else {
             addLog(`[AUTO-SYNC] Tab "${targetTabName}" belum wujud di awan. Memulai draf bersih untuk pegawai ini.`, "info");
             // Set draf bersih bagi mengelakkan kebocoran data jika tidak ditemui di awan
-            if (targetTabName === getSheetName()) {
+            if (targetTabName === getSheetName(meetingNumber, meetingYear, officerName)) {
               setDataOG([]);
               setDataOthers({});
             }
@@ -766,7 +755,7 @@
 
       // Cetusan auto-load apabila parameter mesyuarat, tahun, atau pegawai bertukar
       useEffect(() => {
-        const currentTabName = getSheetName();
+        const currentTabName = getSheetName(meetingNumber, meetingYear, officerName);
         
         // 100% Sifar LocalStorage: Mula dengan draf kosong untuk keselamatan multi-PC
         setDataOG([]);
@@ -786,8 +775,9 @@
         localStorage.setItem('jkplik_officer_name', newVal);
       };
 
+      /* STREAMING_CHUNK: Menyediakan fungsi eksport dokumen Word kDN... */
       const exportToWord = () => {
-        const sheetName = getSheetName();
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
         
         let wordContent = `
@@ -1048,6 +1038,7 @@
         });
       }, [currentSectData, searchQuery, statusFilter]);
 
+      /* STREAMING_CHUNK: Pengiraan statistik terperinci pecahan jantina dan warganegara... */
       const stats = useMemo(() => {
         const total = currentSectData.length;
         let lulus = 0;
@@ -1108,6 +1099,38 @@
           sh.toLowerCase().includes(archiveSearchQuery.toLowerCase())
         );
       }, [archiveSearchQuery, pastSheets]);
+
+      // FILTER CADANGAN AUTOSUGGEST AHLI PENYANDANG SEJARAH (ADD MODAL)
+      const filteredApplicantSuggestions = useMemo(() => {
+        if (!applicantSearchQuery) return [];
+        return globalApplicants.filter(a => 
+          a.nama.toLowerCase().includes(applicantSearchQuery.toLowerCase())
+        );
+      }, [applicantSearchQuery, globalApplicants]);
+
+      // FILTER CADANGAN AUTOSUGGEST AHLI PENYANDANG SEJARAH (EDIT MODAL)
+      const filteredEditApplicantSuggestions = useMemo(() => {
+        if (!editApplicantSearchQuery) return [];
+        return globalApplicants.filter(a => 
+          a.nama.toLowerCase().includes(editApplicantSearchQuery.toLowerCase())
+        );
+      }, [editApplicantSearchQuery, globalApplicants]);
+
+      const filteredWarganegaraSuggestions = useMemo(() => {
+        if (!nationalityQuery) return [];
+        return WORLD_COUNTRIES.filter(c => 
+          c.name.toLowerCase().includes(nationalityQuery.toLowerCase()) ||
+          c.code.toLowerCase().includes(nationalityQuery.toLowerCase())
+        );
+      }, [nationalityQuery]);
+
+      const filteredEditWarganegaraSuggestions = useMemo(() => {
+        if (!editNationalityQuery) return [];
+        return WORLD_COUNTRIES.filter(c => 
+          c.name.toLowerCase().includes(editNationalityQuery.toLowerCase()) ||
+          c.code.toLowerCase().includes(editNationalityQuery.toLowerCase())
+        );
+      }, [editNationalityQuery]);
 
       const loadDemoData = () => {
         const demoData = [
@@ -1363,7 +1386,7 @@
                 {/* PECAHAN JANTINA DINAMIK */}
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Pecahan Jantina</span>
-                  <span className="text-[12px] font-black text-indigo-700">L: {stats.jantinaL} | P: {stats.jantinaP}</span>
+                  <span className="text-[12px] font-black text-indigo-700 font-semibold">L: {stats.jantinaL} | P: {stats.jantinaP}</span>
                 </div>
 
                 {/* PECAHAN WARGANEGARA DINAMIK */}
@@ -1978,7 +2001,7 @@
                     className="bg-blue-900 hover:bg-blue-800 text-white font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {isSyncing ? <Icon name="refresh" className="animate-spin" size={14} /> : <Icon name="upload" size={14} />}
-                    Hantar Penyelarasan Penuh ke Tab [{getSheetName()}]
+                    Hantar Penyelarasan Penuh ke Tab [{getSheetName(meetingNumber, meetingYear, officerName)}]
                   </button>
 
                   <button
@@ -2391,7 +2414,7 @@
                                   });
                                   setShowApplicantDropdown(false);
                                   setApplicantSearchQuery("");
-                                  showToast(`Profil ${app.nama} ditemui dan telah diisi secara automatik!`, "success");
+                                  showToast(`Profil ${app.nama} ditemui and telah diisi secara automatik!`, "success");
                                 }}
                                 className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px]"
                               >
@@ -2461,7 +2484,7 @@
                           onFocus={() => setShowWarganegaraDropdown(true)}
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
-                        {showNationalityDropdown && filteredWarganegaraSuggestions.length > 0 && (
+                        {showWarganegaraDropdown && filteredWarganegaraSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
                             {filteredWarganegaraSuggestions.map((country, idx) => (
                               <div
@@ -2681,7 +2704,7 @@
                           type="text"
                           value={editingCompany.valL}
                           onChange={(e) => setEditingCompany({...editingCompany, valL: e.target.value.toUpperCase()})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs font-semibold"
+                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -2690,7 +2713,7 @@
                           type="text"
                           value={editingCompany.valTR}
                           onChange={(e) => setEditingCompany({...editingCompany, valTR: e.target.value.toUpperCase()})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs font-semibold"
+                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
