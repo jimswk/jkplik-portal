@@ -17,7 +17,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     
     body {
       font-family: 'Inter', sans-serif;
@@ -241,7 +241,7 @@
           <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
+            <line x1="9" y1="9" x2="15" " y2="15" />
           </g>
         ),
         fileText: (
@@ -1458,8 +1458,7 @@
             </div>
 
             {/* Kawalan Bilangan Mesyuarat Dinamik */}
-            {}
-            <div className="flex items-center gap-3 bg-slate-100 p-2.5 rounded-xl border border-slate-300">
+            <div className="flex items-center gap-3 bg-slate-100 p-2.5 rounded-xl border border-slate-300 font-sans">
               <div className="flex items-center gap-1">
                 <span className="text-xs font-bold text-slate-700">Bil:</span>
                 <input 
@@ -1479,7 +1478,7 @@
                 />
               </div>
               
-              {/* Butang Semak Arkib sentiasa kelihatan (outline styled) & tukar warna biru bila hover */}
+              {/* Butang Semak Arkib sentiasa kelihatan, bertukar warna biru apabila dihala tetikus */}
               <button
                 onClick={fetchArchiveSheets}
                 disabled={isLoadingArchive}
@@ -1708,8 +1707,8 @@
                                   <div className="flex flex-col gap-2">
                                     {(item.penyandang || []).map((p, idx) => (
                                       <div key={idx} className="border-l-2 border-slate-300 pl-2 text-[11px] leading-relaxed">
-                                        <span className="font-bold">{idx + 1}. {p.nama}</span> / {p.jantina} / {p.warganegara} / {p.pasport} / {p.umur} – <span className="italic">{p.jawatan}</span>
-                                        <div className="font-bold text-blue-900 mt-0.5">GAJI: {p.gaji}</div>
+                                        <span className="font-bold">{idx + 1}. {p.nama}</span> / {p.jantina} / {p.warganegara || "-"} / {p.pasport || "-"} / {p.umur || "-"} – <span className="italic">{p.jawatan}</span>
+                                        <div className="font-bold text-blue-900 mt-0.5">GAJI: {p.gaji || "-"}</div>
                                       </div>
                                     ))}
                                   </div>
@@ -1825,7 +1824,7 @@
                                   Sektor: {activeSector.toUpperCase()}
                                 </span>
                                 <div className="ml-auto flex items-center gap-2">
-                                  {/* Butang Fullscreen Pintar */}
+                                  {/* Butang Fullscreen interaktif berdasarkan image_10746a.png */}
                                   <button
                                     onClick={toggleFullscreen}
                                     className="p-1.5 hover:bg-slate-150 rounded-lg text-slate-600 transition-colors"
@@ -1891,8 +1890,9 @@
                             </div>
                           </div>
 
-                          {/* Senarai Penyandang (Kakitangan) */}
-                          <div className="flex-1 flex flex-col gap-3 min-h-[150px]">
+                          {/* STREAMING_CHUNK: Mengoptimumkan grid penyandang kompak untuk skrin penuh... */}
+                          {/* Senarai Penyandang (Kakitangan) - Diubah kepada grid padat 2-lajur atau 3-lajur agar memuatkan maksima bilangan penyandang di skrin */}
+                          <div className="flex-1 flex flex-col gap-3 min-h-[220px]">
                             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                               <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                                 <Icon name="users" size={14} className="text-blue-900" /> Senarai Penyandang ({(item.penyandang || []).length} Orang)
@@ -1903,30 +1903,42 @@
                                 <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">Tempoh Mohon: {item.tempohMohon}</span>
                               </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto max-h-[180px] pr-2 flex flex-col gap-2">
-                              {(item.penyandang || []).map((p, idx) => (
-                                <div key={idx} className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-2 hover:bg-white transition-colors text-xs">
-                                  <div className="flex flex-col">
-                                    <span className="font-bold text-blue-900">
+                            
+                            {/* Kotak tatalan adaptif: Ketinggian akan bertambah besar secara dinamik apabila isFullscreen aktif */}
+                            <div className={`flex-1 overflow-y-auto pr-2 ${
+                              isFullscreen ? 'max-h-[calc(100vh-340px)]' : 'max-h-[280px]'
+                            }`}>
+                              {/* Grid Kompak: grid-cols-1 md:grid-cols-2 xl:grid-cols-3 untuk memaksimumkan pameran nama penyandang */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                                {(item.penyandang || []).map((p, idx) => (
+                                  <div 
+                                    key={idx} 
+                                    className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex flex-col justify-between gap-1 hover:bg-slate-100 transition-colors text-xs"
+                                  >
+                                    <div className="font-bold text-blue-955 truncate leading-tight" title={p.nama}>
                                       {idx + 1}. {p.nama}
-                                    </span>
-                                    <span className="text-[10px] text-slate-500 mt-0.5">
-                                      {p.jawatan} • {p.gaji ? `Gaji: ${p.gaji}` : 'Gaji tidak dinyatakan'}
-                                    </span>
+                                    </div>
+                                    
+                                    <div className="text-[10px] text-slate-500 flex flex-wrap items-center gap-1.5 leading-none">
+                                      <span className="font-semibold text-slate-700 truncate max-w-[120px]">{p.jawatan || "TECHNICAL EXPERTISE"}</span>
+                                      <span>•</span>
+                                      <span className="text-blue-900 font-bold">{p.gaji || "Gaji: -"}</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-1 flex-wrap text-[9px] mt-1">
+                                      <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-semibold text-slate-700">
+                                        {p.warganegara || "-"}
+                                      </span>
+                                      <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-600">
+                                        {p.umur || "-"}
+                                      </span>
+                                      <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-600 truncate max-w-[90px]">
+                                        Psp: {p.pasport || "-"}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2 text-[10px] font-semibold">
-                                    <span className="px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-700">
-                                      {p.warganegara}
-                                    </span>
-                                    <span className="px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-700">
-                                      {p.umur}
-                                    </span>
-                                    <span className="px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-700">
-                                      Pasport: {p.pasport || "N/A"}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           </div>
 
@@ -1963,7 +1975,6 @@
                         </div>
 
                         {/* Panel Kanan: Membuat Keputusan */}
-                        {}
                         <div className="lg:col-span-3 bg-slate-900 text-white p-4 rounded-2xl flex flex-col gap-4 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
@@ -2086,7 +2097,7 @@
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-blue-955">Pangkalan Data & Pegawai Bertanggungjawab</h3>
-                    <p className="text-xs text-slate-500 font-semibold">Urus penyelarasan draf dinamik mesyuarat di laptop mahupun PC pejabat.</p>
+                    <p className="text-xs text-slate-500 font-semibold">Urus draf dinamik mesyuarat di laptop mahupun PC pejabat.</p>
                   </div>
                 </div>
 
@@ -2214,8 +2225,8 @@
                       <div className="flex flex-col gap-2">
                         {(item.penyandang || []).map((p, pidx) => (
                           <div key={pidx} className="text-[9.5px] leading-relaxed">
-                            <span className="font-bold">{pidx + 1}. {p.nama}</span> / {p.jantina} / {p.warganegara} / {p.pasport} / {p.umur} – <span className="italic">{p.jawatan}</span>
-                            <div className="font-bold mt-0.5">GAJI: {p.gaji}</div>
+                            <span className="font-bold">{pidx + 1}. {p.nama}</span> / {p.jantina} / {p.warganegara || "-"} / {p.pasport || "-"} / {p.umur || "-"} – <span className="italic">{p.jawatan}</span>
+                            <div className="font-bold mt-0.5">GAJI: {p.gaji || "-"}</div>
                           </div>
                         ))}
                       </div>
@@ -2284,7 +2295,6 @@
           </div>
 
           {/* ================================= MODAL PENDAFTARAN PERMOHONAN BARU ================================= */}
-          {}
           {showAddModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col p-6 shadow-2xl relative">
@@ -2638,7 +2648,7 @@
                       <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
                         {newCompany.penyandang.map((p, idx) => (
                           <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji} • Pasport: {p.pasport || "-"} • WN: {p.warganegara} • Umur: {p.umur})</span>
+                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji || "N/A"} • Pasport: {p.pasport || "-"} • WN: {p.warganegara || "-"} • Umur: {p.umur || "-"})</span>
                             <button
                               type="button"
                               onClick={() => removePenyandangFromNewCompany(idx)}
@@ -2954,7 +2964,7 @@
                       <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
                         {editingCompany.penyandang.map((p, idx) => (
                           <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji} • WN: {p.warganegara} • Umur: {p.umur})</span>
+                            <span>{idx + 1}. <strong>{p.nama}</strong> ({p.jawatan} • {p.gaji || "N/A"} • WN: {p.warganegara || "-"} • Umur: {p.umur || "-"})</span>
                             <button
                               type="button"
                               onClick={() => removePenyandangFromEditingCompany(idx)}
