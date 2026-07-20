@@ -8,6 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
   <link rel="manifest" href="site.webmanifest">
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React & ReactDOM CDN -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -81,7 +82,6 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // Komponen pembantu Icon untuk menyelesaikan ralat "Icon is not defined" secara kekal
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -287,7 +287,7 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyGnx4QQiyeKg8rKGFhUbpOTMw7LT-mwIqFv1oWcgSk453L_Ai6rXI_v9jFUZ5P7s4IfQ/exec";
+    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzV9rOzjZ1EFxbVN2NRAM0SRaJNSCOz57SaByxUT4RqskgnXgpHdtAI-2Txms6AANqh/exec";
 
     function App() {
       const [meetingNumber, setMeetingNumber] = useState(() => {
@@ -302,6 +302,14 @@
 
       const [activeSector, setActiveSector] = useState("og");
       const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
+
+      // SISTEM DUAL-CLOUD: DISET SEBAGAI LALAI KEPADA FIREBASE (SIFAR CORS)
+      const [storageProvider, setStorageProvider] = useState(() => {
+        return localStorage.getItem('jkplik_storage_provider') || "firebase";
+      });
+      const [firebaseUrl, setFirebaseUrl] = useState(() => {
+        return localStorage.getItem('jkplik_firebase_url') || "https://jkplik-portal-default-rtdb.asia-southeast1.firebasedatabase.app/";
+      });
 
       const [showEditModal, setShowEditModal] = useState(false);
       const [editingCompany, setEditingCompany] = useState(null);
@@ -450,8 +458,12 @@
         showToast(`Permohonan ${editingCompany.namaSyarikat} berjaya dikemas kini!`, "success");
       };
 
-      // STREAMING_CHUNK: Menyediakan fungsi penyelarasan rekod tunggal ke Google Sheets...
       const syncEditRowToGoogleSheets = async (updatedItem, allItems) => {
+        if (storageProvider === "firebase" && firebaseUrl) {
+          syncAllToFirebase(allItems);
+          return;
+        }
+
         if (!sheetUrl) return;
         const sheetName = getSheetName();
         addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
@@ -459,7 +471,7 @@
           await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            redirect: "follow", // WAJIB untuk Google Redirect
+            redirect: "follow",
             body: JSON.stringify({ 
               action: "sync_all", 
               data: allItems, 
@@ -474,14 +486,41 @@
         }
       };
 
-      // Memuat turun semua rekod sejarah syarikat dari tab-tab lampiran lepas di Google Sheets
+      // FUNGSI SINKRON SEMUA DATA SEKTOR KE FIREBASE REALTIME DATABASE (Sifar CORS)
+      const syncAllToFirebase = async (allItems) => {
+        if (!firebaseUrl) return;
+        const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
+        const targetPath = `${cleanUrl}/meetings/${encodeURIComponent(getSheetName())}/${activeSector}.json`;
+        addLog(`[FIREBASE] Menyegerakkan semua data Sektor ${activeSector.toUpperCase()} ke Firebase...`, "info");
+        try {
+          await fetch(targetPath, {
+            method: "PUT",
+            mode: "cors",
+            body: JSON.stringify(allItems)
+          });
+          addLog(`[FIREBASE] Penyelarasan berjaya untuk Sektor ${activeSector.toUpperCase()}!`, "success");
+          
+          if (activeSector === "og") {
+            setDataOG(prev => prev.map(item => ({ ...item, synced: true })));
+          } else {
+            setDataOthers(prev => {
+              const updated = (prev[activeSector] || []).map(item => ({ ...item, synced: true }));
+              return { ...prev, [activeSector]: updated };
+            });
+          }
+        } catch (err) {
+          addLog(`[FIREBASE] Gagal menyegerakkan data: ${err.message}`, "error");
+        }
+      };
+
       const fetchGlobalHistory = async () => {
+        if (storageProvider === "firebase") return; // Langkau jika Firebase aktif
         if (!sheetUrl) return;
         try {
           const res = await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            redirect: "follow", // WAJIB untuk memintas CORS secara total
+            redirect: "follow",
             body: JSON.stringify({ action: "get_global_history" })
           });
           const result = await res.json();
@@ -501,8 +540,28 @@
         }
       }, [showAddModal]);
 
-      // Mengambil senarai tab arkib mesyuarat sejarah daripada Google Sheets
       const fetchArchiveSheets = async () => {
+        if (storageProvider === "firebase" && firebaseUrl) {
+          setIsLoadingArchive(true);
+          const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
+          addLog(`[FIREBASE] Menarik senarai draf mesyuarat dari Firebase...`, "info");
+          try {
+            const res = await fetch(`${cleanUrl}/meetings.json?shallow=true`, { mode: "cors" });
+            const result = await res.json();
+            if (result) {
+              setPastSheets(Object.keys(result));
+              setShowArchiveModal(true);
+            } else {
+              showToast("Pangkalan data Firebase anda masih kosong.", "info");
+            }
+          } catch (err) {
+            showToast(`Gagal menarik senarai Firebase: ${err.message}`, "error");
+          } finally {
+            setIsLoadingArchive(false);
+          }
+          return;
+        }
+
         if (!sheetUrl) {
           showToast("URL Google Apps Script tidak ditemui.", "error");
           return;
@@ -512,7 +571,7 @@
           const res = await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            redirect: "follow", // WAJIB untuk memintas CORS secara total
+            redirect: "follow",
             body: JSON.stringify({ action: "get_sheets_list" })
           });
           const result = await res.json();
@@ -529,15 +588,51 @@
         }
       };
 
-      // Memuat turun keseluruhan rekod lampiran daripada tab mesyuarat sejarah terpilih
       const loadPastSheetData = async (selectedSheetName) => {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
+
+        if (storageProvider === "firebase" && firebaseUrl) {
+          const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
+          try {
+            const res = await fetch(`${cleanUrl}/meetings/${encodeURIComponent(selectedSheetName)}.json`, { mode: "cors" });
+            const result = await res.json();
+            if (result) {
+              // Firebase menyusun data mengikut Sektor
+              const records = [];
+              if (result.og) records.push(...result.og);
+              SECTORS_LIST.forEach(s => {
+                if (s.id !== "og" && result[s.id]) records.push(...result[s.id]);
+              });
+
+              if (activeSector === "og") {
+                setDataOG(result.og || []);
+              } else {
+                setDataOthers(prev => ({ ...prev, [activeSector]: result[activeSector] || [] }));
+              }
+
+              const match = selectedSheetName.match(/Bil\.\s*(\d+)\/(\d+)/i);
+              if (match) {
+                setMeetingNumber(match[1]);
+                setMeetingYear(match[2]);
+              }
+
+              showToast(`Berjaya memuatkan data dari Firebase [${selectedSheetName}]!`, "success");
+              setShowArchiveModal(false);
+            }
+          } catch (err) {
+            showToast("Gagal memuat turun draf dari Firebase.", "error");
+          } finally {
+            setIsLoadingArchive(false);
+          }
+          return;
+        }
+
         try {
           const res = await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            redirect: "follow", // WAJIB untuk memintas CORS secara total
+            redirect: "follow",
             body: JSON.stringify({ action: "load_sheet_data", sheetName: selectedSheetName })
           });
           const result = await res.json();
@@ -570,15 +665,39 @@
 
       // FUNGSI AUTO-LOAD / AUTO-PULL DATA DARI AWAN APABILA MEJA KERJA BERTUKAR (MULTI-PC SYNC)
       const loadCurrentMeetingFromSheets = async () => {
-        if (!sheetUrl) return;
         const currentTabName = getSheetName();
+
+        if (storageProvider === "firebase" && firebaseUrl) {
+          const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
+          addLog(`[FIREBASE] Memeriksa draf mesyuarat di Firebase untuk "${currentTabName}"...`, "info");
+          try {
+            const res = await fetch(`${cleanUrl}/meetings/${encodeURIComponent(currentTabName)}.json`, { mode: "cors" });
+            const result = await res.json();
+            if (result) {
+              setDataOG(result.og || []);
+              const others = {};
+              SECTORS_LIST.forEach(s => {
+                if (s.id !== "og") others[s.id] = result[s.id] || [];
+              });
+              setDataOthers(others);
+              addLog(`[FIREBASE] Data terkini berjaya diselaraskan daripada Firebase!`, "success");
+              showToast("Penyelarasan automatik Firebase berjaya!", "success");
+            } else {
+              addLog(`[FIREBASE] Draf mesyuarat "${currentTabName}" belum wujud di Firebase.`, "info");
+            }
+          } catch (err) {
+            addLog(`[FIREBASE] Kegagalan talian Firebase: ${err.message}`, "error");
+          }
+          return;
+        }
+
+        if (!sheetUrl) return;
         addLog(`[AUTO-SYNC] Menyemak jika tab "${currentTabName}" wujud di Google Sheets...`, "info");
         try {
-          // Pertama sekali, kita periksa senarai tab
           const listRes = await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            redirect: "follow", // Melangkau sekatan OPTIONS
+            redirect: "follow",
             body: JSON.stringify({ action: "get_sheets_list" })
           });
           const listResult = await listRes.json();
@@ -588,18 +707,16 @@
             const dataRes = await fetch(sheetUrl, {
               method: "POST",
               mode: "cors",
-              redirect: "follow", // Melangkau sekatan OPTIONS
+              redirect: "follow",
               body: JSON.stringify({ action: "load_sheet_data", sheetName: currentTabName })
             });
             const dataResult = await dataRes.json();
             if (dataResult.status === "success") {
               const records = dataResult.records || [];
               
-              // Tapis mengikut sektor aktif semasa
               const ogRecords = records.filter(r => r.id.startsWith("OG-"));
               setDataOG(ogRecords);
 
-              // Tapis sektor lain
               const newOthers = {};
               SECTORS_LIST.forEach(s => {
                 if (s.id !== "og") {
@@ -619,13 +736,12 @@
         }
       };
 
-      // Cetusan auto-load apabila parameter mesyuarat atau pegawai bertukar
       useEffect(() => {
         const delayDebounce = setTimeout(() => {
           loadCurrentMeetingFromSheets();
-        }, 1000); // Debounce 1 saat bagi mengelakkan bebanan request semasa user sedang menaip nama
+        }, 1200);
         return () => clearTimeout(delayDebounce);
-      }, [meetingNumber, meetingYear, officerName]);
+      }, [meetingNumber, meetingYear, officerName, storageProvider]);
 
       const exportToWord = () => {
         const sheetName = getSheetName();
@@ -802,7 +918,7 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(downloadUrl);
-        showToast("Dokumen format Word berjaya dijana dan dimuat turun!", "success");
+        showToast("Dokumen format Word berjaya draf dan dimuat turun!", "success");
       };
 
       const uniqueCompanies = useMemo(() => {
@@ -902,6 +1018,11 @@
       }, [sheetUrl]);
 
       useEffect(() => {
+        localStorage.setItem('jkplik_storage_provider', storageProvider);
+        localStorage.setItem('jkplik_firebase_url', firebaseUrl);
+      }, [storageProvider, firebaseUrl]);
+
+      useEffect(() => {
         localStorage.setItem('jkplik_meeting_number', meetingNumber);
         localStorage.setItem('jkplik_meeting_year', meetingYear);
         localStorage.setItem('jkplik_officer_name', officerName);
@@ -951,8 +1072,14 @@
         }));
       };
 
-      // STREAMING_CHUNK: Menyediakan fetch dengan standard Simple Request untuk memintas CORS...
       const syncAddRowToGoogleSheets = async (item) => {
+        if (storageProvider === "firebase" && firebaseUrl) {
+          // Untuk Firebase, kita terus kemaskini seluruh senarai sektor terkini
+          const updatedSectList = [...currentSectData, item];
+          syncAllToFirebase(updatedSectList);
+          return;
+        }
+
         if (!sheetUrl) return;
         const sheetName = getSheetName();
         addLog(`[AUTO-SYNC] Menghantar "${item.namaSyarikat}" ke Google Sheets...`, "info");
@@ -960,7 +1087,7 @@
           await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            redirect: "follow", // Memintas CORS
+            redirect: "follow",
             body: JSON.stringify({ 
               action: "add_row", 
               item, 
@@ -978,6 +1105,11 @@
       };
 
       const syncDeleteRowFromGoogleSheets = async (id) => {
+        if (storageProvider === "firebase" && firebaseUrl) {
+          // Firebase sync ditolak secara automatik melalui State Hooks
+          return;
+        }
+
         if (!sheetUrl) return;
         const sheetName = getSheetName();
         addLog(`[AUTO-SYNC] Memadam ID ${id} di Google Sheets...`, "info");
@@ -1011,17 +1143,23 @@
       };
 
       const handleSaveDecision = (id, keputusan, ulasan) => {
+        let updatedList = [];
         if (activeSector === "og") {
-          setDataOG(prev => prev.map(item => item.id === id ? { ...item, keputusan, ulasan } : item));
+          setDataOG(prev => {
+            updatedList = prev.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+            return updatedList;
+          });
         } else {
           setDataOthers(prev => {
             const sectorData = prev[activeSector] || [];
-            const updated = sectorData.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
-            return { ...prev, [activeSector]: updated };
+            updatedList = sectorData.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+            return { ...prev, [activeSector]: updatedList };
           });
         }
 
-        if (sheetUrl) {
+        if (storageProvider === "firebase" && firebaseUrl) {
+          syncAllToFirebase(updatedList);
+        } else if (sheetUrl) {
           syncSingleRowToGoogleSheets(id, keputusan, ulasan);
         }
       };
@@ -1060,19 +1198,27 @@
           bil: currentSectData.length + 1,
           keputusan: "",
           ulasan: "",
-          synced: !!sheetUrl 
+          synced: !!sheetUrl || !!firebaseUrl
         };
 
+        let updatedList = [];
         if (activeSector === "og") {
-          setDataOG(prev => [...prev, newItem]);
+          setDataOG(prev => {
+            updatedList = [...prev, newItem];
+            return updatedList;
+          });
         } else {
           setDataOthers(prev => {
             const sectorData = prev[activeSector] || [];
-            return { ...prev, [activeSector]: [...sectorData, newItem] };
+            updatedList = [...sectorData, newItem];
+            return { ...prev, [activeSector]: updatedList };
           });
         }
 
-        if (sheetUrl) {
+        if (storageProvider === "firebase" && firebaseUrl) {
+          syncAllToFirebase(updatedList);
+          showToast(`Syarikat ${newCompany.namaSyarikat} berjaya didaftarkan ke Firebase!`, "success");
+        } else if (sheetUrl) {
           syncAddRowToGoogleSheets(newItem);
         } else {
           showToast(`Syarikat ${newCompany.namaSyarikat} berjaya disimpan secara tempatan!`, "success");
@@ -1132,22 +1278,29 @@
       const triggerDeleteItem = (id) => {
         setConfirmModal({
           show: true,
-          message: "Adakah anda pasti untuk memadam rekod permohonan ini secara kekal daripada sistem dan Google Sheets?",
+          message: "Adakah anda pasti untuk memadam rekod permohonan ini secara kekal?",
           action: () => executeDeleteItem(id)
         });
       };
 
       const executeDeleteItem = (id) => {
+        let updatedList = [];
         if (activeSector === "og") {
-          setDataOG(prev => prev.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 })));
+          setDataOG(prev => {
+            updatedList = prev.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
+            return updatedList;
+          });
         } else {
           setDataOthers(prev => {
             const filtered = (prev[activeSector] || []).filter(item => item.id !== id);
-            return { ...prev, [activeSector]: filtered.map((item, i) => ({ ...item, bil: i + 1 })) };
+            updatedList = filtered.map((item, i) => ({ ...item, bil: i + 1 }));
+            return { ...prev, [activeSector]: updatedList };
           });
         }
 
-        if (sheetUrl) {
+        if (storageProvider === "firebase" && firebaseUrl) {
+          syncAllToFirebase(updatedList);
+        } else if (sheetUrl) {
           syncDeleteRowFromGoogleSheets(id);
         }
         
@@ -1156,6 +1309,12 @@
       };
 
       const handleFullSync = async () => {
+        if (storageProvider === "firebase") {
+          syncAllToFirebase(currentSectData);
+          showToast("Data sektor disegerakkan ke Firebase!", "success");
+          return;
+        }
+
         if (!sheetUrl) {
           showToast("Masukkan URL Google Web App terlebih dahulu di Mod Tetapan.", "error");
           return;
@@ -1167,8 +1326,8 @@
         try {
           await fetch(sheetUrl, {
             method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            mode: "cors",
+            redirect: "follow",
             body: JSON.stringify({ 
               action: "sync_all", 
               data: currentSectData, 
@@ -1398,9 +1557,9 @@
                 onClick={fetchArchiveSheets}
                 disabled={isLoadingArchive}
                 className="bg-blue-955 hover:bg-blue-900 text-white rounded px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 transition-all"
-                title="Imbas Arkib Google Sheets"
+                title="Imbas Arkib Google/Firebase"
               >
-                <Icon name="database" size={10} /> Semak Arkib Sheets
+                <Icon name="database" size={10} /> Semak Arkib
               </button>
             </div>
 
@@ -1545,7 +1704,7 @@
                     <button
                       onClick={loadCurrentMeetingFromSheets}
                       className="bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-1.5 transition-colors"
-                      title="Kemaskini & Muat Turun Data Terkini dari Google Sheets"
+                      title="Kemaskini & Muat Turun Data Terkini dari Awan"
                     >
                       <Icon name="refresh" size={14} /> Muat Semula dari Awan
                     </button>
@@ -1598,7 +1757,7 @@
                         {filteredData.length === 0 ? (
                           <tr>
                             <td colSpan={11} className="text-center py-12 text-slate-400 font-medium">
-                              Tiada permohonan wujud. Sila daftar permohonan baru atau tekan "Muat Semula dari Awan ☁️".
+                              Tiada rekod ditemui. Sila daftar permohonan baru atau tekan "Muat Semula dari Awan ☁️".
                             </td>
                           </tr>
                         ) : (
@@ -1609,7 +1768,7 @@
                                 <td className="px-4 py-4 text-center font-bold text-slate-500 border-r border-slate-100">{index + 1}.</td>
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[200px]">
                                   <div className="flex items-start gap-1.5">
-                                    <div className="mt-0.5" title={item.synced ? "Tersinkron dengan Google Sheets" : "Simpanan Tempatan"}>
+                                    <div className="mt-0.5" title={item.synced ? "Tersinkron" : "Simpanan Tempatan"}>
                                       {item.synced ? <Icon name="cloudCheck" size={16} className="text-emerald-500" /> : <Icon name="cloudAlert" size={16} className="text-slate-400" />}
                                     </div>
                                     <div>
@@ -1869,7 +2028,7 @@
                         </div>
 
                         {/* Panel Kanan: Membuat Keputusan */}
-                        <div className="lg:col-span-3 bg-slate-900 text-white p-4.5 rounded-2xl flex flex-col gap-4.5 relative shadow-lg">
+                        <div className="lg:col-span-3 bg-slate-900 text-white p-4 rounded-2xl flex flex-col gap-4 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
@@ -1881,70 +2040,70 @@
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS"
                                   ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="checkCircle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">LULUS</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide truncate">LULUS</span>
                               </div>
-                              {item.keputusan === "LULUS" && <Icon name="check" size={13} />}
+                              {item.keputusan === "LULUS" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS BERSYARAT", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS BERSYARAT"
                                   ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="alertTriangle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">LULUS BERSYARAT</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide whitespace-normal leading-tight">LULUS BERSYARAT</span>
                               </div>
-                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} />}
+                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "TOLAK", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "TOLAK"
                                   ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="xCircle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">TOLAK</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide truncate">TOLAK</span>
                               </div>
-                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} />}
+                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "SEMAKAN / NAZIRAN", item.ulasan)}
-                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "SEMAKAN / NAZIRAN"
                                   ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="fileText" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">SEMAKAN / NAZIRAN</span>
+                                <span className="text-[10px] sm:text-[11px] tracking-wide whitespace-normal leading-tight">SEMAKAN / NAZIRAN</span>
                               </div>
-                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} />}
+                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} className="flex-shrink-0" />}
                             </button>
                           </div>
 
@@ -1965,8 +2124,8 @@
                           {/* Status Automanage */}
                           <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-400 font-semibold">
                             <span className="flex items-center gap-1.5">
-                              <Icon name="database" size={11} className={sheetUrl ? "text-emerald-400" : "text-slate-600"} />
-                              {sheetUrl ? `Google Sheet` : "Mod Tempatan"}
+                              <Icon name="database" size={11} className={(sheetUrl || firebaseUrl) ? "text-emerald-400" : "text-slate-600"} />
+                              {storageProvider === "firebase" ? "Firebase" : "Google Sheet"}
                             </span>
                             <span className="text-emerald-400 font-bold">Auto-Simpan</span>
                           </div>
@@ -1981,7 +2140,7 @@
               </div>
             )}
 
-            {/* ================================= VIEW 3: SETTINGS & GOOGLE SHEET CONFIG ================================= */}
+            {/* ================================= VIEW 3: SETTINGS & DUAL-CLOUD CONFIG ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -1989,8 +2148,8 @@
                     <Icon name="database" size={20} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-blue-955">Nama Pegawai Penilai & Pangkalan Data</h3>
-                    <p className="text-xs text-slate-500 font-semibold">Urus profil penyelarasan mesyuarat automatik ke Google Sheets.</p>
+                    <h3 className="text-base font-bold text-blue-955">Pangkalan Data & Pegawai Bertanggungjawab</h3>
+                    <p className="text-xs text-slate-500 font-semibold">Urus penyelarasan draf dinamik mesyuarat di laptop mahupun PC pejabat.</p>
                   </div>
                 </div>
 
@@ -2006,25 +2165,68 @@
                     onChange={(e) => setOfficerName(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
                   />
-                  <p className="text-[10px] text-slate-600 mt-1">
-                    Nama tab Google Sheets dijana sebagai: <strong className="text-blue-900 font-bold">{getSheetName()}</strong>
-                  </p>
                 </div>
 
-                {/* Status Sambungan Sistem */}
-                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-start gap-3">
-                  <div className="p-1.5 bg-emerald-500 text-white rounded-full mt-0.5">
-                    <Icon name="cloudCheck" size={16} />
+                {/* PEMILIHAN KAEDAH PENYIMPANAN AWAN */}
+                <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 flex flex-col gap-4">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Pilih Kaedah Penyimpanan Awan (Cloud Storage)</span>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => setStorageProvider("sheets")}
+                      className={`p-4 rounded-xl border text-left flex flex-col gap-1 transition-all ${
+                        storageProvider === "sheets" 
+                          ? "bg-blue-900 text-white border-blue-950 shadow-md font-bold"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-xs font-bold block">1. Google Sheets (Standard)</span>
+                      <span className="text-[10px] opacity-80 leading-normal">Menyimpan draf terus ke Google Sheets di laptop anda. Rangkaian pejabat yang ketat mungkin menyekatnya.</span>
+                    </button>
+
+                    <button
+                      onClick={() => setStorageProvider("firebase")}
+                      className={`p-4 rounded-xl border text-left flex flex-col gap-1 transition-all ${
+                        storageProvider === "firebase" 
+                          ? "bg-emerald-600 text-white border-emerald-700 shadow-md font-bold"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-xs font-bold block">2. Firebase Database (Sifar CORS)</span>
+                      <span className="text-[10px] opacity-80 leading-normal">Sangat Disyorkan! 100% percuma & tanpa ralat fetch. Sesuai digunakan dari mana-mana PC tanpa sekatan CORS.</span>
+                    </button>
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-bold text-emerald-800">Sambungan API Google Sheets Diaktifkan</span>
-                    <p className="text-[10px] text-emerald-700 leading-relaxed">
-                      Sistem keselamatan portal telah berjaya dipautkan secara kekal ke Google Apps Script kementerian. Data keputusan akan dihantar terus ke pangkalan awan Google secara automatik.
-                    </p>
-                  </div>
+
+                  {/* Borang Input Mengikut Kaedah Dipilih */}
+                  {storageProvider === "sheets" ? (
+                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-300">
+                      <label className="text-[11px] font-bold text-slate-600">URL Google Apps Script Web App</label>
+                      <input
+                        type="text"
+                        value={sheetUrl}
+                        onChange={(e) => setSheetUrl(e.target.value)}
+                        placeholder="https://script.google.com/macros/s/XXXX/exec"
+                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-300">
+                      <label className="text-[11px] font-bold text-slate-600">Firebase Realtime Database URL</label>
+                      <input
+                        type="text"
+                        value={firebaseUrl}
+                        onChange={(e) => setFirebaseUrl(e.target.value)}
+                        placeholder="https://jkplik-default-rtdb.firebaseio.com/"
+                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none"
+                      />
+                      <span className="text-[10px] text-slate-500 leading-normal">
+                        *Masukkan URL pangkalan data Firebase percuma anda di sini. Rujuk fail <strong>panduan_firebase.md</strong> untuk pendaftaran ringkas.
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Kawalan Pengujian Laju */}
+                {/* Kawalan Pengurusan Data Contoh */}
                 <div className="border-t border-slate-200 pt-4 mt-2">
                   <h4 className="text-xs font-bold text-slate-700 mb-2">Mod Pengujian & Data Contoh</h4>
                   <button
@@ -2033,7 +2235,6 @@
                   >
                     Muat Data Demo (Format Word)
                   </button>
-                  <p className="text-[10px] text-slate-500 mt-1">Suntik rekod ujian yang mempunyai warganegara bercampur untuk melihat ketepatan pengisian lajur B, W/N, serta layout eksport Word.</p>
                 </div>
 
                 <div className="flex items-center gap-3 border-t border-slate-200 pt-4 mt-2">
@@ -2851,7 +3052,7 @@
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                   <h3 className="text-sm font-bold text-blue-955 flex items-center gap-1.5">
-                    <Icon name="database" size={18} className="text-blue-900" /> Arkib Helaian Google Sheets
+                    <Icon name="database" size={18} className="text-blue-900" /> Arkib Helaian Google/Firebase
                   </h3>
                   <button onClick={() => {
                     setShowArchiveModal(false);
@@ -2862,7 +3063,7 @@
                 </div>
 
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Sila pilih mesyuarat sejarah daripada senarai tab Google Sheets di bawah. Anda juga boleh mencari mengikut **Nama Pegawai**, **Bil. Mesyuarat**, atau **Tahun**.
+                  Sila pilih mesyuarat sejarah daripada senarai di bawah. Anda boleh menapis carian mengikut **Nama Pegawai**, **Bil. Mesyuarat**, atau **Tahun**.
                 </p>
 
                 {/* Input Carian Dinamik Rentas Pegawai Penilai */}
