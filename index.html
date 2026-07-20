@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
   <link rel="manifest" href="site.webmanifest">
-  <!-- Tailwind CSS CDN -->
+<!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React & ReactDOM CDN -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -288,7 +288,7 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycby6q37r4CjVbmvZN06WKEVkKcWYUjTahsRk2x_kt10uxPWmtF96V0awqmTtb8x5thM/exec";
+    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbwQDBDWDZ-IoNJW5boanQvSFjiv7ILBi3J9CG0uhiPfZiemJQZTYgxm_05E9rab73ED/exec";
 
     function App() {
       const [meetingNumber, setMeetingNumber] = useState(() => {
@@ -310,6 +310,7 @@
         nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
+      // STREAMING_CHUNK: Menguruskan pemuatan data simpanan tempatan...
       const [dataOG, setDataOG] = useState(() => {
         const saved = localStorage.getItem('jkplik_data_og_v3');
         return saved ? JSON.parse(saved) : [];
@@ -474,13 +475,14 @@
         }
       };
 
+      // STREAMING_CHUNK: Mengemas kini fetch dengan Content-Type text/plain bagi memintas ralat CORS...
       const fetchGlobalHistory = async () => {
         if (!sheetUrl) return;
         try {
           const res = await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" }, // MEMINTAS CORS PREFLIGHT SECARA TOTAL!
             body: JSON.stringify({ action: "get_global_history" })
           });
           const result = await res.json();
@@ -500,6 +502,7 @@
         }
       }, [showAddModal]);
 
+      // Mengambil senarai tab arkib mesyuarat sejarah daripada Google Sheets menggunakan Content-Type text/plain
       const fetchArchiveSheets = async () => {
         if (!sheetUrl) {
           showToast("URL Google Apps Script tidak ditemui.", "error");
@@ -510,7 +513,7 @@
           const res = await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" }, // MEMINTAS CORS PREFLIGHT SECARA TOTAL!
             body: JSON.stringify({ action: "get_sheets_list" })
           });
           const result = await res.json();
@@ -527,6 +530,7 @@
         }
       };
 
+      // Memuat turun keseluruhan rekod lampiran daripada tab mesyuarat sejarah terpilih
       const loadPastSheetData = async (selectedSheetName) => {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
@@ -534,7 +538,7 @@
           const res = await fetch(sheetUrl, {
             method: "POST",
             mode: "cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" }, // MEMINTAS CORS PREFLIGHT SECARA TOTAL!
             body: JSON.stringify({ action: "load_sheet_data", sheetName: selectedSheetName })
           });
           const result = await res.json();
@@ -565,6 +569,66 @@
         }
       };
 
+      // FUNGSI AUTO-LOAD / AUTO-PULL DATA DARI AWAN APABILA MEJA KERJA BERTUKAR (MULTI-PC SYNC)
+      const loadCurrentMeetingFromSheets = async () => {
+        if (!sheetUrl) return;
+        const currentTabName = getSheetName();
+        addLog(`[AUTO-SYNC] Menyemak jika tab "${currentTabName}" wujud di Google Sheets...`, "info");
+        try {
+          // Pertama sekali, kita periksa senarai tab
+          const listRes = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: "get_sheets_list" })
+          });
+          const listResult = await listRes.json();
+          if (listResult.status === "success" && listResult.sheets.includes(currentTabName)) {
+            addLog(`[AUTO-SYNC] Tab ditemui! Memuat turun data terkini dari awan untuk tab "${currentTabName}"...`, "info");
+            
+            const dataRes = await fetch(sheetUrl, {
+              method: "POST",
+              mode: "cors",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ action: "load_sheet_data", sheetName: currentTabName })
+            });
+            const dataResult = await dataRes.json();
+            if (dataResult.status === "success") {
+              const records = dataResult.records || [];
+              
+              // Tapis mengikut sektor aktif semasa
+              const ogRecords = records.filter(r => r.id.startsWith("OG-"));
+              setDataOG(ogRecords);
+
+              // Tapis sektor lain
+              const newOthers = {};
+              SECTORS_LIST.forEach(s => {
+                if (s.id !== "og") {
+                  newOthers[s.id] = records.filter(r => r.id.startsWith(`${s.id.toUpperCase()}-`));
+                }
+              });
+              setDataOthers(newOthers);
+              
+              addLog(`[AUTO-SYNC] Berjaya memuatkan ${records.length} rekod dari Google Sheets. Data selari!`, "success");
+              showToast("Penyelarasan automatik dari Google Sheets berjaya dilakukan!", "success");
+            }
+          } else {
+            addLog(`[AUTO-SYNC] Tab "${currentTabName}" belum wujud di awan. Menggunakan simpanan tempatan.`, "info");
+          }
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Sambungan ke awan gagal: ${err.message}`, "error");
+        }
+      };
+
+      // Cetusan auto-load apabila parameter mesyuarat atau pegawai bertukar
+      useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+          loadCurrentMeetingFromSheets();
+        }, 1000); // Debounce 1 saat bagi mengelakkan bebanan request semasa user sedang menaip nama
+        return () => clearTimeout(delayDebounce);
+      }, [meetingNumber, meetingYear, officerName]);
+
+      // STREAMING_CHUNK: Menjana dokumen Word rasmi untuk Sektor...
       const exportToWord = () => {
         const sheetName = getSheetName();
         addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
@@ -1459,7 +1523,7 @@
               </div>
             )}
 
-            {}
+            {/* VIEW 1: DASHBOARD UTAMA */}
             {viewMode === "dashboard" && (
               <div className="flex flex-col gap-6">
                 
@@ -1479,6 +1543,15 @@
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
+                    {/* Butang Muat Semula dari Awan */}
+                    <button
+                      onClick={loadCurrentMeetingFromSheets}
+                      className="bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-1.5 transition-colors"
+                      title="Kemaskini & Muat Turun Data Terkini dari Google Sheets"
+                    >
+                      <Icon name="refresh" size={14} /> Muat Semula dari Awan
+                    </button>
+
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
@@ -1527,7 +1600,7 @@
                         {filteredData.length === 0 ? (
                           <tr>
                             <td colSpan={11} className="text-center py-12 text-slate-400 font-medium">
-                              Tiada rekod ditemui. Daftar permohonan baru atau muat data ujian di tetingkap Tetapan.
+                              Tiada permohonan wujud. Sila daftar permohonan baru atau tekan "Muat Semula dari Awan ☁️".
                             </td>
                           </tr>
                         ) : (
@@ -1807,7 +1880,6 @@
                             <p className="text-[9px] text-slate-400 font-medium">Keputusan diselaraskan secara auto-sync.</p>
                           </div>
 
-                          {}
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
