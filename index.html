@@ -82,7 +82,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    /* STREAMING_CHUNK: Mendefinisikan data warganegara global kementerian... */
+    /* STREAMING_CHUNK: Mengasaskan pembolehubah malar global negara dan sektor... */
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
       { name: "INDONESIA", code: "IDN" },
@@ -120,7 +120,6 @@
       { name: "BRAZIL", code: "BRA" }
     ];
 
-    /* STREAMING_CHUNK: Mendefinisikan senarai sektor KDN rasmi... */
     const SECTORS_LIST = [
       { id: "og", name: "1. Minyak & Gas (Oil & Gas)" },
       { id: "perkhidmatan", name: "2. Perkhidmatan" },
@@ -129,13 +128,13 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    /* STREAMING_CHUNK: Mendefinisikan pembantu penjanaan nama helaian Google Sheets secara global (Hoisting-Safe)... */
+    /* STREAMING_CHUNK: Mendefinisikan pembantu penjanaan nama tab Google Sheets global... */
     function getSheetName(meetingNumber, meetingYear, officerName) {
       const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim()})` : '';
       return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
     }
 
-    /* STREAMING_CHUNK: Menyediakan helper penarafan kod baru warganegara... */
+    /* STREAMING_CHUNK: Mendefinisikan pembantu pengiraan data lajur B dan ringkasan WN... */
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
         return { valB: "01", valWN: "-" };
@@ -170,7 +169,7 @@
       };
     }
 
-    /* STREAMING_CHUNK: Membina komponen SVG Icon yang sifar-import... */
+    /* STREAMING_CHUNK: Membina komponen pembantu Icon SVG kustom... */
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -346,8 +345,9 @@
 
     const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbzyK9wblCLxIYJj13Ry8w6j8dNol9pFkgC0QSCB1LIPypY9-T8hNoz5iSiFFLEXjPMyxw/exec";
 
-    /* STREAMING_CHUNK: Membina komponen App utama kementerian... */
+    /* STREAMING_CHUNK: Membina komponen utama kementerian... */
     function App() {
+      // Deklarasi State Paling Atas
       const [meetingNumber, setMeetingNumber] = useState(() => {
         return localStorage.getItem('jkplik_meeting_number') || "14";
       });
@@ -407,13 +407,6 @@
 
       // Notifikasi Toast
       const [toasts, setToasts] = useState([]);
-      const showToast = (message, type = "info") => {
-        const id = Date.now();
-        setToasts(prev => [...prev, { id, message, type }]);
-        setTimeout(() => {
-          setToasts(prev => prev.filter(t => t.id !== id));
-        }, 4000);
-      };
 
       // Modal Pengesahan Tersuai
       const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: "" });
@@ -456,250 +449,40 @@
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      const triggerEditItem = (item) => {
-        setEditingCompany(JSON.parse(JSON.stringify(item))); // Deep clone permohonan pilihan
-        setShowEditModal(true);
+      /* STREAMING_CHUNK: Mendefinisikan fungsi log dan notifikasi kustom... */
+      // 1. Fungsi Pembantu Asas (Ditakrifkan di bahagian paling atas bagi mengelakkan ralat rujukan)
+      const showToast = (message, type = "info") => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+          setToasts(prev => prev.filter(t => t.id !== id));
+        }, 4000);
       };
 
-      const handleEditBirthDateChange = (dateValue) => {
-        if (!dateValue) {
-          setEditPenyandang(prev => ({ ...prev, tarikhLahir: "", umur: "" }));
-          return;
-        }
-        const birthDate = new Date(dateValue);
-        if (isNaN(birthDate)) return;
-        const birthYear = birthDate.getFullYear();
-        const currentYearNum = parseInt(meetingYear) || 2026;
-        const calculatedAge = currentYearNum - birthYear;
-        setEditPenyandang(prev => ({
-          ...prev,
-          tarikhLahir: dateValue,
-          umur: calculatedAge > 0 ? `${calculatedAge} THN` : ""
-        }));
+      const addLog = (message, type = "info") => {
+        const timestamp = new Date().toLocaleTimeString();
+        setSyncLogs(prev => [{ timestamp, message, type }, ...prev.slice(0, 19)]);
       };
 
-      /* STREAMING_CHUNK: Menguruskan kemasukan ahli penyandang di mod edit... */
-      const addPenyandangToEditingCompany = () => {
-        if (!editPenyandang.nama) return;
-        setEditingCompany(prev => {
-          const updatedPenyandang = [...prev.penyandang, editPenyandang];
-          const { valB, valWN } = calculateBAndWN(updatedPenyandang);
-          return {
-            ...prev,
-            penyandang: updatedPenyandang,
-            valB,
-            valWN
-          };
-        });
-        setEditPenyandang({
-          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
-        });
-        setEditNationalityQuery("");
-      };
-
-      const removePenyandangFromEditingCompany = (idx) => {
-        setEditingCompany(prev => {
-          const filtered = prev.penyandang.filter((_, i) => i !== idx);
-          const { valB, valWN } = calculateBAndWN(filtered);
-          return {
-            ...prev,
-            penyandang: filtered,
-            valB,
-            valWN
-          };
-        });
-      };
-
-      const handleUpdateCompany = (e) => {
-        e.preventDefault();
-        if (!editingCompany.namaSyarikat) return;
-
-        let updatedList = [];
+      const markAsSynced = (id, status) => {
         if (activeSector === "og") {
-          setDataOG(prev => {
-            updatedList = prev.map(item => item.id === editingCompany.id ? { ...editingCompany, synced: false } : item);
-            syncEditRowToGoogleSheets(editingCompany, updatedList);
-            return updatedList;
-          });
+          setDataOG(prev => prev.map(item => item.id === id ? { ...item, synced: status } : item));
         } else {
           setDataOthers(prev => {
             const sectorData = prev[activeSector] || [];
-            updatedList = sectorData.map(item => item.id === editingCompany.id ? { ...editingCompany, synced: false } : item);
-            syncEditRowToGoogleSheets(editingCompany, updatedList);
-            return { ...prev, [activeSector]: updatedList };
+            const updated = sectorData.map(item => item.id === id ? { ...item, synced: status } : item);
+            return { ...prev, [activeSector]: updated };
           });
-        }
-
-        setShowEditModal(false);
-        setEditingCompany(null);
-        showToast(`Permohonan ${editingCompany.namaSyarikat} berjaya dikemas kini!`, "success");
-      };
-
-      /* STREAMING_CHUNK: Mengemas kini fetch dengan standard follow redirect untuk memintas CORS... */
-      const syncEditRowToGoogleSheets = async (updatedItem, allItems) => {
-        if (!sheetUrl) return;
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
-        addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
-        try {
-          await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ 
-              action: "sync_all", 
-              data: allItems, 
-              activeSector,
-              sheetName: sheetName
-            })
-          });
-          addLog(`[AUTO-SYNC] Maklumat "${updatedItem.namaSyarikat}" dikemaskini di Google Sheets.`, "success");
-          markAsSynced(updatedItem.id, true);
-        } catch (err) {
-          addLog(`[AUTO-SYNC] Gagal kemaskini di Google Sheets: ${err.message}`, "error");
         }
       };
 
-      // Memuat turun semua rekod sejarah syarikat dan ahli penyandang dari tab-tab lampiran lepas di Google Sheets
-      const fetchGlobalHistory = async () => {
-        if (!sheetUrl) return;
-        try {
-          const res = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "get_global_history" })
-          });
-          const result = await res.json();
-          if (result.status === "success") {
-            setGlobalCompanies(result.companies || []);
-            setGlobalOwners(result.owners || []);
-            setGlobalApplicants(result.applicants || []); // Pemuatan senarai ahli penyandang sejarah kementerian
-            addLog(`Berjaya memuatkan ${result.companies.length} syarikat dan ${result.applicants ? result.applicants.length : 0} ahli penyandang dari arkib awan.`, "success");
-          }
-        } catch (err) {
-          addLog("Gagal menghubungi pangkalan data awan untuk carian sejarah.", "error");
-        }
+      // FUNGSI HANDLEPRINT MENGIKUT LAPORAN DI ATAS
+      const handlePrint = () => {
+        window.print();
       };
 
-      useEffect(() => {
-        if (showAddModal || showEditModal) {
-          fetchGlobalHistory();
-        }
-      }, [showAddModal, showEditModal]);
-
-      // Mengambil senarai tab arkib mesyuarat sejarah daripada Google Sheets
-      const fetchArchiveSheets = async () => {
-        if (!sheetUrl) {
-          showToast("URL Google Apps Script tidak ditemui.", "error");
-          return;
-        }
-        setIsLoadingArchive(true);
-        try {
-          const res = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "get_sheets_list" })
-          });
-          const result = await res.json();
-          if (result.status === "success") {
-            setPastSheets(result.sheets || []);
-            setShowArchiveModal(true);
-          } else {
-            showToast("Gagal memuatkan senarai arkib.", "error");
-          }
-        } catch (err) {
-          showToast("Ralat sambungan API dikesan.", "error");
-        } finally {
-          setIsLoadingArchive(false);
-        }
-      };
-
-      // Memuat turun keseluruhan rekod lampiran daripada tab mesyuarat sejarah terpilih
-      const loadPastSheetData = async (selectedSheetName) => {
-        setIsLoadingArchive(true);
-        addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
-        try {
-          const res = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "load_sheet_data", sheetName: selectedSheetName })
-          });
-          const result = await res.json();
-          if (result.status === "success") {
-            const records = result.records || [];
-            
-            if (activeSector === "og") {
-              setDataOG(records);
-            } else {
-              setDataOthers(prev => ({ ...prev, [activeSector]: records }));
-            }
-
-            const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
-            if (match) {
-              setMeetingNumber(match[1]);
-              setMeetingYear(match[2]);
-            }
-
-            showToast(`Berjaya memuatkan ${records.length} data daripada tab ${selectedSheetName}!`, "success");
-            setShowArchiveModal(false);
-          } else {
-            showToast("Isu dikesan semasa memuat turun data arkib.", "error");
-          }
-        } catch (err) {
-          showToast("Ralat semasa memanggil API Sheets.", "error");
-        } finally {
-          setIsLoadingArchive(false);
-        }
-      };
-
-      /* STREAMING_CHUNK: Mengaktifkan pemandu multi-penilai di awan... */
-      // SCANNING TAB KEMENTERIAN UNTUK MENGESAN SEBARANG PENILAI AKTIF YANG LAIN
-      useEffect(() => {
-        if (!sheetUrl) return;
-        const fetchAvailableEvaluators = async () => {
-          try {
-            const res = await fetch(sheetUrl, {
-              method: "POST",
-              mode: "cors",
-              redirect: "follow",
-              body: JSON.stringify({ action: "get_sheets_list" })
-            });
-            const result = await res.json();
-            if (result.status === "success") {
-              const sheets = result.sheets || [];
-              const prefix = `Bil. ${meetingNumber}/${meetingYear}`;
-              const evaluators = [];
-              sheets.forEach(name => {
-                if (name.startsWith(prefix)) {
-                  const match = name.match(/\(([^)]+)\)/);
-                  if (match && match[1]) {
-                    evaluators.push(match[1].trim());
-                  } else if (name.trim() === prefix) {
-                    evaluators.push(""); // Tab tanpa nama pegawai
-                  }
-                }
-              });
-              setAvailableEvaluators([...new Set(evaluators)]);
-            }
-          } catch (err) {
-            console.error("Gagal memuat senarai penilai aktif:", err);
-          }
-        };
-        fetchAvailableEvaluators();
-      }, [meetingNumber, meetingYear, sheetUrl]);
-
-      const displayEvaluators = useMemo(() => {
-        const list = [...availableEvaluators];
-        const trimmedCurrent = officerName.trim();
-        if (trimmedCurrent && !list.includes(trimmedCurrent)) {
-          list.push(trimmedCurrent);
-        }
-        return list;
-      }, [availableEvaluators, officerName]);
-
-      // FUNGSI AUTO-LOAD / AUTO-PULL DATA DARI AWAN APABILA MEJA KERJA BERTUKAR (MULTI-PC SYNC)
+      /* STREAMING_CHUNK: Menulis logik penyelarasan data Google Sheets... */
+      // 2. Fungsi Async (Mula dytakrifkan awal sebelum sebarang useEffect memanggilnya)
       const loadCurrentMeetingFromSheets = async (targetTabName) => {
         if (!sheetUrl) return;
         addLog(`[AUTO-SYNC] Menyemak jika tab "${targetTabName}" wujud di Google Sheets...`, "info");
@@ -742,7 +525,6 @@
             }
           } else {
             addLog(`[AUTO-SYNC] Tab "${targetTabName}" belum wujud di awan. Memulai draf bersih untuk pegawai ini.`, "info");
-            // Set draf bersih bagi mengelakkan kebocoran data jika tidak ditemui di awan
             if (targetTabName === getSheetName(meetingNumber, meetingYear, officerName)) {
               setDataOG([]);
               setDataOthers({});
@@ -753,16 +535,238 @@
         }
       };
 
-      // Cetusan auto-load apabila parameter mesyuarat, tahun, atau pegawai bertukar
+      const syncEditRowToGoogleSheets = async (updatedItem, allItems) => {
+        if (!sheetUrl) return;
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
+        addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ 
+              action: "sync_all", 
+              data: allItems, 
+              activeSector,
+              sheetName: sheetName
+            })
+          });
+          addLog(`[AUTO-SYNC] Maklumat "${updatedItem.namaSyarikat}" dikemaskini di Google Sheets.`, "success");
+          markAsSynced(updatedItem.id, true);
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Gagal kemaskini di Google Sheets: ${err.message}`, "error");
+        }
+      };
+
+      const syncAddRowToGoogleSheets = async (item) => {
+        if (!sheetUrl) return;
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
+        addLog(`[AUTO-SYNC] Menghantar "${item.namaSyarikat}" ke Google Sheets...`, "info");
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ 
+              action: "add_row", 
+              item, 
+              activeSector,
+              sheetName: sheetName
+            })
+          });
+          addLog(`[AUTO-SYNC] "${item.namaSyarikat}" berjaya disegerakkan.`, "success");
+          markAsSynced(item.id, true);
+          showToast(`Syarikat ${item.namaSyarikat} telah dihantar ke Google Sheets!`, "success");
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Gagal disegerakkan ke Google Sheets: ${err.message}`, "error");
+          showToast("Isu jaringan dikesan semasa penyelarasan awan.", "error");
+        }
+      };
+
+      const syncDeleteRowFromGoogleSheets = async (id) => {
+        if (!sheetUrl) return;
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
+        addLog(`[AUTO-SYNC] Memadam ID ${id} di Google Sheets...`, "info");
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ 
+              action: "delete_row", 
+              id,
+              sheetName: sheetName
+            })
+          });
+          addLog(`[AUTO-SYNC] Rekod ID ${id} berjaya dipadam daripada Google Sheets.`, "success");
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Gagal padam di Google Sheets: ${err.message}`, "error");
+        }
+      };
+
+      const syncSingleRowToGoogleSheets = async (id, keputusan, ulasan) => {
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
+        addLog(`[AUTO-SYNC] Menghantar kemas kini keputusan ID: ${id}...`, "info");
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ 
+              action: "update", 
+              id, 
+              keputusan, 
+              ulasan, 
+              activeSector,
+              sheetName: sheetName
+            })
+          });
+          addLog(`[AUTO-SYNC] ID ${id} dikemas kini di Google Sheets.`, "success");
+          markAsSynced(id, true);
+        } catch (err) {
+          addLog(`[AUTO-SYNC] Gagal mengemas kini keputusan: ${err.message}`, "error");
+        }
+      };
+
+      const handleFullSync = async () => {
+        if (!sheetUrl) {
+          showToast("Masukkan URL Google Web App terlebih dahulu di Mod Tetapan.", "error");
+          return;
+        }
+        setIsSyncing(true);
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
+        addLog(`Memulakan penyelarasan penuh dengan Google Sheets ke tab [${sheetName}]...`, "info");
+
+        try {
+          await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ 
+              action: "sync_all", 
+              data: currentSectData, 
+              activeSector,
+              sheetName: sheetName
+            })
+          });
+          
+          addLog(`Penyelarasan penuh berjaya dihantar ke Google Sheets [Tab: ${sheetName}]!`, "success");
+          
+          if (activeSector === "og") {
+            setDataOG(prev => prev.map(item => ({ ...item, synced: true })));
+          } else {
+            setDataOthers(prev => {
+              const sectorData = prev[activeSector] || [];
+              const updated = sectorData.map(item => ({ ...item, synced: true }));
+              return { ...prev, [activeSector]: updated };
+            });
+          }
+
+          showToast("Semua data sektor semasa disegerakkan sepenuhnya!", "success");
+        } catch (err) {
+          addLog(`Penyelarasan penuh gagal: ${err.message}`, "error");
+          showToast("Gagal menyegerakkan data.", "error");
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+
+      const fetchGlobalHistory = async () => {
+        if (!sheetUrl) return;
+        try {
+          const res = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ action: "get_global_history" })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            setGlobalCompanies(result.companies || []);
+            setGlobalOwners(result.owners || []);
+            setGlobalApplicants(result.applicants || []); // Pemuatan senarai ahli penyandang sejarah kementerian
+            addLog(`Berjaya memuatkan ${result.companies.length} syarikat dan ${result.applicants ? result.applicants.length : 0} ahli penyandang dari arkib awan.`, "success");
+          }
+        } catch (err) {
+          addLog("Gagal menghubungi pangkalan data awan untuk carian sejarah.", "error");
+        }
+      };
+
+      const fetchArchiveSheets = async () => {
+        if (!sheetUrl) {
+          showToast("URL Google Apps Script tidak ditemui.", "error");
+          return;
+        }
+        setIsLoadingArchive(true);
+        try {
+          const res = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ action: "get_sheets_list" })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            setPastSheets(result.sheets || []);
+            setShowArchiveModal(true);
+          } else {
+            showToast("Gagal memuatkan senarai arkib.", "error");
+          }
+        } catch (err) {
+          showToast("Ralat sambungan API dikesan.", "error");
+        } finally {
+          setIsLoadingArchive(false);
+        }
+      };
+
+      const loadPastSheetData = async (selectedSheetName) => {
+        setIsLoadingArchive(true);
+        addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
+        try {
+          const res = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ action: "load_sheet_data", sheetName: selectedSheetName })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            const records = result.records || [];
+            
+            if (activeSector === "og") {
+              setDataOG(records);
+            } else {
+              setDataOthers(prev => ({ ...prev, [activeSector]: records }));
+            }
+
+            const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
+            if (match) {
+              setMeetingNumber(match[1]);
+              setMeetingYear(match[2]);
+            }
+
+            showToast(`Berjaya memuatkan ${records.length} data daripada tab ${selectedSheetName}!`, "success");
+            setShowArchiveModal(false);
+          } else {
+            showToast("Isu dikesan semasa memuat turun data arkib.", "error");
+          }
+        } catch (err) {
+          showToast("Ralat semasa memanggil API Sheets.", "error");
+        } finally {
+          setIsLoadingArchive(false);
+        }
+      };
+
+      /* STREAMING_CHUNK: Menyediakan kesan useEffect untuk auto-sinkron PC... */
+      // 3. Kesan useEffect (Diletakkan SELEPAS semua fungsi async dytakrifkan secara selamat)
       useEffect(() => {
         const currentTabName = getSheetName(meetingNumber, meetingYear, officerName);
         
-        // 100% Sifar LocalStorage: Mula dengan draf kosong untuk keselamatan multi-PC
+        // Sifar draf permulaan untuk keselamatan pertukaran nama penilai
         setDataOG([]);
         setDataOthers({});
         setCurrentSlideIndex(0);
 
-        // Lakukan sambungan ke awan Google Sheets secara berkala (Debounced)
         const delayDebounce = setTimeout(() => {
           loadCurrentMeetingFromSheets(currentTabName);
         }, 1200);
@@ -770,189 +774,189 @@
         return () => clearTimeout(delayDebounce);
       }, [meetingNumber, meetingYear, officerName]);
 
-      const handleSaveOfficerName = (newVal) => {
-        setOfficerName(newVal);
-        localStorage.setItem('jkplik_officer_name', newVal);
+      /* STREAMING_CHUNK: Menguruskan kemasukan data syarikat dan penyandang... */
+      // 4. Pengendali Input & Event Handlers
+      const triggerDeleteItem = (id) => {
+        setConfirmModal({
+          show: true,
+          message: "Adakah anda pasti untuk memadam rekod permohonan ini secara kekal?",
+          action: () => executeDeleteItem(id)
+        });
       };
 
-      /* STREAMING_CHUNK: Menyediakan fungsi eksport dokumen Word kDN... */
-      const exportToWord = () => {
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
-        addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
-        
-        let wordContent = `
-          <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-          <head>
-            <meta charset="utf-8">
-            <title>Format Rasmi Mesyuarat JKPLIK</title>
-            <style>
-              @page Section1 {
-                size: 297mm 210mm; /* A4 Landscape */
-                margin: 1.0cm 1.0cm 1.0cm 1.0cm;
-                mso-header-margin: 0.5in;
-                mso-footer-margin: 0.5in;
-              }
-              div.Section1 { page: Section1; }
-              body { 
-                font-family: "Times New Roman", Times, serif; 
-                font-size: 10pt; 
-                color: black;
-              }
-              .title-container {
-                text-align: center;
-                margin-bottom: 20px;
-              }
-              .title-header {
-                font-size: 12pt;
-                font-weight: bold;
-                text-transform: uppercase;
-                margin: 2px 0;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-              }
-              th, td {
-                border: 1px solid #000000;
-                padding: 6px;
-                vertical-align: top;
-                font-size: 9.5pt;
-                line-height: 1.3;
-              }
-              th {
-                background-color: #E2E8F0;
-                font-weight: bold;
-                text-align: center;
-                text-transform: uppercase;
-              }
-              .align-center { text-align: center; }
-              .font-bold { font-weight: bold; }
-              .uppercase { text-transform: uppercase; }
-              .italic { font-style: italic; }
-              .dotted-line {
-                margin-top: 6px;
-                border-top: 1px dotted #333333;
-                height: 1px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="Section1">
-              <div class="title-container">
-                <p class="title-header">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</p>
-                <p class="title-header">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</p>
-                <p class="title-header">BIL. ${meetingNumber}/${meetingYear} &ndash; SEKTOR ${activeSector.toUpperCase()}</p>
-                ${officerName ? `<p style="font-size: 10pt; margin: 4px 0 0 0;">Disediakan Oleh Pegawai Penilai: ${officerName}</p>` : ''}
-              </div>
-
-              <table>
-                <thead>
-                  <tr>
-                    <th rowspan="2" style="width: 5%;">BIL</th>
-                    <th rowspan="2" style="width: 20%;">NAMA SYARIKAT</th>
-                    <th rowspan="2" style="width: 25%;">BUTIRAN PENYANDANG</th>
-                    <th rowspan="2" style="width: 10%;">TEMPOH MOHON</th>
-                    <th colspan="4" style="width: 15%;">PERMOHONAN / WARGANEGARA</th>
-                    <th rowspan="2" style="width: 25%;">NAMA PROJEK</th>
-                    <th rowspan="2" style="width: 15%;">KEPUTUSAN</th>
-                  </tr>
-                  <tr>
-                    <th style="width: 3.75%;">B</th>
-                    <th style="width: 3.75%;">L</th>
-                    <th style="width: 3.75%;">T/R</th>
-                    <th style="width: 3.75%;">W/N</th>
-                  </tr>
-                </thead>
-                <tbody>
-        `;
-
-        if (currentSectData.length === 0) {
-          wordContent += `
-            <tr>
-              <td colspan="10" class="align-center" style="padding: 20px;">Tiada permohonan berdaftar dalam pangkalan data semasa.</td>
-            </tr>
-          `;
+      const executeDeleteItem = (id) => {
+        let updatedList = [];
+        if (activeSector === "og") {
+          setDataOG(prev => {
+            updatedList = prev.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
+            return updatedList;
+          });
         } else {
-          currentSectData.forEach((item, index) => {
-            const hasDecision = !!item.keputusan;
-            let penyandangRows = "";
-            (item.penyandang || []).forEach((p, idx) => {
-              penyandangRows += `<div><b>${idx + 1}. ${p.nama}</b> / ${p.jantina} / ${p.warganegara} / ${p.pasport || "-"} / ${p.umur} &ndash; <i>${p.jawatan}</i><br/><b>GAJI: ${p.gaji || "-"}</b></div><br/>`;
-            });
-
-            const escapedKegiatan = (item.kegiatan || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const escapedProjek = (item.projek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const escapedNoKontrak = (item.noKontrak || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const escapedTempohProjek = (item.tempohProjek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const escapedOwner = (item.ownerProjek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-            const projectDetails = `
-              <div><b>KEGIATAN SYARIKAT</b><br/>&#10148; ${escapedKegiatan}</div><br/>
-              <div style="border-top: 1px solid #e2e8f0; padding-top: 5px;">
-                <b>PROJECT:</b><br/>
-                &#10148; ${escapedProjek}<br/>
-                ${escapedNoKontrak ? `&#10148; NO. KONTRAK: ${escapedNoKontrak}<br/>` : ''}
-                ${escapedTempohProjek ? `&#10148; TEMPOH PROJEK: ${escapedTempohProjek}<br/>` : ''}
-                ${escapedOwner ? `&#10148; OWNER PROJECT: ${escapedOwner}` : ''}
-              </div>
-            `;
-
-            const checkLulus = item.keputusan === "LULUS" ? "&#9746;" : "&#9744;";
-            const checkLulusBersyarat = item.keputusan === "LULUS BERSYARAT" ? "&#9746;" : "&#9744;";
-            const checkTolak = item.keputusan === "TOLAK" ? "&#9746;" : "&#9744;";
-            const checkSemakan = item.keputusan === "SEMAKAN / NAZIRAN" ? "&#9746;" : "&#9744;";
-
-            const decisionCol = `
-              <div style="font-size: 8.5pt;">
-                <div>${checkLulus} LULUS</div>
-                <div style="margin-top: 3px;">${checkLulusBersyarat} LULUS BERSYARAT</div>
-                <div style="margin-top: 3px;">${checkTolak} TOLAK</div>
-                <div style="margin-top: 3px;">${checkSemakan} SEMAKAN / NAZIRAN</div>
-                <div style="margin-top: 10px; font-weight: bold;">ULASAN :</div>
-                ${item.ulasan ? `<div style="font-style: italic; margin-top: 4px;">"${item.ulasan}"</div>` : `
-                  <div class="dotted-line"></div>
-                  <div class="dotted-line"></div>
-                  <div class="dotted-line"></div>
-                `}
-              </div>
-            `;
-
-            wordContent += `
-              <tr>
-                <td class="align-center font-bold">${index + 1}.</td>
-                <td class="font-bold uppercase">${item.namaSyarikat}<br/><span style="font-size: 8pt; font-weight: normal;">${item.alamat || ""}</span></td>
-                <td>${penyandangRows}</td>
-                <td class="align-center font-bold">${item.tempohMohon || "-"}</td>
-                <td class="align-center font-bold">${item.valB || "-"}</td>
-                <td class="align-center font-bold">${item.valL || "-"}</td>
-                <td class="align-center font-bold">${item.valTR || "-"}</td>
-                <td class="align-center font-bold" style="font-size: 8pt; white-space: pre-line;">${item.valWN || "-"}</td>
-                <td>${projectDetails}</td>
-                <td>${decisionCol}</td>
-              </tr>
-            `;
+          setDataOthers(prev => {
+            const filtered = (prev[activeSector] || []).filter(item => item.id !== id);
+            updatedList = filtered.map((item, i) => ({ ...item, bil: i + 1 }));
+            return { ...prev, [activeSector]: updatedList };
           });
         }
 
-        wordContent += `
-                </tbody>
-              </table>
-            </div>
-          </body>
-          </html>
-        `;
-
-        const blob = new Blob([wordContent], { type: "application/msword;charset=utf-8" });
-        const downloadUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = `JKPLIK_Sektor_${activeSector.toUpperCase()}_Bil_${meetingNumber}_${meetingYear}.doc`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(downloadUrl);
-        showToast("Dokumen format Word berjaya draf dan dimuat turun!", "success");
+        if (sheetUrl) {
+          syncDeleteRowFromGoogleSheets(id);
+        }
+        
+        showToast("Rekod berjaya dipadam.", "success");
+        setConfirmModal({ show: false, action: null, message: "" });
       };
+
+      const addPenyandangToNewCompany = () => {
+        if (!newPenyandang.nama) return;
+        setNewCompany(prev => {
+          const updatedPenyandang = [...prev.penyandang, newPenyandang];
+          const { valB, valWN } = calculateBAndWN(updatedPenyandang);
+          return {
+            ...prev,
+            penyandang: updatedPenyandang,
+            valB,
+            valWN
+          };
+        });
+        // Sifar pramuat MYS untuk newPenyandang
+        setNewPenyandang({
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+        });
+        setNationalityQuery("");
+      };
+
+      const removePenyandangFromNewCompany = (idx) => {
+        setNewCompany(prev => {
+          const filtered = prev.penyandang.filter((_, i) => i !== idx);
+          const { valB, valWN } = calculateBAndWN(filtered);
+          return {
+            ...prev,
+            penyandang: filtered,
+            valB,
+            valWN
+          };
+        });
+      };
+
+      const handleRegisterCompany = (e) => {
+        e.preventDefault();
+        if (!newCompany.namaSyarikat) return;
+
+        const newItem = {
+          ...newCompany,
+          id: `${activeSector.toUpperCase()}-${Date.now()}`,
+          bil: currentSectData.length + 1,
+          keputusan: "",
+          ulasan: "",
+          synced: !!sheetUrl
+        };
+
+        let updatedList = [];
+        if (activeSector === "og") {
+          setDataOG(prev => {
+            updatedList = [...prev, newItem];
+            return updatedList;
+          });
+        } else {
+          setDataOthers(prev => {
+            const sectorData = prev[activeSector] || [];
+            updatedList = [...sectorData, newItem];
+            return { ...prev, [activeSector]: updatedList };
+          });
+        }
+
+        if (sheetUrl) {
+          syncAddRowToGoogleSheets(newItem);
+        } else {
+          showToast("Syarikat berjaya disimpan secara tempatan!", "success");
+        }
+
+        setNewCompany({
+          namaSyarikat: "",
+          alamat: "",
+          kegiatan: "",
+          projek: "",
+          noKontrak: "",
+          tempohProjek: "",
+          ownerProjek: "",
+          tempohMohon: "06 BULAN",
+          valB: "01",
+          valL: "-",
+          valTR: "-",
+          valWN: "01 MYS 'A'",
+          penyandang: [],
+          synced: false
+        });
+        setCompanySearchQuery("");
+        setOwnerSearchQuery("");
+        setShowAddModal(false);
+      };
+
+      /* STREAMING_CHUNK: Mengasaskan penapis carian dan pengiraan statistik jantina... */
+      // 5. useMemo Pemboleh Ubah
+      const currentSectData = useMemo(() => {
+        if (activeSector === "og") return dataOG;
+        return dataOthers[activeSector] || [];
+      }, [activeSector, dataOG, dataOthers]);
+
+      const filteredData = useMemo(() => {
+        return currentSectData.filter(item => {
+          const matchSearch = item.namaSyarikat.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              (item.ownerProjek && item.ownerProjek.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                              (item.penyandang && item.penyandang.some(p => p.nama.toLowerCase().includes(searchQuery.toLowerCase())));
+          
+          const status = item.keputusan || "belum";
+          const matchStatus = statusFilter === "semua" || 
+                             (statusFilter === "belum" && status === "") || 
+                             (statusFilter === "lulus" && status === "LULUS") ||
+                             (statusFilter === "lulus_bersyarat" && status === "LULUS BERSYARAT") ||
+                             (statusFilter === "tolak" && status === "TOLAK") ||
+                             (statusFilter === "semakan" && status === "SEMAKAN / NAZIRAN");
+          
+          return matchSearch && matchStatus;
+        });
+      }, [currentSectData, searchQuery, statusFilter]);
+
+      const stats = useMemo(() => {
+        const total = currentSectData.length;
+        let lulus = 0;
+        let lulusBersyarat = 0;
+        let tolak = 0;
+        let semakan = 0;
+        let belum = 0;
+        let totalApplicants = 0;
+        
+        let jantinaL = 0;
+        let jantinaP = 0;
+        const warganegaraCount = {};
+
+        currentSectData.forEach(item => {
+          if (item.keputusan === "LULUS") lulus++;
+          else if (item.keputusan === "LULUS BERSYARAT") lulusBersyarat++;
+          else if (item.keputusan === "TOLAK") tolak++;
+          else if (item.keputusan === "SEMAKAN / NAZIRAN") semakan++;
+          else belum++;
+
+          (item.penyandang || []).forEach(p => {
+            totalApplicants++;
+            if (p.jantina === "L") jantinaL++;
+            else if (p.jantina === "P") jantinaP++;
+
+            const code = (p.warganegara || "N/A").trim().toUpperCase();
+            warganegaraCount[code] = (warganegaraCount[code] || 0) + 1;
+          });
+        });
+
+        const wnBreakdown = Object.entries(warganegaraCount)
+          .map(function(arr) { return arr[0] + ": " + arr[1]; })
+          .join(", ");
+
+        return { 
+          total, lulus, lulusBersyarat, tolak, semakan, belum, totalApplicants,
+          jantinaL, jantinaP, wnBreakdown: wnBreakdown || "0 Rekod"
+        };
+      }, [currentSectData]);
 
       const uniqueCompanies = useMemo(() => {
         const local = [...dataOG];
@@ -1015,70 +1019,6 @@
         return result;
       }, [dataOG, dataOthers, globalOwners]);
 
-      const currentSectData = useMemo(() => {
-        if (activeSector === "og") return dataOG;
-        return dataOthers[activeSector] || [];
-      }, [activeSector, dataOG, dataOthers]);
-
-      const filteredData = useMemo(() => {
-        return currentSectData.filter(item => {
-          const matchSearch = item.namaSyarikat.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                              (item.ownerProjek && item.ownerProjek.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                              (item.penyandang && item.penyandang.some(p => p.nama.toLowerCase().includes(searchQuery.toLowerCase())));
-          
-          const status = item.keputusan || "belum";
-          const matchStatus = statusFilter === "semua" || 
-                             (statusFilter === "belum" && status === "") || 
-                             (statusFilter === "lulus" && status === "LULUS") ||
-                             (statusFilter === "lulus_bersyarat" && status === "LULUS BERSYARAT") ||
-                             (statusFilter === "tolak" && status === "TOLAK") ||
-                             (statusFilter === "semakan" && status === "SEMAKAN / NAZIRAN");
-          
-          return matchSearch && matchStatus;
-        });
-      }, [currentSectData, searchQuery, statusFilter]);
-
-      /* STREAMING_CHUNK: Pengiraan statistik terperinci pecahan jantina dan warganegara... */
-      const stats = useMemo(() => {
-        const total = currentSectData.length;
-        let lulus = 0;
-        let lulusBersyarat = 0;
-        let tolak = 0;
-        let semakan = 0;
-        let belum = 0;
-        let totalApplicants = 0;
-        
-        let jantinaL = 0;
-        let jantinaP = 0;
-        const warganegaraCount = {};
-
-        currentSectData.forEach(item => {
-          if (item.keputusan === "LULUS") lulus++;
-          else if (item.keputusan === "LULUS BERSYARAT") lulusBersyarat++;
-          else if (item.keputusan === "TOLAK") tolak++;
-          else if (item.keputusan === "SEMAKAN / NAZIRAN") semakan++;
-          else belum++;
-
-          (item.penyandang || []).forEach(p => {
-            totalApplicants++;
-            if (p.jantina === "L") jantinaL++;
-            else if (p.jantina === "P") jantinaP++;
-
-            const code = (p.warganegara || "N/A").trim().toUpperCase();
-            warganegaraCount[code] = (warganegaraCount[code] || 0) + 1;
-          });
-        });
-
-        const wnBreakdown = Object.entries(warganegaraCount)
-          .map(function(arr) { return arr[0] + ": " + arr[1]; })
-          .join(", ");
-
-        return { 
-          total, lulus, lulusBersyarat, tolak, semakan, belum, totalApplicants,
-          jantinaL, jantinaP, wnBreakdown: wnBreakdown || "0 Rekod"
-        };
-      }, [currentSectData]);
-
       const filteredCompanySuggestions = useMemo(() => {
         if (!companySearchQuery) return [];
         return uniqueCompanies.filter(c => 
@@ -1100,7 +1040,6 @@
         );
       }, [archiveSearchQuery, pastSheets]);
 
-      // FILTER CADANGAN AUTOSUGGEST AHLI PENYANDANG SEJARAH (ADD MODAL)
       const filteredApplicantSuggestions = useMemo(() => {
         if (!applicantSearchQuery) return [];
         return globalApplicants.filter(a => 
@@ -1108,7 +1047,6 @@
         );
       }, [applicantSearchQuery, globalApplicants]);
 
-      // FILTER CADANGAN AUTOSUGGEST AHLI PENYANDANG SEJARAH (EDIT MODAL)
       const filteredEditApplicantSuggestions = useMemo(() => {
         if (!editApplicantSearchQuery) return [];
         return globalApplicants.filter(a => 
@@ -1132,62 +1070,7 @@
         );
       }, [editNationalityQuery]);
 
-      const loadDemoData = () => {
-        const demoData = [
-          {
-            id: `OG-${Date.now()}-1`,
-            bil: 1,
-            namaSyarikat: "BARISAN SAMUDERA SDN BHD (514578-X)",
-            alamat: "LOT NO. 23A, BLOCK C, 1ST & 2ND FLOOR, BUNDUSAN SQUARE, KOTA KINABALU SABAH.",
-            kegiatan: "REPAIR AND MAINTENANCE OF INDUSTRIAL MACHINERY AND EQUIPMENT, GENERAL CONSTRUCTION, HOUSEKEEPING, GRASS CUTTING AND LANDSCAPING, ELECTRICAL/ELECTRONIC COMPONENTS AND ACCESSORIES.",
-            projek: "CONTRACT PROVISION OF HEAT EXCHANGER, PRESSURE VESSEL AND UTILITY TANK MAINTENANCE SERVICES FOR PETRONAS CARIGALI SDN BHD (PACKAGE A).",
-            noKontrak: "RFP-000000032393(A)",
-            tempohProjek: "11 JAN 2026 – 10 JAN 2027",
-            ownerProjek: "PETRONAS CARIGALI SDN BHD",
-            tempohMohon: "06 BULAN",
-            valB: "01",
-            valL: "-",
-            valTR: "-",
-            valWN: "01 MYS 'A'",
-            keputusan: "",
-            ulasan: "",
-            synced: false,
-            penyandang: [
-              { nama: "AHMAD AQMAL BIN RAHMAT", jantina: "L", warganegara: "MYS", pasport: "A72545666", tarikhLahir: "1988-02-25", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000" }
-            ]
-          },
-          {
-            id: `OG-${Date.now()}-2`,
-            bil: 2,
-            namaSyarikat: "BUMITECH GLOBAL ENERGY SDN BHD (781730-D)",
-            alamat: "NO 47 & 47-1 JALAN INDUSTRI TMP 1, TAMAN PERINDUSTRIAN TAMAN PERINDUSTRIAN TANJUNG MINYAK PERDANA, 75260 MELAKA.",
-            kegiatan: "ENGINEERING INSPECTION AND SERVICES",
-            projek: "CONTRACT PROVISION OF PAN MALAYSIA – ADVANCE NDT INSPECTION SERVICES (PACKAGE A) FOR MALAYSIA LNG SDN BHD BERTARIKH 17 AUG 2023",
-            noKontrak: "RFP-000000041163/MLNG",
-            tempohProjek: "17 AUG 2023 – 14 JUN 2028",
-            ownerProjek: "PETRONAS CARIGALI SDN BHD",
-            tempohMohon: "06 BULAN",
-            valB: "04",
-            valL: "-",
-            valTR: "-",
-            valWN: "04 MYS 'A'",
-            keputusan: "",
-            ulasan: "",
-            synced: false,
-            penyandang: [
-              { nama: "MUHD RIDHWAN BIN MUHD ALI", jantina: "L", warganegara: "MYS", pasport: "A958060", tarikhLahir: "1995-09-24", umur: "31 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MUHAMAD SAHRIN BIN MUSTAFA", jantina: "L", warganegara: "MYS", pasport: "A71240648", tarikhLahir: "1992-12-23", umur: "34 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MUHAMMAD IRFAN BIN AZMI", jantina: "L", warganegara: "MYS", pasport: "A72522080", tarikhLahir: "2001-01-18", umur: "25 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MOHD REEZA BIN MOHD ROSLI", jantina: "L", warganegara: "MYS", pasport: "A71072026", tarikhLahir: "1981-06-07", umur: "45 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" }
-            ]
-          }
-        ];
-        
-        setDataOG(demoData);
-        showToast("Dua data ujian JKPLIK berjaya dimuatkan!", "success");
-        setViewMode("dashboard");
-      };
-
+      /* STREAMING_CHUNK: Menyusun pengepala (header) portal mesyuarat... */
       return (
         <div className="flex-1 flex flex-col min-h-screen">
           
@@ -1386,7 +1269,7 @@
                 {/* PECAHAN JANTINA DINAMIK */}
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Pecahan Jantina</span>
-                  <span className="text-[12px] font-black text-indigo-700 font-semibold">L: {stats.jantinaL} | P: {stats.jantinaP}</span>
+                  <span className="text-[12px] font-black text-indigo-700">L: {stats.jantinaL} | P: {stats.jantinaP}</span>
                 </div>
 
                 {/* PECAHAN WARGANEGARA DINAMIK */}
@@ -1461,7 +1344,7 @@
                     )}
 
                     <button
-                      onClick={loadCurrentMeetingFromSheets}
+                      onClick={() => loadCurrentMeetingFromSheets(getSheetName(meetingNumber, meetingYear, officerName))}
                       className="bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-1.5 transition-colors"
                       title="Kemaskini & Muat Turun Data Terkini dari Awan"
                     >
@@ -1569,12 +1452,7 @@
                                 <td className="px-4 py-4 border-r border-slate-100">
                                   {hasDecision ? (
                                     <div className="flex flex-col gap-1">
-                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold w-fit ${
-                                        item.keputusan === 'LULUS' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                                        item.keputusan === 'LULUS BERSYARAT' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                        item.keputusan === 'TOLAK' ? 'bg-red-100 text-red-800 border border-red-200' :
-                                        'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                                      }`}>
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold w-fit bg-emerald-100 text-emerald-800 border border-emerald-200">
                                         {item.keputusan}
                                       </span>
                                       {item.ulasan && (
@@ -2231,7 +2109,7 @@
                           setShowOwnerDropdown(true);
                         }}
                         onFocus={() => setShowOwnerDropdown(true)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-semibold"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-semibold"
                       />
                       {showOwnerDropdown && filteredOwnerSuggestions.length > 0 && (
                         <div className="absolute top-[58px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -2414,7 +2292,7 @@
                                   });
                                   setShowApplicantDropdown(false);
                                   setApplicantSearchQuery("");
-                                  showToast(`Profil ${app.nama} ditemui and telah diisi secara automatik!`, "success");
+                                  showToast(`Profil ${app.nama} ditemui dan telah diisi secara automatik!`, "success");
                                 }}
                                 className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px]"
                               >
@@ -2484,7 +2362,7 @@
                           onFocus={() => setShowWarganegaraDropdown(true)}
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
-                        {showWarganegaraDropdown && filteredWarganegaraSuggestions.length > 0 && (
+                        {showNationalityDropdown && filteredWarganegaraSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
                             {filteredWarganegaraSuggestions.map((country, idx) => (
                               <div
