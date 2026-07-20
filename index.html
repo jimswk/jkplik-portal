@@ -17,7 +17,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800;900&display=swap');
     
     body {
       font-family: 'Inter', sans-serif;
@@ -80,8 +80,54 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect, useMemo, useRef } = React;
 
+    const WORLD_COUNTRIES = [
+      { name: "MALAYSIA", code: "MYS" },
+      { name: "INDONESIA", code: "IDN" },
+      { name: "SINGAPORE", code: "SGP" },
+      { name: "THAILAND", code: "THA" },
+      { name: "PHILIPPINES", code: "PHL" },
+      { name: "VIETNAM", code: "VNM" },
+      { name: "MYANMAR", code: "MMR" },
+      { name: "CAMBODIA", code: "KHM" },
+      { name: "BRUNEI", code: "BRN" },
+      { name: "LAOS", code: "LAO" },
+      { name: "BANGLADESH", code: "BGD" },
+      { name: "INDIA", code: "IND" },
+      { name: "PAKISTAN", code: "PAK" },
+      { name: "NEPAL", code: "NPL" },
+      { name: "SRI LANKA", code: "LKA" },
+      { name: "CHINA", code: "CHN" },
+      { name: "JAPAN", code: "JPN" },
+      { name: "SOUTH KOREA", code: "KOR" },
+      { name: "TAIWAN", code: "TWN" },
+      { name: "UNITED KINGDOM", code: "GBR" },
+      { name: "UNITED STATES", code: "USA" },
+      { name: "AUSTRALIA", code: "AUS" },
+      { name: "CANADA", code: "CAN" },
+      { name: "NEW ZEALAND", code: "NZL" },
+      { name: "GERMANY", code: "DEU" },
+      { name: "FRANCE", code: "FRA" },
+      { name: "NETHERLANDS", code: "NLD" },
+      { name: "SAUDI ARABIA", code: "SAU" },
+      { name: "YEMEN", code: "YEM" },
+      { name: "EGYPT", code: "EGY" },
+      { name: "SOUTH AFRICA", code: "ZAF" },
+      { name: "TURKEY", code: "TUR" },
+      { name: "RUSSIA", code: "RUS" },
+      { name: "BRAZIL", code: "BRA" }
+    ];
+
+    const SECTORS_LIST = [
+      { id: "og", name: "1. Minyak & Gas (Oil & Gas)" },
+      { id: "perkhidmatan", name: "2. Perkhidmatan" },
+      { id: "kerajaan", name: "3. Kerajaan" },
+      { id: "lanjutan", name: "4. Lanjutan" },
+      { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
+    ];
+
+    // Komponen pembantu Icon SVG terbina-dalam
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -230,6 +276,16 @@
             <path d="M23 4v6h-6" />
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </g>
+        ),
+        maximize: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </g>
+        ),
+        minimize: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4" />
+          </g>
         )
       };
 
@@ -245,58 +301,7 @@
       );
     }
 
-    // STREAMING_CHUNK: Menyuntik penapis keselamatan kunci Firebase...
-    const getSafeFirebaseKey = (val) => {
-      if (!val) return "";
-      return val.replace(/\./g, "")      // Buang titik '.'
-                .replace(/\//g, "-")      // Tukar slash '/' kepada sengkang '-'
-                .replace(/[\$#\[\]]/g, "") // Buang aksara larangan Firebase yang lain
-                .trim();
-    };
-
-    function calculateBAndWN(penyandangList) {
-      if (!penyandangList || penyandangList.length === 0) {
-        return { valB: "01", valWN: "-" };
-      }
-
-      const totalPenyandang = penyandangList.length;
-      const formattedB = totalPenyandang < 10 ? `0${totalPenyandang}` : `${totalPenyandang}`;
-
-      const group = {};
-      penyandangList.forEach(p => {
-        const wn = (p.warganegara || "").trim().toUpperCase();
-        const passport = (p.pasport || "").trim();
-        
-        let displayWN = wn;
-        if (wn === "MYS" && passport.length > 0) {
-          const code = passport.charAt(0).toUpperCase();
-          displayWN = `MYS '${code}'`;
-        }
-
-        group[displayWN] = (group[displayWN] || 0) + 1;
-      });
-
-      const wnRows = Object.keys(group).map(key => {
-        const count = group[key];
-        const formattedCount = count < 10 ? `0${count}` : `${count}`;
-        return `${formattedCount} ${key}`;
-      });
-
-      return {
-        valB: formattedB,
-        valWN: wnRows.join("\n")
-      };
-    }
-
-    const SECTORS_LIST = [
-      { id: "og", name: "1. Minyak & Gas (Oil & Gas)" },
-      { id: "perkhidmatan", name: "2. Perkhidmatan" },
-      { id: "kerajaan", name: "3. Kerajaan" },
-      { id: "lanjutan", name: "4. Lanjutan" },
-      { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
-    ];
-
-    const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzV9rOzjZ1EFxbVN2NRAM0SRaJNSCOz57SaByxUT4RqskgnXgpHdtAI-2Txms6AANqh/exec";
+    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbzyK9wblCLxIYJj13Ry8w6j8dNol9pFkgC0QSCB1LIPypY9-T8hNoz5iSiFFLEXjPMyxw/exec";
 
     function App() {
       const [meetingNumber, setMeetingNumber] = useState(() => {
@@ -311,21 +316,25 @@
 
       const [activeSector, setActiveSector] = useState("og");
       const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
+      const [isFullscreen, setIsFullscreen] = useState(false);
+      const meetingContainerRef = useRef(null);
 
-      // SISTEM CLOUD STORAGE SELECTION
-      const [storageProvider, setStorageProvider] = useState(() => {
-        return localStorage.getItem('jkplik_storage_provider') || "sheets"; // sheets ATAU firebase
-      });
-      const [firebaseUrl, setFirebaseUrl] = useState(() => {
-        return localStorage.getItem('jkplik_firebase_url') || ""; // e.g. https://your-db-rtdb.firebaseio.com/
-      });
+      // Autocomplete warganegara dinamik
+      const [nationalityQuery, setNationalityQuery] = useState("");
+      const [showNationalityDropdown, setShowWarganegaraDropdown] = useState(false);
+      const [editNationalityQuery, setEditNationalityQuery] = useState("");
+      const [showEditNationalityDropdown, setShowEditWarganegaraDropdown] = useState(false);
 
+      // State Pembatasan Tetingkap Edit & Tambah
       const [showEditModal, setShowEditModal] = useState(false);
       const [editingCompany, setEditingCompany] = useState(null);
+      
+      // Sifar pramuat MYS untuk editPenyandang
       const [editPenyandang, setEditPenyandang] = useState({
-        nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+        nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
+      // Pengisytiharan state pangkalan data utama bermula kosong (Sifar)
       const [dataOG, setDataOG] = useState(() => {
         const saved = localStorage.getItem('jkplik_data_og_v3');
         return saved ? JSON.parse(saved) : [];
@@ -335,16 +344,21 @@
         return saved ? JSON.parse(saved) : {};
       });
 
+      // State Pembentangan Slaid
       const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+      // State Carian & Penapisan
       const [searchQuery, setSearchQuery] = useState("");
       const [statusFilter, setStatusFilter] = useState("semua");
 
+      // Integrasi Google Sheet
       const [sheetUrl, setSheetUrl] = useState(() => {
-        return localStorage.getItem('jkplik_sheet_url_v3') || DEFAULT_SHEET_URL;
+        return localStorage.getItem('jkplik_sheet_url_v3') || GOOGLE_APPS_SCRIPT_LALAI;
       });
       const [isSyncing, setIsSyncing] = useState(false);
       const [syncLogs, setSyncLogs] = useState([]);
 
+      // Notifikasi Toast
       const [toasts, setToasts] = useState([]);
       const showToast = (message, type = "info") => {
         const id = Date.now();
@@ -354,14 +368,17 @@
         }, 4000);
       };
 
+      // Modal Pengesahan Tersuai
       const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: "" });
 
+      // Modal Pendaftaran & State Auto-suggest Sejarah
       const [showAddModal, setShowAddModal] = useState(false);
       const [companySearchQuery, setCompanySearchQuery] = useState("");
       const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
       const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
       const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
+      // State Pengisytiharan Pencarian Arkib
       const [pastSheets, setPastSheets] = useState([]);
       const [showArchiveModal, setShowArchiveModal] = useState(false);
       const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
@@ -386,12 +403,36 @@
         synced: false
       });
 
+      // Sifar pramuat MYS untuk newPenyandang
       const [newPenyandang, setNewPenyandang] = useState({
-        nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+        nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
+      // Fungsi bertukar Mod Skrin Penuh untuk Slide Presentasi
+      const toggleFullscreen = () => {
+        if (!meetingContainerRef.current) return;
+        if (!document.fullscreenElement) {
+          meetingContainerRef.current.requestFullscreen().then(() => {
+            setIsFullscreen(true);
+          }).catch(err => {
+            showToast("Gagal menukar ke mod skrin penuh.", "error");
+          });
+        } else {
+          document.exitFullscreen();
+          setIsFullscreen(false);
+        }
+      };
+
+      useEffect(() => {
+        const handleFullscreenChange = () => {
+          setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      }, []);
+
       const triggerEditItem = (item) => {
-        setEditingCompany(JSON.parse(JSON.stringify(item)));
+        setEditingCompany(JSON.parse(JSON.stringify(item))); // Deep clone permohonan pilihan
         setShowEditModal(true);
       };
 
@@ -425,8 +466,9 @@
           };
         });
         setEditPenyandang({
-          nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
         });
+        setEditNationalityQuery("");
       };
 
       const removePenyandangFromEditingCompany = (idx) => {
@@ -468,11 +510,6 @@
       };
 
       const syncEditRowToGoogleSheets = async (updatedItem, allItems) => {
-        if (storageProvider === "firebase" && firebaseUrl) {
-          syncAllToFirebase(allItems);
-          return;
-        }
-
         if (!sheetUrl) return;
         const sheetName = getSheetName();
         addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
@@ -495,36 +532,8 @@
         }
       };
 
-      // STREAMING_CHUNK: Mengemas kini pelarasan Firebase menggunakan kunci selamat...
-      const syncAllToFirebase = async (allItems) => {
-        if (!firebaseUrl) return;
-        const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
-        const safeSheetName = getSafeFirebaseKey(getSheetName()); // Guna nama dibersihkan
-        const targetPath = `${cleanUrl}/meetings/${encodeURIComponent(safeSheetName)}/${activeSector}.json`;
-        addLog(`[FIREBASE] Menyegerakkan semua data Sektor ${activeSector.toUpperCase()} ke Firebase...`, "info");
-        try {
-          await fetch(targetPath, {
-            method: "PUT",
-            mode: "cors",
-            body: JSON.stringify(allItems)
-          });
-          addLog(`[FIREBASE] Penyelarasan berjaya untuk Sektor ${activeSector.toUpperCase()}!`, "success");
-          
-          if (activeSector === "og") {
-            setDataOG(prev => prev.map(item => ({ ...item, synced: true })));
-          } else {
-            setDataOthers(prev => {
-              const updated = (prev[activeSector] || []).map(item => ({ ...item, synced: true }));
-              return { ...prev, [activeSector]: updated };
-            });
-          }
-        } catch (err) {
-          addLog(`[FIREBASE] Gagal menyegerakkan data: ${err.message}`, "error");
-        }
-      };
-
+      // Memuat turun semua rekod sejarah syarikat dari tab-tab lampiran lepas di Google Sheets
       const fetchGlobalHistory = async () => {
-        if (storageProvider === "firebase") return; // Langkau jika Firebase aktif
         if (!sheetUrl) return;
         try {
           const res = await fetch(sheetUrl, {
@@ -550,28 +559,8 @@
         }
       }, [showAddModal]);
 
+      // Mengambil senarai tab arkib mesyuarat sejarah daripada Google Sheets
       const fetchArchiveSheets = async () => {
-        if (storageProvider === "firebase" && firebaseUrl) {
-          setIsLoadingArchive(true);
-          const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
-          addLog(`[FIREBASE] Menarik senarai draf mesyuarat dari Firebase...`, "info");
-          try {
-            const res = await fetch(`${cleanUrl}/meetings.json?shallow=true`, { mode: "cors" });
-            const result = await res.json();
-            if (result) {
-              setPastSheets(Object.keys(result));
-              setShowArchiveModal(true);
-            } else {
-              showToast("Pangkalan data Firebase anda masih kosong.", "info");
-            }
-          } catch (err) {
-            showToast(`Gagal menarik senarai Firebase: ${err.message}`, "error");
-          } finally {
-            setIsLoadingArchive(false);
-          }
-          return;
-        }
-
         if (!sheetUrl) {
           showToast("URL Google Apps Script tidak ditemui.", "error");
           return;
@@ -598,48 +587,10 @@
         }
       };
 
-      // STREAMING_CHUNK: Menyediakan parser nama mesyuarat sejarah...
+      // Memuat turun keseluruhan rekod lampiran daripada tab mesyuarat sejarah terpilih
       const loadPastSheetData = async (selectedSheetName) => {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
-
-        if (storageProvider === "firebase" && firebaseUrl) {
-          const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
-          try {
-            const res = await fetch(`${cleanUrl}/meetings/${encodeURIComponent(selectedSheetName)}.json`, { mode: "cors" });
-            const result = await res.json();
-            if (result) {
-              // Firebase menyusun data mengikut Sektor
-              const records = [];
-              if (result.og) records.push(...result.og);
-              SECTORS_LIST.forEach(s => {
-                if (s.id !== "og" && result[s.id]) records.push(...result[s.id]);
-              });
-
-              if (activeSector === "og") {
-                setDataOG(result.og || []);
-              } else {
-                setDataOthers(prev => ({ ...prev, [activeSector]: result[activeSector] || [] }));
-              }
-
-              // Regex fleksibel yang boleh membaca kedua-dua format: Bil. 14/2026 atau Bil 14-2026
-              const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
-              if (match) {
-                setMeetingNumber(match[1]);
-                setMeetingYear(match[2]);
-              }
-
-              showToast(`Berjaya memuatkan data dari Firebase [${selectedSheetName}]!`, "success");
-              setShowArchiveModal(false);
-            }
-          } catch (err) {
-            showToast("Gagal memuat turun draf dari Firebase.", "error");
-          } finally {
-            setIsLoadingArchive(false);
-          }
-          return;
-        }
-
         try {
           const res = await fetch(sheetUrl, {
             method: "POST",
@@ -677,34 +628,8 @@
 
       // FUNGSI AUTO-LOAD / AUTO-PULL DATA DARI AWAN APABILA MEJA KERJA BERTUKAR (MULTI-PC SYNC)
       const loadCurrentMeetingFromSheets = async () => {
-        const currentTabName = getSheetName();
-
-        if (storageProvider === "firebase" && firebaseUrl) {
-          const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
-          const safeTabName = getSafeFirebaseKey(currentTabName); // Bersihkan kunci untuk Firebase
-          addLog(`[FIREBASE] Memeriksa draf mesyuarat di Firebase untuk "${safeTabName}"...`, "info");
-          try {
-            const res = await fetch(`${cleanUrl}/meetings/${encodeURIComponent(safeTabName)}.json`, { mode: "cors" });
-            const result = await res.json();
-            if (result) {
-              setDataOG(result.og || []);
-              const others = {};
-              SECTORS_LIST.forEach(s => {
-                if (s.id !== "og") others[s.id] = result[s.id] || [];
-              });
-              setDataOthers(others);
-              addLog(`[FIREBASE] Data terkini berjaya diselaraskan daripada Firebase!`, "success");
-              showToast("Penyelarasan automatik Firebase berjaya!", "success");
-            } else {
-              addLog(`[FIREBASE] Draf mesyuarat "${safeTabName}" belum wujud di Firebase.`, "info");
-            }
-          } catch (err) {
-            addLog(`[FIREBASE] Kegagalan talian Firebase: ${err.message}`, "error");
-          }
-          return;
-        }
-
         if (!sheetUrl) return;
+        const currentTabName = getSheetName();
         addLog(`[AUTO-SYNC] Menyemak jika tab "${currentTabName}" wujud di Google Sheets...`, "info");
         try {
           const listRes = await fetch(sheetUrl, {
@@ -749,12 +674,13 @@
         }
       };
 
+      // Cetusan auto-load apabila parameter mesyuarat atau pegawai bertukar
       useEffect(() => {
         const delayDebounce = setTimeout(() => {
           loadCurrentMeetingFromSheets();
         }, 1200);
         return () => clearTimeout(delayDebounce);
-      }, [meetingNumber, meetingYear, officerName, storageProvider]);
+      }, [meetingNumber, meetingYear, officerName]);
 
       const exportToWord = () => {
         const sheetName = getSheetName();
@@ -1031,11 +957,6 @@
       }, [sheetUrl]);
 
       useEffect(() => {
-        localStorage.setItem('jkplik_storage_provider', storageProvider);
-        localStorage.setItem('jkplik_firebase_url', firebaseUrl);
-      }, [storageProvider, firebaseUrl]);
-
-      useEffect(() => {
         localStorage.setItem('jkplik_meeting_number', meetingNumber);
         localStorage.setItem('jkplik_meeting_year', meetingYear);
         localStorage.setItem('jkplik_officer_name', officerName);
@@ -1086,13 +1007,6 @@
       };
 
       const syncAddRowToGoogleSheets = async (item) => {
-        if (storageProvider === "firebase" && firebaseUrl) {
-          // Untuk Firebase, kita terus kemaskini seluruh senarai sektor terkini
-          const updatedSectList = [...currentSectData, item];
-          syncAllToFirebase(updatedSectList);
-          return;
-        }
-
         if (!sheetUrl) return;
         const sheetName = getSheetName();
         addLog(`[AUTO-SYNC] Menghantar "${item.namaSyarikat}" ke Google Sheets...`, "info");
@@ -1118,11 +1032,6 @@
       };
 
       const syncDeleteRowFromGoogleSheets = async (id) => {
-        if (storageProvider === "firebase" && firebaseUrl) {
-          // Firebase sync ditolak secara automatik melalui State Hooks
-          return;
-        }
-
         if (!sheetUrl) return;
         const sheetName = getSheetName();
         addLog(`[AUTO-SYNC] Memadam ID ${id} di Google Sheets...`, "info");
@@ -1160,20 +1069,16 @@
         if (activeSector === "og") {
           setDataOG(prev => {
             updatedList = prev.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+            syncEditRowToGoogleSheets(editingCompany || { id, keputusan, ulasan }, updatedList);
             return updatedList;
           });
         } else {
           setDataOthers(prev => {
             const sectorData = prev[activeSector] || [];
             updatedList = sectorData.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+            syncEditRowToGoogleSheets(editingCompany || { id, keputusan, ulasan }, updatedList);
             return { ...prev, [activeSector]: updatedList };
           });
-        }
-
-        if (storageProvider === "firebase" && firebaseUrl) {
-          syncAllToFirebase(updatedList);
-        } else if (sheetUrl) {
-          syncSingleRowToGoogleSheets(id, keputusan, ulasan);
         }
       };
 
@@ -1211,7 +1116,7 @@
           bil: currentSectData.length + 1,
           keputusan: "",
           ulasan: "",
-          synced: !!sheetUrl || !!firebaseUrl
+          synced: !!sheetUrl
         };
 
         let updatedList = [];
@@ -1228,10 +1133,7 @@
           });
         }
 
-        if (storageProvider === "firebase" && firebaseUrl) {
-          syncAllToFirebase(updatedList);
-          showToast(`Syarikat ${newCompany.namaSyarikat} berjaya didaftarkan ke Firebase!`, "success");
-        } else if (sheetUrl) {
+        if (sheetUrl) {
           syncAddRowToGoogleSheets(newItem);
         } else {
           showToast(`Syarikat ${newCompany.namaSyarikat} berjaya disimpan secara tempatan!`, "success");
@@ -1270,9 +1172,11 @@
             valWN
           };
         });
+        // Sifar pramuat MYS untuk newPenyandang
         setNewPenyandang({
-          nama: "", jantina: "L", warganegara: "MYS", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
         });
+        setNationalityQuery("");
       };
 
       const removePenyandangFromNewCompany = (idx) => {
@@ -1311,9 +1215,7 @@
           });
         }
 
-        if (storageProvider === "firebase" && firebaseUrl) {
-          syncAllToFirebase(updatedList);
-        } else if (sheetUrl) {
+        if (sheetUrl) {
           syncDeleteRowFromGoogleSheets(id);
         }
         
@@ -1322,12 +1224,6 @@
       };
 
       const handleFullSync = async () => {
-        if (storageProvider === "firebase") {
-          syncAllToFirebase(currentSectData);
-          showToast("Data sektor disegerakkan ke Firebase!", "success");
-          return;
-        }
-
         if (!sheetUrl) {
           showToast("Masukkan URL Google Web App terlebih dahulu di Mod Tetapan.", "error");
           return;
@@ -1378,6 +1274,22 @@
       const handlePrint = () => {
         window.print();
       };
+
+      const filteredWarganegaraSuggestions = useMemo(() => {
+        if (!nationalityQuery) return [];
+        return WORLD_COUNTRIES.filter(c => 
+          c.name.toLowerCase().includes(nationalityQuery.toLowerCase()) ||
+          c.code.toLowerCase().includes(nationalityQuery.toLowerCase())
+        );
+      }, [nationalityQuery]);
+
+      const filteredEditWarganegaraSuggestions = useMemo(() => {
+        if (!editNationalityQuery) return [];
+        return WORLD_COUNTRIES.filter(c => 
+          c.name.toLowerCase().includes(editNationalityQuery.toLowerCase()) ||
+          c.code.toLowerCase().includes(editNationalityQuery.toLowerCase())
+        );
+      }, [editNationalityQuery]);
 
       const stats = useMemo(() => {
         const total = currentSectData.length;
@@ -1483,7 +1395,7 @@
           {/* TOAST SYSTEM */}
           <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 no-print">
             {toasts.map(t => (
-              <div key={t.id} className={`p-4 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-2.5 transition-all animate-bounce ${
+              <div key={t.id} className={`p-4 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-2.5 transition-all ${
                 t.type === "success" ? "bg-emerald-500 text-white border-emerald-600" :
                 t.type === "error" ? "bg-red-500 text-white border-red-600" : "bg-blue-900 text-white border-blue-950"
               }`}>
@@ -1546,6 +1458,7 @@
             </div>
 
             {/* Kawalan Bilangan Mesyuarat Dinamik */}
+            {}
             <div className="flex items-center gap-3 bg-slate-100 p-2.5 rounded-xl border border-slate-300">
               <div className="flex items-center gap-1">
                 <span className="text-xs font-bold text-slate-700">Bil:</span>
@@ -1566,13 +1479,14 @@
                 />
               </div>
               
+              {/* Butang Semak Arkib sentiasa kelihatan (outline styled) & tukar warna biru bila hover */}
               <button
                 onClick={fetchArchiveSheets}
                 disabled={isLoadingArchive}
-                className="bg-blue-955 hover:bg-blue-900 text-white rounded px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 transition-all"
-                title="Imbas Arkib Google/Firebase"
+                className="transition-all duration-300 bg-white hover:bg-blue-600 text-slate-700 hover:text-white border border-slate-300 hover:border-blue-600 rounded px-2.5 py-1 text-[10px] font-bold flex items-center gap-1"
+                title="Imbas Arkib Google"
               >
-                <Icon name="database" size={10} /> Semak Arkib
+                <Icon name="database" size={10} /> Semak Arkib Sheets
               </button>
             </div>
 
@@ -1688,7 +1602,7 @@
                 </div>
 
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 shadow-sm flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Belum Diputus</span>
+                  <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider font-semibold">Belum Diputus</span>
                   <span className="text-xl font-black text-amber-600">{stats.belum} Rekod</span>
                 </div>
               </div>
@@ -1884,7 +1798,7 @@
 
             {/* ================================= VIEW 2: MOD SLAID PRESENTASI ================================= */}
             {viewMode === "meeting" && (
-              <div className="flex-1 flex flex-col gap-6">
+              <div className="flex-1 flex flex-col gap-6" ref={meetingContainerRef}>
                 {filteredData.length === 0 ? (
                   <div className="bg-white p-12 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center gap-4">
                     <h3 className="text-base font-bold text-slate-700">Tiada Data untuk Dibentangkan</h3>
@@ -1896,7 +1810,7 @@
                   (() => {
                     const item = filteredData[currentSlideIndex];
                     return (
-                      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px]">
+                      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px] bg-slate-50 p-2 rounded-xl">
                         
                         {/* Panel Kiri: Butiran Permohonan */}
                         <div className="lg:col-span-9 flex flex-col gap-5 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
@@ -1910,7 +1824,15 @@
                                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
                                   Sektor: {activeSector.toUpperCase()}
                                 </span>
-                                <div className="ml-auto">
+                                <div className="ml-auto flex items-center gap-2">
+                                  {/* Butang Fullscreen Pintar */}
+                                  <button
+                                    onClick={toggleFullscreen}
+                                    className="p-1.5 hover:bg-slate-150 rounded-lg text-slate-600 transition-colors"
+                                    title={isFullscreen ? "Keluar Skrin Penuh" : "Skrin Penuh"}
+                                  >
+                                    <Icon name={isFullscreen ? "minimize" : "maximize"} size={18} />
+                                  </button>
                                   {item.synced ? (
                                     <span className="text-emerald-600" title="Tersinkron">
                                       <Icon name="cloudCheck" size={20} />
@@ -2041,7 +1963,8 @@
                         </div>
 
                         {/* Panel Kanan: Membuat Keputusan */}
-                        <div className="lg:col-span-3 bg-slate-900 text-white p-4.5 rounded-2xl flex flex-col gap-4.5 relative shadow-lg">
+                        {}
+                        <div className="lg:col-span-3 bg-slate-900 text-white p-4 rounded-2xl flex flex-col gap-4 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
@@ -2050,6 +1973,7 @@
                             <p className="text-[9px] text-slate-400 font-medium">Keputusan diselaraskan secara auto-sync.</p>
                           </div>
 
+                          {/* Diperkemaskan dengan whitespace-normal, leading-tight, text-[11px] supaya TIADA OVERFLOW */}
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
@@ -2059,13 +1983,13 @@
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="checkCircle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">LULUS</span>
+                                <span className="text-[11px] tracking-wide whitespace-normal leading-tight break-words font-semibold uppercase">LULUS</span>
                               </div>
-                              {item.keputusan === "LULUS" && <Icon name="check" size={13} />}
+                              {item.keputusan === "LULUS" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
                             </button>
 
                             <button
@@ -2076,13 +2000,13 @@
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="alertTriangle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">LULUS BERSYARAT</span>
+                                <span className="text-[11px] tracking-wide whitespace-normal leading-tight break-words font-semibold uppercase">LULUS BERSYARAT</span>
                               </div>
-                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} />}
+                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
                             </button>
 
                             <button
@@ -2093,13 +2017,13 @@
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="xCircle" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">TOLAK</span>
+                                <span className="text-[11px] tracking-wide whitespace-normal leading-tight break-words font-semibold uppercase">TOLAK</span>
                               </div>
-                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} />}
+                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
                             </button>
 
                             <button
@@ -2110,17 +2034,17 @@
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 text-xs">
-                                <div className={`p-1.5 rounded-full ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2 text-xs min-w-0">
+                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="fileText" size={13} />
                                 </div>
-                                <span className="text-[11px] tracking-wide">SEMAKAN / NAZIRAN</span>
+                                <span className="text-[11px] tracking-wide whitespace-normal leading-tight break-words font-semibold uppercase">SEMAKAN / NAZIRAN</span>
                               </div>
-                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} />}
+                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
                             </button>
                           </div>
 
-                          {/* Catatan Sampingan */}
+                          {/* Catatan Sampingan - Tukar warna latar belakang kepada putih dan teks hitam */}
                           <div className="flex flex-col gap-2 mt-1">
                             <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                               <Icon name="edit" size={11} className="text-amber-400" /> Catatan & Ulasan Rasmi Mesyuarat
@@ -2130,15 +2054,15 @@
                               placeholder="Nyatakan justifikasi di sini..."
                               value={item.ulasan || ""}
                               onChange={(e) => handleSaveDecision(item.id, item.keputusan, e.target.value)}
-                              className="w-full bg-slate-955 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-amber-500 transition-colors placeholder:text-slate-600 resize-none font-sans"
+                              className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-black focus:outline-none focus:border-amber-500 transition-colors placeholder:text-slate-400 resize-none font-sans font-medium"
                             />
                           </div>
 
                           {/* Status Automanage */}
                           <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-400 font-semibold">
                             <span className="flex items-center gap-1.5">
-                              <Icon name="database" size={11} className={(sheetUrl || firebaseUrl) ? "text-emerald-400" : "text-slate-600"} />
-                              {storageProvider === "firebase" ? "Firebase Database" : "Google Sheets"}
+                              <Icon name="database" size={11} className={sheetUrl ? "text-emerald-400" : "text-slate-600"} />
+                              Google Sheets Aktif
                             </span>
                             <span className="text-emerald-400 font-bold">Auto-Simpan</span>
                           </div>
@@ -2153,7 +2077,7 @@
               </div>
             )}
 
-            {/* ================================= VIEW 3: SETTINGS & DUAL-CLOUD CONFIG ================================= */}
+            {/* ================================= VIEW 3: SETTINGS ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -2180,63 +2104,20 @@
                   />
                 </div>
 
-                {/* PEMILIHAN KAEDAH PENYIMPANAN AWAN */}
-                <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 flex flex-col gap-4">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Pilih Kaedah Penyimpanan Awan (Cloud Storage)</span>
+                {/* Sifar CORS Google Web App */}
+                <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 flex flex-col gap-3">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Kebenaran Google Apps Script</span>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setStorageProvider("sheets")}
-                      className={`p-4 rounded-xl border text-left flex flex-col gap-1 transition-all ${
-                        storageProvider === "sheets" 
-                          ? "bg-blue-900 text-white border-blue-950 shadow-md font-bold"
-                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="text-xs font-bold block">1. Google Sheets (Standard)</span>
-                      <span className="text-[10px] opacity-80 leading-normal">Menyimpan draf terus ke Google Sheets di laptop anda. Rangkaian pejabat yang ketat mungkin menyekatnya.</span>
-                    </button>
-
-                    <button
-                      onClick={() => setStorageProvider("firebase")}
-                      className={`p-4 rounded-xl border text-left flex flex-col gap-1 transition-all ${
-                        storageProvider === "firebase" 
-                          ? "bg-emerald-600 text-white border-emerald-700 shadow-md font-bold"
-                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="text-xs font-bold block">2. Firebase Database (Sifar CORS)</span>
-                      <span className="text-[10px] opacity-80 leading-normal">Sangat Disyorkan! 100% percuma & tanpa ralat fetch. Sesuai digunakan dari mana-mana PC tanpa sekatan CORS.</span>
-                    </button>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-bold text-slate-600">URL Google Apps Script Web App</label>
+                    <input
+                      type="text"
+                      value={sheetUrl}
+                      onChange={(e) => setSheetUrl(e.target.value)}
+                      placeholder="https://script.google.com/macros/s/XXXX/exec"
+                      className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none"
+                    />
                   </div>
-
-                  {/* Borang Input Mengikut Kaedah Dipilih */}
-                  {storageProvider === "sheets" ? (
-                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-300">
-                      <label className="text-[11px] font-bold text-slate-600">URL Google Apps Script Web App</label>
-                      <input
-                        type="text"
-                        value={sheetUrl}
-                        onChange={(e) => setSheetUrl(e.target.value)}
-                        placeholder="https://script.google.com/macros/s/XXXX/exec"
-                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-300">
-                      <label className="text-[11px] font-bold text-slate-600">Firebase Realtime Database URL</label>
-                      <input
-                        type="text"
-                        value={firebaseUrl}
-                        onChange={(e) => setFirebaseUrl(e.target.value)}
-                        placeholder="https://jkplik-default-rtdb.firebaseio.com/"
-                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none"
-                      />
-                      <span className="text-[10px] text-slate-500 leading-normal">
-                        *Masukkan URL pangkalan data Firebase percuma anda di sini. Rujuk fail <strong>panduan_firebase.md</strong> untuk pendaftaran ringkas.
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Kawalan Pengujian Laju */}
@@ -2403,6 +2284,7 @@
           </div>
 
           {/* ================================= MODAL PENDAFTARAN PERMOHONAN BARU ================================= */}
+          {}
           {showAddModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col p-6 shadow-2xl relative">
@@ -2428,7 +2310,7 @@
                     <div className="flex flex-col gap-1.5 relative">
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Syarikat & No. Pendaftaran</span>
-                        <span className="text-[9px] text-blue-700 italic font-medium">Sistem menyemak pangkalan data sejarah</span>
+                        <span className="text-[9px] text-blue-700 italic font-medium">SSM sejarah dikesan</span>
                       </label>
                       <input
                         type="text"
@@ -2665,7 +2547,7 @@
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">No. Pasport (Mulakan dgn huruf)</span>
+                        <span className="text-[10px] text-slate-500 font-bold">No. Pasport</span>
                         <input
                           type="text"
                           placeholder="Contoh: A72545666"
@@ -2683,16 +2565,42 @@
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
                         />
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Warganegara (MYS/GBR/VNM)</span>
+
+                      {/* FIELD WARGANEGARA DENGAN AUTOCOMPLETE CARIAN DUNIA */}
+                      <div className="flex flex-col gap-1 relative">
+                        <span className="text-[10px] text-slate-500 font-bold">Warganegara (Taip Negara/Kod)</span>
                         <input
                           type="text"
-                          placeholder="Contoh: MYS"
-                          value={newPenyandang.warganegara}
-                          onChange={(e) => setNewPenyandang({...newPenyandang, warganegara: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
+                          placeholder="Taip carian (cth: MALAYSIA)"
+                          value={nationalityQuery || newPenyandang.warganegara}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setNationalityQuery(val);
+                            setNewPenyandang({...newPenyandang, warganegara: val});
+                            setShowWarganegaraDropdown(true);
+                          }}
+                          onFocus={() => setShowWarganegaraDropdown(true)}
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
+                        {showNationalityDropdown && filteredWarganegaraSuggestions.length > 0 && (
+                          <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
+                            {filteredWarganegaraSuggestions.map((country, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => {
+                                  setNewPenyandang({...newPenyandang, warganegara: country.code}); // Hanya simpan Kod 3 abjad
+                                  setNationalityQuery(`${country.name} - ${country.code}`);
+                                  setShowWarganegaraDropdown(false);
+                                }}
+                                className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px] font-bold"
+                              >
+                                {country.name} - <span className="text-blue-900">{country.code}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
+
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] text-slate-500 font-bold">Umur</span>
                         <input
@@ -2975,16 +2883,42 @@
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Warganegara</span>
+
+                      {/* EDIT WARGANEGARA AUTOCOMPLETE */}
+                      <div className="flex flex-col gap-1 relative">
+                        <span className="text-[10px] text-slate-500 font-bold">Warganegara (Negara/Kod)</span>
                         <input
                           type="text"
-                          placeholder="Contoh: MYS"
-                          value={editPenyandang.warganegara}
-                          onChange={(e) => setEditPenyandang({...editPenyandang, warganegara: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          placeholder="Taip carian (cth: MALAYSIA)"
+                          value={editNationalityQuery || editPenyandang.warganegara}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setEditNationalityQuery(val);
+                            setEditPenyandang({...editPenyandang, warganegara: val});
+                            setShowEditWarganegaraDropdown(true);
+                          }}
+                          onFocus={() => setShowEditWarganegaraDropdown(true)}
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
                         />
+                        {showEditNationalityDropdown && filteredEditWarganegaraSuggestions.length > 0 && (
+                          <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
+                            {filteredEditWarganegaraSuggestions.map((country, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => {
+                                  setEditPenyandang({...editPenyandang, warganegara: country.code}); // Hanya simpan Kod 3 abjad
+                                  setEditNationalityQuery(`${country.name} - ${country.code}`);
+                                  setShowEditWarganegaraDropdown(false);
+                                }}
+                                className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px] font-bold"
+                              >
+                                {country.name} - <span className="text-blue-900">{country.code}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
+
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] text-slate-500 font-bold">Umur</span>
                         <input
@@ -3065,7 +2999,7 @@
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                   <h3 className="text-sm font-bold text-blue-955 flex items-center gap-1.5">
-                    <Icon name="database" size={18} className="text-blue-900" /> Arkib Helaian Google/Firebase
+                    <Icon name="database" size={18} className="text-blue-900" /> Arkib Helaian Google Sheets
                   </h3>
                   <button onClick={() => {
                     setShowArchiveModal(false);
@@ -3076,7 +3010,7 @@
                 </div>
 
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Sila pilih mesyuarat sejarah daripada senarai di bawah. Anda boleh menapis carian mengikut **Nama Pegawai**, **Bil. Mesyuarat**, atau **Tahun**.
+                  Sila pilih mesyuarat sejarah daripada senarai draf di bawah. Anda juga boleh mencari mengikut **Nama Pegawai**, **Bil. Mesyuarat**, atau **Tahun**.
                 </p>
 
                 {/* Input Carian Dinamik Rentas Pegawai Penilai */}
@@ -3100,7 +3034,7 @@
 
                 <div className="flex-1 max-h-60 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-150">
                   {filteredPastSheets.length === 0 ? (
-                    <div className="p-4 text-center text-[11px] text-slate-400 italic">Tiada tab dijumpai / padan dengan carian.</div>
+                    <div className="p-4 text-center text-[11px] text-slate-400 italic">Tiada draf dijumpai / padan dengan carian.</div>
                   ) : (
                     filteredPastSheets.map((shName, idx) => (
                       <div
