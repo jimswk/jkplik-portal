@@ -102,7 +102,7 @@
         settings: (
           <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </g>
         ),
         printer: (
@@ -245,6 +245,15 @@
       );
     }
 
+    // STREAMING_CHUNK: Menyuntik penapis keselamatan kunci Firebase...
+    const getSafeFirebaseKey = (val) => {
+      if (!val) return "";
+      return val.replace(/\./g, "")      // Buang titik '.'
+                .replace(/\//g, "-")      // Tukar slash '/' kepada sengkang '-'
+                .replace(/[\$#\[\]]/g, "") // Buang aksara larangan Firebase yang lain
+                .trim();
+    };
+
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
         return { valB: "01", valWN: "-" };
@@ -303,12 +312,12 @@
       const [activeSector, setActiveSector] = useState("og");
       const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
 
-      // SISTEM DUAL-CLOUD: DISET SEBAGAI LALAI KEPADA FIREBASE (SIFAR CORS)
+      // SISTEM CLOUD STORAGE SELECTION
       const [storageProvider, setStorageProvider] = useState(() => {
-        return localStorage.getItem('jkplik_storage_provider') || "firebase";
+        return localStorage.getItem('jkplik_storage_provider') || "sheets"; // sheets ATAU firebase
       });
       const [firebaseUrl, setFirebaseUrl] = useState(() => {
-        return localStorage.getItem('jkplik_firebase_url') || "https://jkplik-portal-default-rtdb.asia-southeast1.firebasedatabase.app/";
+        return localStorage.getItem('jkplik_firebase_url') || ""; // e.g. https://your-db-rtdb.firebaseio.com/
       });
 
       const [showEditModal, setShowEditModal] = useState(false);
@@ -486,11 +495,12 @@
         }
       };
 
-      // FUNGSI SINKRON SEMUA DATA SEKTOR KE FIREBASE REALTIME DATABASE (Sifar CORS)
+      // STREAMING_CHUNK: Mengemas kini pelarasan Firebase menggunakan kunci selamat...
       const syncAllToFirebase = async (allItems) => {
         if (!firebaseUrl) return;
         const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
-        const targetPath = `${cleanUrl}/meetings/${encodeURIComponent(getSheetName())}/${activeSector}.json`;
+        const safeSheetName = getSafeFirebaseKey(getSheetName()); // Guna nama dibersihkan
+        const targetPath = `${cleanUrl}/meetings/${encodeURIComponent(safeSheetName)}/${activeSector}.json`;
         addLog(`[FIREBASE] Menyegerakkan semua data Sektor ${activeSector.toUpperCase()} ke Firebase...`, "info");
         try {
           await fetch(targetPath, {
@@ -588,6 +598,7 @@
         }
       };
 
+      // STREAMING_CHUNK: Menyediakan parser nama mesyuarat sejarah...
       const loadPastSheetData = async (selectedSheetName) => {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
@@ -611,7 +622,8 @@
                 setDataOthers(prev => ({ ...prev, [activeSector]: result[activeSector] || [] }));
               }
 
-              const match = selectedSheetName.match(/Bil\.\s*(\d+)\/(\d+)/i);
+              // Regex fleksibel yang boleh membaca kedua-dua format: Bil. 14/2026 atau Bil 14-2026
+              const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
               if (match) {
                 setMeetingNumber(match[1]);
                 setMeetingYear(match[2]);
@@ -645,7 +657,7 @@
               setDataOthers(prev => ({ ...prev, [activeSector]: records }));
             }
 
-            const match = selectedSheetName.match(/Bil\.\s*(\d+)\/(\d+)/i);
+            const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
             if (match) {
               setMeetingNumber(match[1]);
               setMeetingYear(match[2]);
@@ -669,9 +681,10 @@
 
         if (storageProvider === "firebase" && firebaseUrl) {
           const cleanUrl = firebaseUrl.trim().replace(/\/$/, "");
-          addLog(`[FIREBASE] Memeriksa draf mesyuarat di Firebase untuk "${currentTabName}"...`, "info");
+          const safeTabName = getSafeFirebaseKey(currentTabName); // Bersihkan kunci untuk Firebase
+          addLog(`[FIREBASE] Memeriksa draf mesyuarat di Firebase untuk "${safeTabName}"...`, "info");
           try {
-            const res = await fetch(`${cleanUrl}/meetings/${encodeURIComponent(currentTabName)}.json`, { mode: "cors" });
+            const res = await fetch(`${cleanUrl}/meetings/${encodeURIComponent(safeTabName)}.json`, { mode: "cors" });
             const result = await res.json();
             if (result) {
               setDataOG(result.og || []);
@@ -683,7 +696,7 @@
               addLog(`[FIREBASE] Data terkini berjaya diselaraskan daripada Firebase!`, "success");
               showToast("Penyelarasan automatik Firebase berjaya!", "success");
             } else {
-              addLog(`[FIREBASE] Draf mesyuarat "${currentTabName}" belum wujud di Firebase.`, "info");
+              addLog(`[FIREBASE] Draf mesyuarat "${safeTabName}" belum wujud di Firebase.`, "info");
             }
           } catch (err) {
             addLog(`[FIREBASE] Kegagalan talian Firebase: ${err.message}`, "error");
@@ -1757,7 +1770,7 @@
                         {filteredData.length === 0 ? (
                           <tr>
                             <td colSpan={11} className="text-center py-12 text-slate-400 font-medium">
-                              Tiada rekod ditemui. Sila daftar permohonan baru atau tekan "Muat Semula dari Awan ☁️".
+                              Tiada permohonan berdaftar dalam pangkalan data semasa.
                             </td>
                           </tr>
                         ) : (
@@ -2028,7 +2041,7 @@
                         </div>
 
                         {/* Panel Kanan: Membuat Keputusan */}
-                        <div className="lg:col-span-3 bg-slate-900 text-white p-4 rounded-2xl flex flex-col gap-4 relative shadow-lg">
+                        <div className="lg:col-span-3 bg-slate-900 text-white p-4.5 rounded-2xl flex flex-col gap-4.5 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
@@ -2040,70 +2053,70 @@
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
-                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS"
                                   ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2 text-xs min-w-0">
-                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2.5 text-xs">
+                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="checkCircle" size={13} />
                                 </div>
-                                <span className="text-[10px] sm:text-[11px] tracking-wide truncate">LULUS</span>
+                                <span className="text-[11px] tracking-wide">LULUS</span>
                               </div>
-                              {item.keputusan === "LULUS" && <Icon name="check" size={13} className="flex-shrink-0" />}
+                              {item.keputusan === "LULUS" && <Icon name="check" size={13} />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS BERSYARAT", item.ulasan)}
-                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "LULUS BERSYARAT"
                                   ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2 text-xs min-w-0">
-                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2.5 text-xs">
+                                <div className={`p-1.5 rounded-full ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="alertTriangle" size={13} />
                                 </div>
-                                <span className="text-[10px] sm:text-[11px] tracking-wide whitespace-normal leading-tight">LULUS BERSYARAT</span>
+                                <span className="text-[11px] tracking-wide">LULUS BERSYARAT</span>
                               </div>
-                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} className="flex-shrink-0" />}
+                              {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "TOLAK", item.ulasan)}
-                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "TOLAK"
                                   ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2 text-xs min-w-0">
-                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2.5 text-xs">
+                                <div className={`p-1.5 rounded-full ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="xCircle" size={13} />
                                 </div>
-                                <span className="text-[10px] sm:text-[11px] tracking-wide truncate">TOLAK</span>
+                                <span className="text-[11px] tracking-wide">TOLAK</span>
                               </div>
-                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} className="flex-shrink-0" />}
+                              {item.keputusan === "TOLAK" && <Icon name="check" size={13} />}
                             </button>
 
                             <button
                               onClick={() => handleSaveDecision(item.id, "SEMAKAN / NAZIRAN", item.ulasan)}
-                              className={`w-full p-2 rounded-xl text-left border flex items-center justify-between transition-all ${
+                              className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
                                 item.keputusan === "SEMAKAN / NAZIRAN"
                                   ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]"
                                   : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
                               }`}
                             >
-                              <div className="flex items-center gap-2 text-xs min-w-0">
-                                <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
+                              <div className="flex items-center gap-2.5 text-xs">
+                                <div className={`p-1.5 rounded-full ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
                                   <Icon name="fileText" size={13} />
                                 </div>
-                                <span className="text-[10px] sm:text-[11px] tracking-wide whitespace-normal leading-tight">SEMAKAN / NAZIRAN</span>
+                                <span className="text-[11px] tracking-wide">SEMAKAN / NAZIRAN</span>
                               </div>
-                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} className="flex-shrink-0" />}
+                              {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} />}
                             </button>
                           </div>
 
@@ -2125,7 +2138,7 @@
                           <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-400 font-semibold">
                             <span className="flex items-center gap-1.5">
                               <Icon name="database" size={11} className={(sheetUrl || firebaseUrl) ? "text-emerald-400" : "text-slate-600"} />
-                              {storageProvider === "firebase" ? "Firebase" : "Google Sheet"}
+                              {storageProvider === "firebase" ? "Firebase Database" : "Google Sheets"}
                             </span>
                             <span className="text-emerald-400 font-bold">Auto-Simpan</span>
                           </div>
@@ -2226,7 +2239,7 @@
                   )}
                 </div>
 
-                {/* Kawalan Pengurusan Data Contoh */}
+                {/* Kawalan Pengujian Laju */}
                 <div className="border-t border-slate-200 pt-4 mt-2">
                   <h4 className="text-xs font-bold text-slate-700 mb-2">Mod Pengujian & Data Contoh</h4>
                   <button
