@@ -202,11 +202,9 @@
           rest = rest.replace(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i, '').trim();
         }
 
-        // Singkirkan sisa kurungan kosong yang tertinggal daripada proses penapisan di atas
         rest = rest.replace(/\(\s*\)/g, "").trim();
         rest = rest.replace(/\s+/g, " ");
 
-        // Bersihkan tanda sengkang, kurungan tutup ")", atau ruang kosong yang tidak sah di permulaan jawatan
         let cleanedRest = rest.replace(/^[\s–\-\)]+/, '').replace(/[\s–\-]+$/, '').replace(/^\s*\(\s*/, '').replace(/\s*\)\s*$/, '').trim();
         if (cleanedRest) {
           jawatan = cleanedRest;
@@ -1459,420 +1457,6 @@
         setViewMode("dashboard");
       }
 
-      function handleCopyGASCode() {
-        const gasCodeStr = `/**
- * SISTEM PENULISAN & PENYELARASAN DATA JKPLIK MALAYSIA (VERSI KUKUH - DIPERBAIKI)
- * Menguruskan simpanan warganegara, umur, tarikh lahir, jawatan dan gaji secara jitu.
- */
-function doPost(e) {
-  function sendResponse(data) {
-    return ContentService.createTextOutput(JSON.stringify(data))
-                         .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return sendResponse({ status: "error", message: "Sila panggil skrip ini daripada aplikasi web portal sahaja." });
-    }
-
-    var params = JSON.parse(e.postData.contents);
-    var action = params.action;
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetName = params.sheetName || "Utama";
-
-    function parsePenyandangLine(line) {
-      var cleanLine = line.replace(/^\d+[\.\)\s\-–]*/, '').trim();
-      if (!cleanLine) return null;
-
-      var parts = cleanLine.split('/').map(function(p) { return p.trim(); });
-      var name = parts[0] || "";
-      var jantina = parts[1] || "L";
-      var warganegara = parts[2] || "";
-      var pasport = parts[3] || "";
-
-      var restOfLine = parts.slice(4).join(" / ").trim();
-      var tarikhLahir = "";
-      var umur = "";
-      var jawatan = "";
-      var gaji = "";
-
-      // 1. Ekstrak GAJI
-      var gajiMatch = restOfLine.match(/GAJI:\s*([^)]+)/i) || restOfLine.match(/(RM\s*[0-9,.]+)/i);
-      if (gajiMatch) {
-        gaji = gajiMatch[1].trim();
-        restOfLine = restOfLine.replace(/GAJI:\s*.*$/i, "").trim();
-      }
-
-      // 2. Ekstrak Tarikh Lahir (Format DD.MM.YYYY atau YYYY-MM-DD)
-      var dateMatch = restOfLine.match(/([0-9]{2}[.\/-][0-9]{2}[.\/-][0-9]{4})/) || restOfLine.match(/([0-9]{4}[.\/-][0-9]{2}[.\/-][0-9]{2})/);
-      if (dateMatch) {
-        tarikhLahir = dateMatch[1].trim();
-        restOfLine = restOfLine.replace(tarikhLahir, "").trim();
-      }
-
-      // 3. Ekstrak UMUR
-      var umurMatch = restOfLine.match(/(\d+\s*THN|\d+\s*TAHUN|\d+\s*YEARS?)/i);
-      if (umurMatch) {
-        umur = umurMatch[1].trim();
-        restOfLine = restOfLine.replace(umurMatch[1], "").trim();
-        restOfLine = restOfLine.replace(/\\(\\s*\\)/g, "").trim();
-      }
-
-      // Bersihkan sisa kurungan kosong daripada text
-      restOfLine = restOfLine.replace(/\\(\\s*\\)/g, "").trim();
-
-      // 4. Sisa baris bersih (termasuk kurangan tutup tersisa di permulaan) adalah Jawatan
-      var jawatanClean = restOfLine.replace(/^[\\s–\\-\\)]+/, "").replace(/[\\s–\\-]+$/, "").replace(/^\\s*\\(\\s*/, "").replace(/\\s*\\)\\s*$/, "").trim();
-      if (jawatanClean) {
-        jawatan = jawatanClean;
-      }
-
-      return {
-        nama: name,
-        jantina: jantina,
-        warganegara: warganegara,
-        pasport: pasport,
-        tarikhLahir: tarikhLahir,
-        umur: umur,
-        jawatan: jawatan,
-        gaji: gaji
-      };
-    }
-
-    if (action === "get_sheets_list") {
-      var sheets = ss.getSheets();
-      var names = sheets.map(function(s) { return s.getName(); });
-      return sendResponse({ status: "success", sheets: names });
-    }
-
-    if (action === "get_global_history") {
-      var sheets = ss.getSheets();
-      var companies = [];
-      var owners = [];
-      var applicants = [];
-      var seenCompanies = {};
-      var seenOwners = {};
-      var seenApplicants = {};
-
-      for (var s = 0; s < sheets.length; s++) {
-        var sh = sheets[s];
-        var lastRow = sh.getLastRow();
-        if (lastRow < 2) continue;
-
-        var values = sh.getDataRange().getValues();
-        for (var r = 1; r < values.length; r++) {
-          var row = values[r];
-          var rawCompany = row[3] ? row[3].toString().trim() : "";
-          if (rawCompany) {
-            var compParts = rawCompany.split("\\n");
-            var compName = compParts[0].trim().toUpperCase();
-            var compAddress = compParts.slice(1).join("\\n").trim().toUpperCase();
-            var rawProjectDetails = row[10] ? row[10].toString() : "";
-            var compActivity = "";
-            var activityMatch = rawProjectDetails.match(/KEGIATAN SYARIKAT:\\s*\\n➢\\s*([^\\n]+)/i);
-            if (activityMatch && activityMatch[1]) {
-              compActivity = activityMatch[1].trim();
-            }
-
-            if (compName && !seenCompanies[compName]) {
-              seenCompanies[compName] = true;
-              companies.push({
-                namaSyarikat: compName,
-                alamat: compAddress,
-                kegiatan: compActivity
-              });
-            }
-          }
-
-          var rawProjectDetails2 = row[10] ? row[10].toString() : "";
-          var ownerMatch = rawProjectDetails2.match(/OWNER PROJECT:\\s*\\n➢\\s*([^\\n]+)/i);
-          if (ownerMatch && ownerMatch[1]) {
-            var ownerName = ownerMatch[1].trim().toUpperCase();
-            if (ownerName && !seenOwners[ownerName]) {
-              seenOwners[ownerName] = true;
-              owners.push(ownerName);
-            }
-          }
-
-          var rawPenyandangStr = row[4] ? row[4].toString() : "";
-          if (rawPenyandangStr) {
-            var lines = rawPenyandangStr.split("\\n");
-            for (var l = 0; l < lines.length; l++) {
-              var parsed = parsePenyandangLine(lines[l]);
-              if (parsed) {
-                var uniqKey = parsed.nama + "_" + parsed.pasport;
-                if (!seenApplicants[uniqKey]) {
-                  seenApplicants[uniqKey] = true;
-                  applicants.push(parsed);
-                }
-              }
-            }
-          }
-        }
-      }
-
-      return sendResponse({ 
-        status: "success", 
-        companies: companies, 
-        owners: owners,
-        applicants: applicants
-      });
-    }
-
-    if (action === "load_sheet_data") {
-      var targetSheet = ss.getSheetByName(sheetName);
-      if (!targetSheet) {
-        return sendResponse({ status: "error", message: "Helaian tidak dijumpai." });
-      }
-
-      var values = targetSheet.getDataRange().getValues();
-      var records = [];
-
-      for (var r = 1; r < values.length; r++) {
-        var row = values[r];
-        if (!row[0]) continue;
-
-        var rawPenyandang = row[4] ? row[4].toString().split("\\n") : [];
-        var penyandangs = [];
-        for (var pi = 0; pi < rawPenyandang.length; pi++) {
-          var parsed = parsePenyandangLine(rawPenyandang[pi]);
-          if (parsed) {
-            penyandangs.push(parsed);
-          }
-        }
-
-        var rawProject = row[10] ? row[10].toString() : "";
-        var kegiatan = "";
-        var projek = "";
-        var noKontrak = "";
-        var tempohProjek = "";
-        var ownerProjek = "";
-
-        var kegMatch = rawProject.match(/KEGIATAN SYARIKAT:\\s*\\n➢\\s*([^\\n]+)/i);
-        if (kegMatch) kegiatan = kegMatch[1].trim();
-
-        var projMatch = rawProject.match(/PROJECT:\\s*\\n➢\\s*([^\\n]+)/i);
-        if (projMatch) projek = projMatch[1].trim();
-
-        var nokMatch = rawProject.match(/NO\\. KONTRAK:\\s*([^\\n]+)/i);
-        if (nokMatch) noKontrak = nokMatch[1].replace("➢", "").trim();
-
-        var tempMatch = rawProject.match(/TEMPOH PROJEK:\\s*([^\\n]+)/i);
-        if (tempMatch) tempohProjek = tempMatch[1].replace("➢", "").trim();
-
-        var ownMatch = rawProject.match(/OWNER PROJECT:\\s*([^\\n]+)/i);
-        if (ownMatch) ownerProjek = ownMatch[1].replace("➢", "").trim();
-
-        var compParts = row[3].toString().split("\\n");
-        var compName = compParts[0].trim();
-        var compAddress = compParts.slice(1).join("\\n").trim();
-
-        records.push({
-          id: row[0].toString(),
-          bil: parseInt(row[1]) || r,
-          namaSyarikat: compName,
-          alamat: compAddress,
-          penyandang: penyandangs,
-          tempohMohon: row[5] ? row[5].toString() : "",
-          valB: row[6] ? row[6].toString() : "-",
-          valL: row[7] ? row[7].toString() : "-",
-          valTR: row[8] ? row[8].toString() : "-",
-          valWN: row[9] ? row[9].toString() : "-",
-          kegiatan: kegiatan,
-          projek: projek,
-          noKontrak: noKontrak,
-          tempohProjek: tempohProjek,
-          ownerProjek: ownerProjek,
-          keputusan: row[11] ? row[11].toString() : "",
-          ulasan: row[12] ? row[12].toString() : "",
-          synced: true,
-          rawPenyandangStr: row[4] ? row[4].toString() : ""
-        });
-      }
-
-      return sendResponse({ status: "success", records: records });
-    }
-
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
-      sheet = ss.insertSheet(sheetName);
-      var headersRow = [
-        "ID Rekod", "Bil", "Sektor KDN", "Nama Syarikat & Alamat", "Butiran Penyandang", 
-        "Tempoh Mohon", "B (Baru)", "L (Lanjutan)", "T/R (Tukar Re-entry)", 
-        "W/N (Ringkasan)", "Nama Projek & Kegiatan", "Keputusan Mesyuarat", "Catatan / Ulasan Rasmi"
-      ];
-      sheet.appendRow(headersRow);
-      var headerRange = sheet.getRange(1, 1, 1, headersRow.length);
-      headerRange.setFontWeight("bold")
-                 .setBackground("#1e3a8a")
-                 .setFontColor("#ffffff")
-                 .setHorizontalAlignment("center")
-                 .setVerticalAlignment("middle");
-      sheet.setRowHeight(1, 30);
-    }
-
-    if (action === "sync_all") {
-      if (sheet.getLastRow() > 1) {
-        sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
-      }
-      var data = params.data || [];
-      var activeSector = params.activeSector || "";
-
-      for (var i = 0; i < data.length; i++) {
-        var item = data[i];
-        appendSingleRow(sheet, item, i + 1, activeSector);
-      }
-
-      for (var col = 1; col <= 13; col++) {
-        sheet.autoResizeColumn(col);
-      }
-
-      return sendResponse({ status: "success", message: "Penyelarasan penuh berjaya." });
-    }
-
-    if (action === "add_row") {
-      var item = params.item;
-      var activeSector = params.activeSector || "";
-      var nextBil = sheet.getLastRow();
-      appendSingleRow(sheet, item, nextBil, activeSector);
-      return sendResponse({ status: "success", message: "Rekod berjaya ditambah." });
-    }
-
-    if (action === "update") {
-      var id = params.id;
-      var keputusan = params.keputusan;
-      var ulasan = params.ulasan;
-      var dataRange = sheet.getDataRange();
-      var values = dataRange.getValues();
-      var foundRow = -1;
-
-      for (var r = 1; r < values.length; r++) {
-        if (values[r][0] == id) {
-          foundRow = r + 1;
-          break;
-        }
-      }
-
-      if (foundRow !== -1) {
-        sheet.getRange(foundRow, 12).setValue(keputusan);
-        sheet.getRange(foundRow, 13).setValue(ulasan);
-        return sendResponse({ status: "success", message: "Kemaskini berjaya." });
-      }
-    }
-
-    if (action === "delete_row") {
-      var id = params.id;
-      var dataRange = sheet.getDataRange();
-      var values = dataRange.getValues();
-      var foundRow = -1;
-
-      for (var r = 1; r < values.length; r++) {
-        if (values[r][0] == id) {
-          foundRow = r + 1;
-          break;
-        }
-      }
-
-      if (foundRow !== -1) {
-        sheet.deleteRow(foundRow);
-        var lastRow = sheet.getLastRow();
-        if (lastRow > 1) {
-          for (var i = 2; i <= lastRow; i++) {
-            sheet.getRange(i, 2).setValue(i - 1);
-          }
-        }
-        return sendResponse({ status: "success", message: "ID dipadam." });
-      }
-    }
-
-  } catch (error) {
-    return sendResponse({ status: "error", message: error.toString() });
-  }
-}
-
-function appendSingleRow(sheet, item, bilNum, activeSector) {
-  if (!item) return;
-
-  var penyandangStr = "";
-  if (typeof item.penyandang === 'string') {
-    penyandangStr = item.penyandang;
-  } else if (item.penyandang && Array.isArray(item.penyandang) && item.penyandang.length > 0) {
-    penyandangStr = item.penyandang.map(function(p, idx) {
-      if (!p) return "";
-      var pName = p.nama || "";
-      var pJantina = p.jantina || "L";
-      var pWarganegara = p.warganegara || "";
-      var pPasport = p.pasport || "-";
-      
-      var dateAndAge = "";
-      if (p.tarikhLahir) {
-        var formattedDate = p.tarikhLahir;
-        if (formattedDate.indexOf("-") !== -1) {
-          var s = formattedDate.split("-");
-          if (s.length === 3 && s[0].length === 4) {
-            formattedDate = s[2] + "." + s[1] + "." + s[0];
-          }
-        }
-        dateAndAge = formattedDate;
-        if (p.umur) {
-          dateAndAge += " (" + p.umur + ")";
-        }
-      } else if (p.umur) {
-        dateAndAge = p.umur;
-      } else {
-        dateAndAge = "-";
-      }
-
-      var jawStr = p.jawatan ? " – " + p.jawatan : "";
-      var gajiStr = p.gaji ? " GAJI: " + p.gaji : "";
-
-      return (idx + 1) + ". " + pName + " / " + pJantina + " / " + pWarganegara + " / " + pPasport + " / " + dateAndAge + jawStr + gajiStr;
-    }).filter(Boolean).join("\\n");
-  }
-
-  var projekGabung = "KEGIATAN SYARIKAT:\\n➢ " + (item.kegiatan || "-") + 
-                     "\\n\\nPROJECT:\\n➢ " + (item.projek || "-") + 
-                     "\\n➢ NO. KONTRAK: " + (item.noKontrak || "-") + 
-                     "\\n➢ TEMPOH PROJEK: " + (item.tempohProjek || "-") + 
-                     "\\n➢ OWNER PROJECT: " + (item.ownerProjek || "-");
-
-  sheet.appendRow([
-    item.id || "",
-    bilNum,
-    (activeSector || "").toUpperCase(),
-    (item.namaSyarikat || "") + "\\n" + (item.alamat || ""),
-    penyandangStr,
-    item.tempohMohon || "",
-    item.valB || "-",
-    item.valL || "-",
-    item.valTR || "-",
-    item.valWN || "-",
-    projekGabung,
-    item.keputusan || "",
-    item.ulasan || ""
-  ]);
-}
-
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({ 
-    status: "success", 
-    message: "API Google Sheets JKPLIK sedia digunakan." 
-  })).setMimeType(ContentService.MimeType.JSON);
-}`;
-
-        const tempTextArea = document.createElement("textarea");
-        tempTextArea.value = gasCodeStr;
-        document.body.appendChild(tempTextArea);
-        tempTextArea.select();
-        try {
-          document.execCommand('copy');
-          showToast("Kod GAS yang telah diperbaiki disalin! Sila tampal di Extensions Editor Google Sheets.", "success");
-        } catch (err) {
-          showToast("Gagal menyalin kod secara automatik.", "error");
-        }
-        document.body.removeChild(tempTextArea);
-      }
-
       useEffect(() => {
         scanEvaluatorsForMeeting(meetingNumber, meetingYear);
       }, [meetingNumber, meetingYear]);
@@ -2153,7 +1737,7 @@ function doGet(e) {
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider flex items-center gap-2">
                   <span>Jawatankuasa Pas Lawatan Ikhtisas</span>
                   <span className="h-3 w-px bg-slate-300" />
-                  <span className="text-amber-600 font-bold">Sesi Mesyuarat Dinamik (Sifar LocalStorage)</span>
+                  <span className="text-amber-600 font-bold">Sesi Mesyuarat Dinamik</span>
                 </p>
               </div>
             </div>
@@ -2206,7 +1790,7 @@ function doGet(e) {
                 onClick={() => setViewMode("meeting")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 border transition-all ${
                   viewMode === "meeting"
-                    ? "bg-amber-500 text-slate-900 border-amber-500 shadow-sm font-black"
+                    ? "bg-amber-50 text-slate-900 border-amber-500 shadow-sm font-black"
                     : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
                 }`}
               >
@@ -2462,7 +2046,6 @@ function doGet(e) {
 
                                 <td className="px-4 py-4 text-center border-r border-slate-100 font-medium">{item.tempohMohon}</td>
                                 
-                                {/* JANGAN MUAT DATA SEHINGGA ADA PENYANDANG BAGI MENGELAKKAN KEKELIRUAN */}
                                 <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">
                                   {hasPenyandang ? (item.valB || "-") : "-"}
                                 </td>
@@ -2687,7 +2270,7 @@ function doGet(e) {
                                 </span>
                                 <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">
                                   Tempoh Mohon: {item.tempohMohon}
-                                </span>
+                                Plat</span>
                               </div>
                             </div>
                             
@@ -2714,7 +2297,6 @@ function doGet(e) {
                                         <div className="font-bold text-blue-955 break-words leading-tight" title={norm.nama}>
                                           {idx + 1}. {norm.nama}
                                         </div>
-                                        {}
                                         <div className="text-[11px] text-slate-600 flex flex-col gap-1 mt-1.5 leading-normal">
                                           <div className="font-semibold text-slate-700 break-words">
                                             {norm.jawatan || "-"}
@@ -2921,25 +2503,8 @@ function doGet(e) {
                   />
                 </div>
 
-                {/* PUSAT PENYALIN KOD GOOGLE APPS SCRIPT */}
-                <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 flex flex-col gap-3">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Kemas Kini Enjin Penyelarasan (Google Apps Script)</span>
-                  <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                    Bagi memastikan maklumat **gaji, tarikh lahir, dan umur** dipulihkan dan disimpan secara serentak tanpa sebarang kerosakan data, sila salin kod penyelarasan baharu ini dan kemas kini skrip pada Google Sheets anda.
-                  </p>
-                  <button
-                    onClick={handleCopyGASCode}
-                    className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
-                  >
-                    <Icon name="word" size={14} /> Salin Kod Google Apps Script Yang Diperbaiki
-                  </button>
-                  <span className="text-[10px] text-slate-500 font-semibold italic text-center">
-                    *Tampal kod ini di dalam Extensions &gt; Apps Script dalam Google Sheets anda, kemudian klik Deploy semula.
-                  </span>
-                </div>
-
-                {/* Kawalan Pengujian Laju */}
-                <div className="border-t border-slate-200 pt-4 mt-2">
+                {/* Mod Pengujian & Data Contoh */}
+                <div>
                   <h4 className="text-xs font-bold text-slate-700 mb-2">Mod Pengujian & Data Contoh</h4>
                   <button
                     onClick={loadDemoData}
@@ -3172,7 +2737,7 @@ function doGet(e) {
                                 setShowCompanyDropdown(false);
                                 setCompanySearchQuery("");
                               }}
-                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-150 last:border-b-0 text-left"
+                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-155 last:border-b-0 text-left"
                             >
                               <div className="font-bold text-blue-955">{suggestion.namaSyarikat}</div>
                               <div className="text-[10px] text-slate-500 truncate">{suggestion.alamat}</div>
@@ -3544,7 +3109,7 @@ function doGet(e) {
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromNewCompany(idx)}
-                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
+                                className="text-red-600 hover:text-red-855 font-bold text-[10px]"
                               >
                                 Padam Rekod Kakitangan
                               </button>
@@ -3630,7 +3195,7 @@ function doGet(e) {
                         required
                         value={editingCompany.alamat}
                         onChange={(e) => setEditingCompany({...editingCompany, alamat: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-355 rounded-lg px-3 py-2 text-xs text-slate-800"
+                        className="bg-slate-50 border border-slate-315 rounded-lg px-3 py-2 text-xs text-slate-800"
                       />
                     </div>
 
@@ -3935,7 +3500,7 @@ function doGet(e) {
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromEditingCompany(idx)}
-                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
+                                className="text-red-600 hover:text-red-855 font-bold text-[10px]"
                               >
                                 Padam Rekod
                               </button>
@@ -3991,7 +3556,6 @@ function doGet(e) {
                   Sila pilih mesyuarat sejarah daripada senarai draf di bawah. Anda juga boleh mencari mengikut **Nama Pegawai**, **Bil. Mesyuarat**, atau **Tahun**.
                 </p>
 
-                {/* Input Carian Dinamik Rentas Pegawai Penilai */}
                 <div className="relative font-sans">
                   <input
                     type="text"
