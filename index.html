@@ -80,9 +80,10 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // URL Google Apps Script yang ditetapkan secara kekal (hardcoded) demi keselamatan data
+    /* STREAMING_CHUNK: Menyediakan URL Google Apps Script yang dikunci masuk secara selamat dan kekal... */
     const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbxzVjRofy8kOPIqCUmb1PETGfWK5djDSpIbx-oy_998vSRzqxtnNOYdcYUIwon69iWPRA/exec";
 
+    /* STREAMING_CHUNK: Menyediakan pembolehubah global negara di seluruh dunia beserta kod 3 abjad... */
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
       { name: "INDONESIA", code: "IDN" },
@@ -128,11 +129,13 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
+    /* STREAMING_CHUNK: Mendefinisikan kod penyesuai format tab nama pegawai penilai mesyuarat... */
     function getSheetName(meetingNumber, meetingYear, officerName) {
       const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim().toUpperCase()})` : '';
       return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
     }
 
+    /* STREAMING_CHUNK: Membina fungsi pemecahan teks (parser) yang sangat jitu dan kalis ralat... */
     function normalizePenyandang(p) {
       if (!p) return {};
       
@@ -157,10 +160,10 @@
       };
     }
 
+    /* STREAMING_CHUNK: Membina penentu pemecah rentetan baris tulisan standard Google Sheets... */
     function parsePlainPenyandang(text) {
       if (!text) return [];
       
-      // Pecahkan mengikut baris sekiranya terdapat lebih daripada 1 pemohon di dalam satu sel
       const lines = text.split(/\r?\n/);
       const result = [];
 
@@ -172,7 +175,7 @@
         clean = clean.replace(/^\d+[\.\)\s\-–]*/, '').trim();
         if (!clean) continue;
 
-        // Format: NAMA / JANTINA / WARGANEGARA / PASPORT / UMUR – JAWATAN (GAJI: RM15,000)
+        // Standard: NAMA / JANTINA / WARGANEGARA / PASPORT / UMUR – JAWATAN (GAJI: ...)
         const parts = clean.split('/').map(p => p.trim());
         
         let nama = parts[0] || "";
@@ -180,7 +183,6 @@
         let warganegara = parts[2] || "";
         let pasport = parts[3] || "";
 
-        // Gabungkan semula bahagian belakang yang mengandungi Umur, Jawatan dan Gaji
         let rest = parts.slice(4).join(" / ");
         
         let umur = "";
@@ -188,27 +190,27 @@
         let gaji = "";
         let tarikhLahir = "";
 
-        // Ekstrak Gaji: (GAJI: ...) atau GAJI: ... atau RM ...
-        const gajiMatch = rest.match(/GAJI:\s*([^)]+)/i) || rest.match(/(RM\s*[0-9,]+)/i);
+        // Ekstrak Gaji: (GAJI: ...)
+        const gajiMatch = rest.match(/GAJI:\s*([^)]+)/i) || rest.match(/(RM\s*[0-9,.]+)/i);
         if (gajiMatch) {
           gaji = gajiMatch[1].trim();
           rest = rest.replace(/\(?GAJI:\s*[^)]+\)?/i, '').trim();
         }
 
-        // Ekstrak Tarikh Lahir: TL: ... atau Tarikh Lahir: ... atau YYYY-MM-DD
-        const tlMatch = rest.match(/T\.?\s*LAHIR:\s*([0-9\-\/]{8,10})/i) || rest.match(/TL:\s*([0-9\-\/]{8,10})/i) || rest.match(/([0-9]{4}-[0-9]{2}-[0-9]{2})/);
+        // Ekstrak Tarikh Lahir jika ditulis: (TL: ...) atau TL: ...
+        const tlMatch = rest.match(/T\.?\s*LAHIR:\s*([0-9\-\/]{8,10})/i) || rest.match(/TL:\s*([0-9\-\/]{8,10})/i);
         if (tlMatch) {
           tarikhLahir = tlMatch[1].trim();
-          rest = rest.replace(/T\.?\s*LAHIR:\s*[0-9\-\/]{8,10}/i, '').replace(/TL:\s*[0-9\-\/]{8,10}/i, '').replace(/[0-9]{4}-[0-9]{2}-[0-9]{2}/, '').trim();
+          rest = rest.replace(/T\.?\s*LAHIR:\s*[0-9\-\/]{8,10}/i, '').replace(/TL:\s*[0-9\-\/]{8,10}/i, '').trim();
         }
 
-        // Ekstrak Umur: "38 THN", "38 TAHUN", "38 YEARS"
+        // Ekstrak Umur: "38 THN", "38 TAHUN"
         const umurMatch = rest.match(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i);
         if (umurMatch) {
           umur = umurMatch[1].trim();
           rest = rest.replace(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i, '').trim();
         } else {
-          // Fallback sekiranya umur ditulis sebagai angka ringkas selepas pasport
+          // Sekiranya umur berada secara berasingan
           const simpleAgeMatch = rest.match(/^(\d+)\s*$/) || rest.match(/^(\d+)\s*–/);
           if (simpleAgeMatch) {
             umur = `${simpleAgeMatch[1]} THN`;
@@ -216,7 +218,6 @@
           }
         }
 
-        // Ekstrak Jawatan daripada sisa teks
         let cleanedRest = rest.replace(/^[\s–\-]+/, '').replace(/[\s–\-]+$/, '').trim();
         if (cleanedRest) {
           jawatan = cleanedRest;
@@ -237,6 +238,7 @@
       return result;
     }
 
+    /* STREAMING_CHUNK: Membina penyusun semula objek React kembali ke baris tulisan standard Google Sheets... */
     function formatPenyandangToPlain(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) return "";
       return penyandangList.map((p, idx) => {
@@ -263,26 +265,25 @@
       }).join("\n");
     }
 
+    /* STREAMING_CHUNK: Membina pemproses rekod pintar bagi data yang ditarik dari Google Sheets... */
     function processRecordsFromSheet(records) {
       if (!Array.isArray(records)) return [];
       return records.map(r => {
         let parsedPenyandang = [];
-        if (typeof r.penyandang === 'string' && r.penyandang.trim()) {
-          const trimmed = r.penyandang.trim();
-          // Semak jika data ditulis sebagai JSON array atau teks biasa
-          if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+        
+        // Guna lajur rawPenyandangStr jika wujud, jika tidak guna data biasa
+        const sourceStr = (r.rawPenyandangStr || r.penyandang || "").toString().trim();
+        
+        if (sourceStr) {
+          if (sourceStr.startsWith('[') || sourceStr.startsWith('{')) {
             try {
-              parsedPenyandang = JSON.parse(trimmed);
+              parsedPenyandang = JSON.parse(sourceStr);
             } catch(e) {
-              parsedPenyandang = parsePlainPenyandang(trimmed);
+              parsedPenyandang = parsePlainPenyandang(sourceStr);
             }
           } else {
-            parsedPenyandang = parsePlainPenyandang(trimmed);
+            parsedPenyandang = parsePlainPenyandang(sourceStr);
           }
-        } else if (Array.isArray(r.penyandang)) {
-          parsedPenyandang = r.penyandang;
-        } else if (r.penyandang) {
-          parsedPenyandang = [r.penyandang];
         }
 
         return {
@@ -292,6 +293,7 @@
       });
     }
 
+    /* STREAMING_CHUNK: Mengira ringkasan warganegara serta bilangan pemohon secara dinamik... */
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
         return { valB: "01", valWN: "-" };
@@ -327,6 +329,7 @@
       };
     }
 
+    /* STREAMING_CHUNK: Menyediakan komponen Icon SVG tersuai bagi mengelakkan ralat pustaka luar... */
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -496,7 +499,7 @@
     }
 
     function App() {
-      // 1. Deklarasi State Paling Atas (React Standard - 100% TIADA localStorage)
+      /* STREAMING_CHUNK: Mengasaskan takrifan semua state kementerian secara tulen (In-Memory)... */
       const [meetingNumber, setMeetingNumber] = useState("14");
       const [meetingYear, setMeetingYear] = useState("2026");
       const [officerName, setOfficerName] = useState("");
@@ -586,6 +589,7 @@
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "TECHNICAL EXPERTISE", gaji: ""
       });
 
+      /* STREAMING_CHUNK: Menyediakan senarai pegawai penilai tersaring secara dinamik... */
       const displayEvaluators = useMemo(() => {
         const list = [...availableEvaluators];
         if (officerName && !list.includes(officerName)) {
@@ -657,6 +661,7 @@
         }));
       }
 
+      /* STREAMING_CHUNK: Membina manipulasi penyandang di dalam panel edit dan draf... */
       function addPenyandangToEditingCompany() {
         if (!editPenyandang.nama) return;
         setEditingCompany(prev => {
@@ -696,6 +701,7 @@
         };
       }
 
+      /* STREAMING_CHUNK: Menyimpan kemas kini maklumat draf syarikat di memori... */
       function handleUpdateCompany(e) {
         e.preventDefault();
         if (!editingCompany) return;
@@ -736,6 +742,7 @@
         }
       }
 
+      /* STREAMING_CHUNK: Menyediakan pemetaan senarai pegawai penilai secara dinamik daripada helaian GAS... */
       async function scanEvaluatorsForMeeting(number, year) {
         if (!sheetUrl) return;
         addLog(`Mengekstrak nama penilai dari Google Sheets untuk Sesi Bil. ${number}/${year}...`, "info");
@@ -800,6 +807,7 @@
         }
       }
 
+      /* STREAMING_CHUNK: Membina penyelarasan penuh semua data ke helaian awan GAS... */
       async function handleFullSync() {
         if (!sheetUrl) {
           showToast("URL Google Apps Script tidak ditemui.", "error");
@@ -848,6 +856,7 @@
         }
       }
 
+      /* STREAMING_CHUNK: Menyediakan penjana fail Word (.doc) rasmi JKPLIK KDN... */
       function exportToWord() {
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
@@ -1026,6 +1035,7 @@
         showToast("Dokumen format Word berjaya draf dan dimuat turun!", "success");
       }
 
+      /* STREAMING_CHUNK: Membina fungsi pengambilan data semasa daripada helaian GAS secara dinamik... */
       async function loadCurrentMeetingFromSheets(targetTabName) {
         if (!sheetUrl) return;
         addLog(`[AUTO-SYNC] Menyemak jika tab "${targetTabName}" wujud di Google Sheets...`, "info");
@@ -1050,7 +1060,7 @@
             if (dataResult.status === "success") {
               const records = dataResult.records || [];
               
-              // Lakukan penormalan tersuai dan pemecahan teks Google Sheets secara dinamik
+              // Lakukan penormalan dan pemecahan teks Google Sheets secara dinamik
               const normalizedRecords = processRecordsFromSheet(records);
 
               const ogRecords = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith("OG-"));
@@ -1107,6 +1117,7 @@
         }
       }
 
+      /* STREAMING_CHUNK: Menghantar rekod baru syarikat ke Google Sheets... */
       async function syncAddRowToGoogleSheets(item) {
         if (!sheetUrl) return;
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
@@ -1181,6 +1192,7 @@
         }
       }
 
+      /* STREAMING_CHUNK: Menyediakan fungsi pengambilan draf sejarah global daripada Sheets... */
       async function fetchGlobalHistory() {
         if (!sheetUrl) return;
         try {
@@ -1241,6 +1253,7 @@
         }
       }
 
+      /* STREAMING_CHUNK: Menyediakan pengimport data draf helaian arkib tertentu secara terus... */
       async function loadPastSheetData(selectedSheetName) {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
@@ -1331,6 +1344,7 @@
         setNationalityQuery("");
       }
 
+      /* STREAMING_CHUNK: Menyediakan fungsi pendaftaran permohonan syarikat baharu secara memori... */
       function removePenyandangFromNewCompany(idx) {
         setNewCompany(prev => {
           const filtered = prev.penyandang.filter((_, i) => i !== idx);
@@ -1454,6 +1468,407 @@
         setViewMode("dashboard");
       }
 
+      /* STREAMING_CHUNK: Menyediakan fungsi penyalinan kod GAS rasmi yang telah diperbaiki ke clipboard... */
+      function handleCopyGASCode() {
+        const gasCodeStr = `/**
+ * Fungsi utama menerima permintaan HTTP POST daripada frontend web JKPLIK.
+ * Ia menyokong penyelarasan penuh, penambahan permohonan baru, kemas kini, pemadaman,
+ * carian sejarah, serta senarai helaian arkib.
+ */
+function doPost(e) {
+  function sendResponse(data) {
+    return ContentService.createTextOutput(JSON.stringify(data))
+                         .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return sendResponse({ status: "error", message: "Sila panggil skrip ini daripada aplikasi web portal sahaja." });
+    }
+
+    var params = JSON.parse(e.postData.contents);
+    var action = params.action;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = params.sheetName || "Utama";
+
+    if (action === "get_sheets_list") {
+      var sheets = ss.getSheets();
+      var names = sheets.map(function(s) { return s.getName(); });
+      return sendResponse({ status: "success", sheets: names });
+    }
+
+    if (action === "get_global_history") {
+      var sheets = ss.getSheets();
+      var companies = [];
+      var owners = [];
+      var applicants = [];
+      var seenCompanies = {};
+      var seenOwners = {};
+      var seenApplicants = {};
+
+      for (var s = 0; s < sheets.length; s++) {
+        var sh = sheets[s];
+        var lastRow = sh.getLastRow();
+        if (lastRow < 2) continue;
+
+        var values = sh.getDataRange().getValues();
+        for (var r = 1; r < values.length; r++) {
+          var row = values[r];
+          var rawCompany = row[3] ? row[3].toString().trim() : "";
+          if (rawCompany) {
+            var parts = rawCompany.split("\\n");
+            var compName = parts[0].trim().toUpperCase();
+            var compAddress = parts.slice(1).join("\\n").trim().toUpperCase();
+            var rawProjectDetails = row[10] ? row[10].toString() : "";
+            var compActivity = "";
+            var activityMatch = rawProjectDetails.match(/KEGIATAN SYARIKAT:\\s*\\n➢\\s*([^\\n]+)/i);
+            if (activityMatch && activityMatch[1]) {
+              compActivity = activityMatch[1].trim();
+            }
+
+            if (compName && !seenCompanies[compName]) {
+              seenCompanies[compName] = true;
+              companies.push({
+                namaSyarikat: compName,
+                alamat: compAddress,
+                kegiatan: compActivity
+              });
+            }
+          }
+
+          var rawProjectDetails2 = row[10] ? row[10].toString() : "";
+          var ownerMatch = rawProjectDetails2.match(/OWNER PROJECT:\\s*\\n➢\\s*([^\\n]+)/i);
+          if (ownerMatch && ownerMatch[1]) {
+            var ownerName = ownerMatch[1].trim().toUpperCase();
+            if (ownerName && !seenOwners[ownerName]) {
+              seenOwners[ownerName] = true;
+              owners.push(ownerName);
+            }
+          }
+
+          var rawPenyandangStr = row[4] ? row[4].toString() : "";
+          if (rawPenyandangStr) {
+            var lines = rawPenyandangStr.split("\\n");
+            for (var l = 0; l < lines.length; l++) {
+              var line = lines[l].trim();
+              if (!line) continue;
+              var cleanLine = line.replace(/^\\d+\\.\\s*/, "");
+              var partsP = cleanLine.split(" / ");
+              var pName = partsP[0] ? partsP[0].trim().toUpperCase() : "";
+              if (!pName) continue;
+
+              var pJantina = partsP[1] ? partsP[1].trim() : "L";
+              var pWarganegara = partsP[2] ? partsP[2].trim() : "";
+              var pPasport = partsP[3] ? partsP[3].trim() : "";
+              
+              var restOfLine = partsP.slice(4).join(" / ");
+              var pUmur = "";
+              var pJawatan = "TECHNICAL EXPERTISE";
+              var pGaji = "";
+
+              var gajiMatch = restOfLine.match(/GAJI:\\s*([^)]+)/i);
+              if (gajiMatch) {
+                pGaji = gajiMatch[1].trim();
+                restOfLine = restOfLine.replace(/\\(?GAJI:\\s*[^)]+\\)?/i, "").trim();
+              }
+
+              var umurMatch = restOfLine.match(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i);
+              if (umurMatch) {
+                pUmur = umurMatch[1].trim();
+                restOfLine = restOfLine.replace(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i, "").trim();
+              }
+
+              var jawatanClean = restOfLine.replace(/^[\\s–\\-]+/, "").replace(/[\\s–\\-]+$/, "").trim();
+              if (jawatanClean) {
+                pJawatan = jawatanClean;
+              }
+
+              var uniqKey = pName + "_" + pPasport;
+              if (!seenApplicants[uniqKey]) {
+                seenApplicants[uniqKey] = true;
+                applicants.push({
+                  nama: pName,
+                  jantina: pJantina,
+                  warganegara: pWarganegara,
+                  pasport: pPasport,
+                  umur: pUmur,
+                  jawatan: pJawatan,
+                  gaji: pGaji
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return sendResponse({ 
+        status: "success", 
+        companies: companies, 
+        owners: owners,
+        applicants: applicants
+      });
+    }
+
+    if (action === "load_sheet_data") {
+      var targetSheet = ss.getSheetByName(sheetName);
+      if (!targetSheet) {
+        return sendResponse({ status: "error", message: "Helaian tidak dijumpai." });
+      }
+
+      var values = targetSheet.getDataRange().getValues();
+      var records = [];
+
+      for (var r = 1; r < values.length; r++) {
+        var row = values[r];
+        if (!row[0]) continue;
+
+        var rawPenyandang = row[4] ? row[4].toString().split("\\n") : [];
+        var penyandangs = rawPenyandang.map(function(line) {
+          var cleanLine = line.replace(/^\\d+\\.\\s*/, "");
+          var parts = cleanLine.split(" / ");
+          var name = parts[0] || "";
+          var jantina = parts[1] || "L";
+          var warganegara = parts[2] || "";
+          var pasport = parts[3] || "";
+          
+          var restOfLine = parts.slice(4).join(" / ");
+          var umur = "";
+          var jawatan = "TECHNICAL EXPERTISE";
+          var gaji = "";
+
+          var gajiMatch = restOfLine.match(/GAJI:\\s*([^)]+)/i);
+          if (gajiMatch) {
+            gaji = gajiMatch[1].trim();
+            restOfLine = restOfLine.replace(/\\(?GAJI:\\s*[^)]+\\)?/i, "").trim();
+          }
+
+          var umurMatch = restOfLine.match(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i);
+          if (umurMatch) {
+            umur = umurMatch[1].trim();
+            restOfLine = restOfLine.replace(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i, "").trim();
+          }
+
+          var jawatanClean = restOfLine.replace(/^[\\s–\\-]+/, "").replace(/[\\s–\\-]+$/, "").trim();
+          if (jawatanClean) {
+            jawatan = jawatanClean;
+          }
+
+          return {
+            nama: name,
+            jantina: jantina,
+            warganegara: warganegara,
+            pasport: pasport,
+            umur: umur,
+            jawatan: jawatan,
+            gaji: gaji
+          };
+        });
+
+        var rawProject = row[10] ? row[10].toString() : "";
+        var kegiatan = "";
+        var projek = "";
+        var noKontrak = "";
+        var tempohProjek = "";
+        var ownerProjek = "";
+
+        var kegMatch = rawProject.match(/KEGIATAN SYARIKAT:\\s*\\n➢\\s*([^\\n]+)/i);
+        if (kegMatch) kegiatan = kegMatch[1].trim();
+
+        var projMatch = rawProject.match(/PROJECT:\\s*\\n➢\\s*([^\\n]+)/i);
+        if (projMatch) projek = projMatch[1].trim();
+
+        var nokMatch = rawProject.match(/NO\\. KONTRAK:\\s*([^\\n]+)/i);
+        if (nokMatch) noKontrak = nokMatch[1].replace("➢", "").trim();
+
+        var tempMatch = rawProject.match(/TEMPOH PROJEK:\\s*([^\\n]+)/i);
+        if (tempMatch) tempohProjek = tempMatch[1].replace("➢", "").trim();
+
+        var ownMatch = rawProject.match(/OWNER PROJECT:\\s*([^\\n]+)/i);
+        if (ownMatch) ownerProjek = ownMatch[1].replace("➢", "").trim();
+
+        var compParts = row[3].toString().split("\\n");
+        var compName = compParts[0].trim();
+        var compAddress = compParts.slice(1).join("\\n").trim();
+
+        records.push({
+          id: row[0].toString(),
+          bil: parseInt(row[1]) || r,
+          namaSyarikat: compName,
+          alamat: compAddress,
+          penyandang: penyandangs,
+          tempohMohon: row[5] ? row[5].toString() : "",
+          valB: row[6] ? row[6].toString() : "-",
+          valL: row[7] ? row[7].toString() : "-",
+          valTR: row[8] ? row[8].toString() : "-",
+          valWN: row[9] ? row[9].toString() : "-",
+          kegiatan: kegiatan,
+          projek: projek,
+          noKontrak: noKontrak,
+          tempohProjek: tempohProjek,
+          ownerProjek: ownerProjek,
+          keputusan: row[11] ? row[11].toString() : "",
+          ulasan: row[12] ? row[12].toString() : "",
+          synced: true,
+          rawPenyandangStr: row[4] ? row[4].toString() : ""
+        });
+      }
+
+      return sendResponse({ status: "success", records: records });
+    }
+
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+      var headersRow = [
+        "ID Rekod", "Bil", "Sektor KDN", "Nama Syarikat & Alamat", "Butiran Penyandang", 
+        "Tempoh Mohon", "B (Baru)", "L (Lanjutan)", "T/R (Tukar Re-entry)", 
+        "W/N (Ringkasan)", "Nama Projek & Kegiatan", "Keputusan Mesyuarat", "Catatan / Ulasan Rasmi"
+      ];
+      sheet.appendRow(headersRow);
+      var headerRange = sheet.getRange(1, 1, 1, headersRow.length);
+      headerRange.setFontWeight("bold")
+                 .setBackground("#1e3a8a")
+                 .setFontColor("#ffffff")
+                 .setHorizontalAlignment("center")
+                 .setVerticalAlignment("middle");
+      sheet.setRowHeight(1, 30);
+    }
+
+    if (action === "sync_all") {
+      if (sheet.getLastRow() > 1) {
+        sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+      }
+      var data = params.data || [];
+      var activeSector = params.activeSector || "";
+
+      for (var i = 0; i < data.length; i++) {
+        var item = data[i];
+        appendSingleRow(sheet, item, i + 1, activeSector);
+      }
+
+      for (var col = 1; col <= 13; col++) {
+        sheet.autoResizeColumn(col);
+      }
+
+      return sendResponse({ status: "success", message: "Penyelarasan penuh berjaya." });
+    }
+
+    if (action === "add_row") {
+      var item = params.item;
+      var activeSector = params.activeSector || "";
+      var nextBil = sheet.getLastRow();
+      appendSingleRow(sheet, item, nextBil, activeSector);
+      return sendResponse({ status: "success", message: "Rekod berjaya ditambah." });
+    }
+
+    if (action === "update") {
+      var id = params.id;
+      var keputusan = params.keputusan;
+      var ulasan = params.ulasan;
+      var dataRange = sheet.getDataRange();
+      var values = dataRange.getValues();
+      var foundRow = -1;
+
+      for (var r = 1; r < values.length; r++) {
+        if (values[r][0] == id) {
+          foundRow = r + 1;
+          break;
+        }
+      }
+
+      if (foundRow !== -1) {
+        sheet.getRange(foundRow, 12).setValue(keputusan);
+        sheet.getRange(foundRow, 13).setValue(ulasan);
+        return sendResponse({ status: "success", message: "Kemaskini berjaya." });
+      }
+    }
+
+    if (action === "delete_row") {
+      var id = params.id;
+      var dataRange = sheet.getDataRange();
+      var values = dataRange.getValues();
+      var foundRow = -1;
+
+      for (var r = 1; r < values.length; r++) {
+        if (values[r][0] == id) {
+          foundRow = r + 1;
+          break;
+        }
+      }
+
+      if (foundRow !== -1) {
+        sheet.deleteRow(foundRow);
+        var lastRow = sheet.getLastRow();
+        if (lastRow > 1) {
+          for (var i = 2; i <= lastRow; i++) {
+            sheet.getRange(i, 2).setValue(i - 1);
+          }
+        }
+        return sendResponse({ status: "success", message: "ID dipadam." });
+      }
+    }
+
+  } catch (error) {
+    return sendResponse({ status: "error", message: error.toString() });
+  }
+}
+
+function appendSingleRow(sheet, item, bilNum, activeSector) {
+  if (!item) return;
+
+  var penyandangStr = "";
+  if (item.penyandang && Array.isArray(item.penyandang) && item.penyandang.length > 0) {
+    penyandangStr = item.penyandang.map(function(p, idx) {
+      if (!p) return "";
+      return (idx + 1) + ". " + (p.nama || "") + " / " + (p.jantina || "L") + " / " + (p.warganegara || "") + " / " + (p.pasport || "-") + " / " + (p.umur || "") + " – " + (p.jawatan || "") + " (GAJI: " + (p.gaji || "-") + ")";
+    }).filter(Boolean).join("\\n");
+  }
+
+  var projekGabung = "KEGIATAN SYARIKAT:\\n➢ " + (item.kegiatan || "-") + 
+                     "\\n\\nPROJECT:\\n➢ " + (item.projek || "-") + 
+                     "\\n➢ NO. KONTRAK: " + (item.noKontrak || "-") + 
+                     "\\n➢ TEMPOH PROJEK: " + (item.tempohProjek || "-") + 
+                     "\\n➢ OWNER PROJECT: " + (item.ownerProjek || "-");
+
+  sheet.appendRow([
+    item.id || "",
+    bilNum,
+    (activeSector || "").toUpperCase(),
+    (item.namaSyarikat || "") + "\\n" + (item.alamat || ""),
+    penyandangStr,
+    item.tempohMohon || "",
+    item.valB || "-",
+    item.valL || "-",
+    item.valTR || "-",
+    item.valWN || "-",
+    projekGabung,
+    item.keputusan || "",
+    item.ulasan || ""
+  ]);
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({ 
+    status: "success", 
+    message: "API Google Sheets JKPLIK sedia digunakan." 
+  })).setMimeType(ContentService.MimeType.JSON);
+}`;
+
+        // Menggunakan kaedah fallback yang sah merentasi peranti pelayar browser
+        const tempTextArea = document.createElement("textarea");
+        tempTextArea.value = gasCodeStr;
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
+        try {
+          document.execCommand('copy');
+          showToast("Kod GAS yang telah diperbaiki disalin! Sila tampal di Extensions Editor Google Sheets.", "success");
+        } catch (err) {
+          showToast("Gagal menyalin kod secara automatik.", "error");
+        }
+        document.body.removeChild(tempTextArea);
+      }
+
+      /* STREAMING_CHUNK: Mengasaskan permulaan useEffect untuk memulakan draf dan sejarah... */
       useEffect(() => {
         scanEvaluatorsForMeeting(meetingNumber, meetingYear);
       }, [meetingNumber, meetingYear]);
@@ -1504,6 +1919,7 @@
         return dataOthers[activeSector] || [];
       }, [activeSector, dataOG, dataOthers]);
 
+      /* STREAMING_CHUNK: Menyediakan memo penapis data draf permohonan... */
       const filteredData = useMemo(() => {
         return currentSectData.filter(item => {
           const matchSearch = item.namaSyarikat.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -1563,6 +1979,7 @@
         };
       }, [currentSectData]);
 
+      /* STREAMING_CHUNK: Memetakan saranan syarikat dan pemilik secara memori... */
       const uniqueCompanies = useMemo(() => {
         const local = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -1675,6 +2092,7 @@
         );
       }, [editNationalityQuery]);
 
+      /* STREAMING_CHUNK: Menyediakan paparan Header dan sistem navigasi menu atas portal... */
       return (
         <div className="flex-1 flex flex-col min-h-screen">
           
@@ -1738,7 +2156,7 @@
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider flex items-center gap-2">
                   <span>Jawatankuasa Pas Lawatan Ikhtisas</span>
                   <span className="h-3 w-px bg-slate-300" />
-                  <span className="text-amber-600 font-bold">Sesi Mesyuarat Dinamik (Bebas LocalStorage)</span>
+                  <span className="text-amber-600 font-bold">Sesi Mesyuarat Dinamik (Sifar LocalStorage)</span>
                 </p>
               </div>
             </div>
@@ -1948,7 +2366,7 @@
                     <button
                       onClick={() => loadCurrentMeetingFromSheets(getSheetName(meetingNumber, meetingYear, officerName))}
                       className="bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-1.5 transition-colors"
-                      title="Kemaskini & Muat Turun Data Terkini dari Awan"
+                      title="Kemaskini & Muat Terkini"
                     >
                       <Icon name="refresh" size={14} /> Muat Semula dari Awan
                     </button>
@@ -2030,7 +2448,7 @@
                                         <div key={idx} className="border-l-2 border-slate-300 pl-2 text-[11px] leading-relaxed">
                                           <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {norm.umur || "-"} – <span className="italic">{norm.jawatan || "-"}</span>
                                           <div className="font-bold text-blue-900 mt-0.5">GAJI: {norm.gaji || "-"}</div>
-                                          {norm.tarikhLahir && <div className="text-[9px] text-slate-500 mt-0.5">T. LAHIR: {norm.tarikhLahir}</div>}
+                                          {norm.tarikhLahir && <div className="text-[9px] text-slate-500 mt-0.5 font-semibold text-slate-600">T. LAHIR: {norm.tarikhLahir}</div>}
                                         </div>
                                       );
                                     })}
@@ -2114,7 +2532,7 @@
               </div>
             )}
 
-            {/* ================================= VIEW 2: MOD SLAID PRESENTASI ================================= */}
+            {/* VIEW 2: MOD SLAID PRESENTASI */}
             {viewMode === "meeting" && (
               <div className="flex-1 flex flex-col gap-6" ref={meetingContainerRef}>
                 {filteredData.length === 0 ? (
@@ -2267,7 +2685,7 @@
                                           {norm.umur || "-"}
                                         </span>
                                         {norm.tarikhLahir && (
-                                          <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-600">
+                                          <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-600 font-semibold text-slate-700">
                                             TL: {norm.tarikhLahir}
                                           </span>
                                         )}
@@ -2427,7 +2845,7 @@
               </div>
             )}
 
-            {/* ================================= VIEW 3: SETTINGS ================================= */}
+            {/* ================================= VIEW 3: SETTINGS (URL DIBUANG) ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -2454,7 +2872,22 @@
                   />
                 </div>
 
-                {/* Kebenaran Google Apps Script Web App ditutup sepenuhnya dari UI Settings demi faktor sekuriti & integriti */}
+                {/* PUSAT PENYALIN KOD GOOGLE APPS SCRIPT YANG TELAH DIPERBAIKI (Secara Tempatan) */}
+                <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 flex flex-col gap-3">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Kemas Kini Enjin Penyelarasan (Google Apps Script)</span>
+                  <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                    Bagi memastikan maklumat **gaji, tarikh lahir, dan umur** dipulihkan dan disimpan secara serentak tanpa sebarang kerosakan data, sila salin kod penyelarasan baharu ini dan kemas kini skrip pada Google Sheets anda.
+                  </p>
+                  <button
+                    onClick={handleCopyGASCode}
+                    className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                  >
+                    <Icon name="word" size={14} /> Salin Kod Google Apps Script Yang Diperbaiki
+                  </button>
+                  <span className="text-[10px] text-slate-500 font-semibold italic text-center">
+                    *Tampal kod ini di dalam Extensions &gt; Apps Script dalam Google Sheets anda, kemudian klik Deploy semula.
+                  </span>
+                </div>
 
                 {/* Kawalan Pengujian Laju */}
                 <div className="border-t border-slate-200 pt-4 mt-2">
@@ -2985,7 +3418,7 @@
                         <span className="text-[10px] text-slate-500 font-bold">Jantina</span>
                         <select
                           value={newPenyandang.jantina}
-                          onChange={(e) => setNewPenyandang({...newPenyandang, jantina: e.target.value})}
+                          onChange={(e) => setNewPenyandang({...newPenyandang, jantina: e.target})}
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none"
                         >
                           <option value="L">Lelaki</option>
@@ -3342,7 +3775,7 @@
                         <span className="text-[10px] text-slate-500 font-bold">Jantina</span>
                         <select
                           value={editPenyandang.jantina}
-                          onChange={(e) => setEditPenyandang({...editPenyandang, jantina: e.target.value})}
+                          onChange={(e) => setEditPenyandang({...editPenyandang, jantina: e.target})}
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         >
                           <option value="L">Lelaki</option>
