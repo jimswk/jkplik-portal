@@ -301,6 +301,40 @@
       );
     }
 
+    function calculateBAndWN(penyandangList) {
+      if (!penyandangList || penyandangList.length === 0) {
+        return { valB: "01", valWN: "-" };
+      }
+
+      const totalPenyandang = penyandangList.length;
+      const formattedB = totalPenyandang < 10 ? `0${totalPenyandang}` : `${totalPenyandang}`;
+
+      const group = {};
+      penyandangList.forEach(p => {
+        const wn = (p.warganegara || "").trim().toUpperCase();
+        const passport = (p.pasport || "").trim();
+        
+        let displayWN = wn;
+        if (wn === "MYS" && passport.length > 0) {
+          const code = passport.charAt(0).toUpperCase();
+          displayWN = `MYS '${code}'`;
+        }
+
+        group[displayWN] = (group[displayWN] || 0) + 1;
+      });
+
+      const wnRows = Object.keys(group).map(key => {
+        const count = group[key];
+        const formattedCount = count < 10 ? `0${count}` : `${count}`;
+        return `${formattedCount} ${key}`;
+      });
+
+      return {
+        valB: formattedB,
+        valWN: wnRows.join("\n")
+      };
+    }
+
     const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbzyK9wblCLxIYJj13Ry8w6j8dNol9pFkgC0QSCB1LIPypY9-T8hNoz5iSiFFLEXjPMyxw/exec";
 
     function App() {
@@ -1458,7 +1492,7 @@
             </div>
 
             {/* Kawalan Bilangan Mesyuarat Dinamik */}
-            <div className="flex items-center gap-3 bg-slate-100 p-2.5 rounded-xl border border-slate-300 font-sans">
+            <div className="flex items-center gap-3 bg-slate-100 p-2.5 rounded-xl border border-slate-300">
               <div className="flex items-center gap-1">
                 <span className="text-xs font-bold text-slate-700">Bil:</span>
                 <input 
@@ -1478,7 +1512,7 @@
                 />
               </div>
               
-              {/* Butang Semak Arkib sentiasa kelihatan, bertukar warna biru apabila dihala tetikus */}
+              {/* Butang Semak Arkib sentiasa kelihatan, bertukur warna biru apabila dihala tetikus */}
               <button
                 onClick={fetchArchiveSheets}
                 disabled={isLoadingArchive}
@@ -1890,7 +1924,6 @@
                             </div>
                           </div>
 
-                          {/* STREAMING_CHUNK: Mengoptimumkan grid penyandang kompak untuk skrin penuh... */}
                           {/* Senarai Penyandang (Kakitangan) - Diubah kepada grid padat 2-lajur atau 3-lajur agar memuatkan maksima bilangan penyandang di skrin */}
                           <div className="flex-1 flex flex-col gap-3 min-h-[220px]">
                             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
@@ -2812,7 +2845,7 @@
                           type="text"
                           value={editingCompany.valL}
                           onChange={(e) => setEditingCompany({...editingCompany, valL: e.target.value.toUpperCase()})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
+                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs font-semibold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -2821,7 +2854,7 @@
                           type="text"
                           value={editingCompany.valTR}
                           onChange={(e) => setEditingCompany({...editingCompany, valTR: e.target.value.toUpperCase()})}
-                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs"
+                          className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs font-semibold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
