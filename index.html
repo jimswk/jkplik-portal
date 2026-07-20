@@ -80,7 +80,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbyAMRyDUD4cWVNg-CxOxm5PJHG7GVhKs-ZJh6x5Tglf1tZdFDuADyuu7Ma3-LzKkZEP_g/exec";
+    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbyr6mRXogSlfeiwRA7ZER4chp0uSQB5RGVSrl4wR2MbDbnEFEEh2hNEyrLUEWYox2JA/exec";
 
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
@@ -202,7 +202,12 @@
           rest = rest.replace(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i, '').trim();
         }
 
-        let cleanedRest = rest.replace(/^[\s–\-]+/, '').replace(/[\s–\-]+$/, '').replace(/^\s*\(\s*/, '').replace(/\s*\)\s*$/, '').trim();
+        // Singkirkan sisa kurungan kosong yang tertinggal daripada proses penapisan di atas
+        rest = rest.replace(/\(\s*\)/g, "").trim();
+        rest = rest.replace(/\s+/g, " ");
+
+        // Bersihkan tanda sengkang, kurungan tutup ")", atau ruang kosong yang tidak sah di permulaan jawatan
+        let cleanedRest = rest.replace(/^[\s–\-\)]+/, '').replace(/[\s–\-]+$/, '').replace(/^\s*\(\s*/, '').replace(/\s*\)\s*$/, '').trim();
         if (cleanedRest) {
           jawatan = cleanedRest;
         }
@@ -1510,11 +1515,14 @@ function doPost(e) {
       if (umurMatch) {
         umur = umurMatch[1].trim();
         restOfLine = restOfLine.replace(umurMatch[1], "").trim();
-        restOfLine = restOfLine.replace(/\(\s*\)/g, "").trim();
+        restOfLine = restOfLine.replace(/\\(\\s*\\)/g, "").trim();
       }
 
-      // 4. Sisa baris bersih adalah Jawatan
-      var jawatanClean = restOfLine.replace(/^[\s–\-]+/, "").replace(/[\s–\-]+$/, "").replace(/^\s*\(\s*/, "").replace(/\s*\)\s*$/, "").trim();
+      // Bersihkan sisa kurungan kosong daripada text
+      restOfLine = restOfLine.replace(/\\(\\s*\\)/g, "").trim();
+
+      // 4. Sisa baris bersih (termasuk kurangan tutup tersisa di permulaan) adalah Jawatan
+      var jawatanClean = restOfLine.replace(/^[\\s–\\-\\)]+/, "").replace(/[\\s–\\-]+$/, "").replace(/^\\s*\\(\\s*/, "").replace(/\\s*\\)\\s*$/, "").trim();
       if (jawatanClean) {
         jawatan = jawatanClean;
       }
@@ -1818,7 +1826,7 @@ function appendSingleRow(sheet, item, bilNum, activeSector) {
       var jawStr = p.jawatan ? " – " + p.jawatan : "";
       var gajiStr = p.gaji ? " GAJI: " + p.gaji : "";
 
-      return (idx + 1) + ". " + pName + " / " + pJantina + " / " + pWarganegara + " / " + pPasport + " / " + dateAndAge + " – " + jawStr + " GAJI: " + gajiStr;
+      return (idx + 1) + ". " + pName + " / " + pJantina + " / " + pWarganegara + " / " + pPasport + " / " + dateAndAge + jawStr + gajiStr;
     }).filter(Boolean).join("\\n");
   }
 
@@ -2444,7 +2452,7 @@ function doGet(e) {
                                       const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
                                       return (
                                         <div key={idx} className="border-l-2 border-slate-300 pl-2 text-[11px] leading-relaxed">
-                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic">{norm.jawatan || "-"}</span>
+                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic break-words">{norm.jawatan || "-"}</span>
                                           <div className="font-bold text-blue-900 mt-0.5">GAJI: {norm.gaji || "-"}</div>
                                         </div>
                                       );
@@ -2686,7 +2694,7 @@ function doGet(e) {
                             <div className={`flex-1 overflow-y-auto pr-2 ${
                               isFullscreen ? 'max-h-[calc(100vh-340px)]' : 'max-h-[280px]'
                             }`}>
-                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                                 {(item.penyandang || []).map((p, idx) => {
                                   const norm = normalizePenyandang(p);
                                   let formattedDate = norm.tarikhLahir || "";
@@ -2700,29 +2708,37 @@ function doGet(e) {
                                   return (
                                     <div 
                                       key={idx} 
-                                      className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex flex-col justify-between gap-1.5 hover:bg-slate-100 transition-colors text-xs"
+                                      className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-col justify-between gap-2.5 hover:bg-slate-100 transition-colors text-xs"
                                     >
-                                      <div className="font-bold text-blue-955 truncate leading-tight" title={norm.nama}>
-                                        {idx + 1}. {norm.nama}
+                                      <div>
+                                        <div className="font-bold text-blue-955 break-words leading-tight" title={norm.nama}>
+                                          {idx + 1}. {norm.nama}
+                                        </div>
+                                        {}
+                                        <div className="text-[11px] text-slate-600 flex flex-col gap-1 mt-1.5 leading-normal">
+                                          <div className="font-semibold text-slate-700 break-words">
+                                            {norm.jawatan || "-"}
+                                          </div>
+                                          {norm.gaji && (
+                                            <div className="text-blue-900 font-bold text-[11px] mt-0.5">
+                                              GAJI: {norm.gaji}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                      <div className="text-[10px] text-slate-500 flex flex-wrap items-center gap-1.5 leading-none">
-                                        <span className="font-semibold text-slate-700 truncate max-w-[120px]">{norm.jawatan || "-"}</span>
-                                        {norm.gaji && <span>•</span>}
-                                        {norm.gaji && <span className="text-blue-900 font-bold">GAJI: {norm.gaji}</span>}
-                                      </div>
-                                      <div className="flex items-center gap-1 flex-wrap text-[9px] mt-1">
-                                        <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-semibold text-slate-700">
+                                      <div className="flex items-center gap-1 flex-wrap text-[9px] mt-2 pt-2 border-t border-slate-100">
+                                        <span className="px-1.5 py-0.5 bg-white border border-slate-250 rounded font-semibold text-slate-700">
                                           {norm.warganegara || "-"}
                                         </span>
-                                        <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-600">
+                                        <span className="px-1.5 py-0.5 bg-white border border-slate-250 rounded text-slate-600">
                                           {norm.umur || "-"}
                                         </span>
                                         {norm.tarikhLahir && (
-                                          <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-600 font-semibold text-slate-700">
+                                          <span className="px-1.5 py-0.5 bg-white border border-slate-250 rounded text-slate-600 font-semibold text-slate-700">
                                             TL: {norm.tarikhLahir}
                                           </span>
                                         )}
-                                        <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-slate-600 truncate max-w-[90px]">
+                                        <span className="px-1.5 py-0.5 bg-white border border-slate-250 rounded text-slate-600 break-all">
                                           Psp: {norm.pasport || "-"}
                                         </span>
                                       </div>
@@ -3028,7 +3044,7 @@ function doGet(e) {
                             const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
                             return (
                               <div key={pidx} className="text-[9.5px] leading-relaxed">
-                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic">{norm.jawatan || "-"}</span>
+                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic break-words">{norm.jawatan || "-"}</span>
                                 <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"}</div>
                               </div>
                             );
@@ -3038,7 +3054,6 @@ function doGet(e) {
                       
                       <td className="p-2 text-center border-r border-black align-top font-semibold">{item.tempohMohon}</td>
                       
-                      {/* JANGAN MUAT DATA SEHINGGA ADA BUTIRAN PENYANDANG UNTUK MENGELAK KEKELIRUAN */}
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valB || "-") : "-"}</td>
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valL || "-") : "-"}</td>
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valTR || "-") : "-"}</td>
@@ -3287,7 +3302,7 @@ function doGet(e) {
                         placeholder="Contoh: RFP-000000032393"
                         value={newCompany.noKontrak}
                         onChange={(e) => setNewCompany({...newCompany, noKontrak: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-850 focus:outline-none uppercase"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-855 focus:outline-none uppercase"
                       />
                     </div>
 
@@ -3771,7 +3786,7 @@ function doGet(e) {
                             setShowEditApplicantDropdown(true);
                           }}
                           onFocus={() => setShowEditApplicantDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
                         />
                         {showEditApplicantDropdown && filteredEditApplicantSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3791,7 +3806,7 @@ function doGet(e) {
                                   });
                                   setShowEditApplicantDropdown(false);
                                   setEditApplicantSearchQuery("");
-                                  showToast(`Profil ${app.nama} dikesan dan telah diisi secara automatik!`, "success");
+                                  showToast(`Profil ${app.nama} dikesan and telah diisi secara automatik!`, "success");
                                 }}
                                 className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px]"
                               >
@@ -3809,10 +3824,10 @@ function doGet(e) {
                         <span className="text-[10px] text-slate-500 font-bold">Jawatan</span>
                         <input
                           type="text"
-                          placeholder="Jawatan Pemohon"
+                          placeholder="Jawatan dalam syarikat"
                           value={editPenyandang.jawatan}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jawatan: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:outline-none"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3822,7 +3837,7 @@ function doGet(e) {
                           placeholder="Contoh: RM8,500"
                           value={editPenyandang.gaji}
                           onChange={(e) => setEditPenyandang({...editPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:outline-none"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3832,7 +3847,7 @@ function doGet(e) {
                           placeholder="Mula dengan huruf"
                           value={editPenyandang.pasport}
                           onChange={(e) => setEditPenyandang({...editPenyandang, pasport: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:outline-none"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3858,7 +3873,7 @@ function doGet(e) {
                             setShowEditWarganegaraDropdown(true);
                           }}
                           onFocus={() => setShowEditWarganegaraDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold font-sans"
                         />
                         {showEditNationalityDropdown && filteredEditWarganegaraSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3870,7 +3885,7 @@ function doGet(e) {
                                   setEditNationalityQuery(`${country.name} - ${country.code}`);
                                   setShowEditWarganegaraDropdown(false);
                                 }}
-                                className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px] font-bold"
+                                className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px] font-bold font-sans"
                               >
                                 {country.name} - <span className="text-blue-900">{country.code}</span>
                               </div>
@@ -3893,7 +3908,7 @@ function doGet(e) {
                         <select
                           value={editPenyandang.jantina}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jantina: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-sans"
                         >
                           <option value="L">Lelaki</option>
                           <option value="P">Perempuan</option>
@@ -3915,7 +3930,7 @@ function doGet(e) {
                         {editingCompany.penyandang.map((p, idx) => {
                           const norm = normalizePenyandang(p);
                           return (
-                            <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
+                            <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0 font-sans">
                               <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "N/A"} • {norm.gaji || "N/A"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
                               <button
                                 type="button"
@@ -3931,7 +3946,7 @@ function doGet(e) {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 mt-4">
+                  <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 mt-4 font-sans">
                     <button
                       type="button"
                       onClick={() => {
@@ -3977,7 +3992,7 @@ function doGet(e) {
                 </p>
 
                 {/* Input Carian Dinamik Rentas Pegawai Penilai */}
-                <div className="relative">
+                <div className="relative font-sans">
                   <input
                     type="text"
                     placeholder="Taip nama pegawai, bil, atau tahun..."
@@ -4015,7 +4030,7 @@ function doGet(e) {
                   )}
                 </div>
 
-                <div className="flex justify-end pt-2 border-t border-slate-200">
+                <div className="flex justify-end pt-2 border-t border-slate-200 font-sans">
                   <button
                     onClick={() => {
                       setShowArchiveModal(false);
