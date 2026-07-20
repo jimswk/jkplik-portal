@@ -47,7 +47,6 @@
         border: 1px solid #000000 !important;
         border-collapse: collapse !important;
       }
-      /* Mengelakkan pengulangan header jadual secara automatik pada setiap page cetakan */
       thead {
         display: table-row-group !important;
       }
@@ -58,7 +57,6 @@
       }
     }
     
-    /* Custom scrollbar style */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -82,7 +80,8 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    /* STREAMING_CHUNK: Menyediakan pembolehubah global negara dan sektor... */
+    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbxzVjRofy8kOPIqCUmb1PETGfWK5djDSpIbx-oy_998vSRzqxtnNOYdcYUIwon69iWPRA/exec";
+
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
       { name: "INDONESIA", code: "IDN" },
@@ -128,13 +127,11 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    /* STREAMING_CHUNK: Mendefinisikan pembantu pembinaan nama helaian Google Sheets secara global... */
     function getSheetName(meetingNumber, meetingYear, officerName) {
-      const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim()})` : '';
+      const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim().toUpperCase()})` : '';
       return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
     }
 
-    /* STREAMING_CHUNK: Menyediakan helper penarafan kod baru warganegara... */
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
         return { valB: "01", valWN: "-" };
@@ -169,7 +166,6 @@
       };
     }
 
-    /* STREAMING_CHUNK: Membina komponen pembantu Icon SVG kustom... */
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -280,7 +276,11 @@
           </g>
         ),
         xCircle: (
-          <circle cx="12" cy="12" r="10" />
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </g>
         ),
         fileText: (
           <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -328,31 +328,19 @@
       };
 
       return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          className={className}
-        >
+        <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
           {iconsMap[name] || <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />}
         </svg>
       );
     }
 
     function App() {
-      // 1. Deklarasi State & Refs Paling Atas (React Standard)
-      const [meetingNumber, setMeetingNumber] = useState(() => {
-        return localStorage.getItem('jkplik_meeting_number') || "14";
-      });
-      const [meetingYear, setMeetingYear] = useState(() => {
-        return localStorage.getItem('jkplik_meeting_year') || "2026";
-      });
-      const [officerName, setOfficerName] = useState(() => {
-        return localStorage.getItem('jkplik_officer_name') || "";
-      });
+      const [meetingNumber, setMeetingNumber] = useState("14");
+      const [meetingYear, setMeetingYear] = useState("2026");
+      const [officerName, setOfficerName] = useState("");
 
       const [activeSector, setActiveSector] = useState("og");
-      const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
+      const [viewMode, setViewMode] = useState("dashboard"); 
       const [isFullscreen, setIsFullscreen] = useState(false);
       const meetingContainerRef = useRef(null);
 
@@ -362,26 +350,25 @@
       const [editNationalityQuery, setEditNationalityQuery] = useState("");
       const [showEditNationalityDropdown, setShowEditWarganegaraDropdown] = useState(false);
 
-      // Autocomplete Ahli/Penyandang Sejarah (Jawatan & Gaji)
+      // Autocomplete Ahli/Penyandang Sejarah
       const [applicantSearchQuery, setApplicantSearchQuery] = useState("");
       const [showApplicantDropdown, setShowApplicantDropdown] = useState(false);
       const [editApplicantSearchQuery, setEditApplicantSearchQuery] = useState("");
       const [showEditApplicantDropdown, setShowEditApplicantDropdown] = useState(false);
 
-      // State Pembatasan Tetingkap Edit & Tambah
+      // Tetingkap Edit & Tambah
       const [showEditModal, setShowEditModal] = useState(false);
       const [editingCompany, setEditingCompany] = useState(null);
       
-      // Sifar pramuat MYS untuk editPenyandang
       const [editPenyandang, setEditPenyandang] = useState({
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      // 100% Sifar LocalStorage: Membina state memori yang sentiasa bersih di mulakan kosong
+      // Data utama (Tulen dalam memori - Tiada localStorage sama sekali)
       const [dataOG, setDataOG] = useState([]);
       const [dataOthers, setDataOthers] = useState({});
 
-      // Senarai semua pegawai penilai yang dikesan dari tab Google Sheets untuk mesyuarat aktif semasa
+      // Senarai pegawai penilai yang dikesan dinamik dari tab Google Sheets
       const [availableEvaluators, setAvailableEvaluators] = useState([]);
 
       // State Pembentangan Slaid
@@ -392,9 +379,7 @@
       const [statusFilter, setStatusFilter] = useState("semua");
 
       // Integrasi Google Sheet
-      const [sheetUrl, setSheetUrl] = useState(() => {
-        return localStorage.getItem('jkplik_sheet_url_v3') || GOOGLE_APPS_SCRIPT_LALAI;
-      });
+      const [sheetUrl, setSheetUrl] = useState(GOOGLE_APPS_SCRIPT_LALAI);
       const [isSyncing, setIsSyncing] = useState(false);
       const [syncLogs, setSyncLogs] = useState([]);
 
@@ -417,7 +402,7 @@
       const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
       const [globalCompanies, setGlobalCompanies] = useState([]);
       const [globalOwners, setGlobalOwners] = useState([]);
-      const [globalApplicants, setGlobalApplicants] = useState([]); // Senarai Ahli Penyandang Sejarah kementerian
+      const [globalApplicants, setGlobalApplicants] = useState([]); 
       const [isLoadingArchive, setIsLoadingArchive] = useState(false);
 
       const [newCompany, setNewCompany] = useState({
@@ -437,13 +422,18 @@
         synced: false
       });
 
-      // Sifar pramuat MYS untuk newPenyandang
       const [newPenyandang, setNewPenyandang] = useState({
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      /* STREAMING_CHUNK: Mengasaskan takrifan fungsi standard yang di-hoist secara selamat... */
-      // 2. Takrifan Semua Fungsi kementerian menggunakan "function" syntax (HOISTED & TDZ SAFE!)
+      const displayEvaluators = useMemo(() => {
+        const list = [...availableEvaluators];
+        if (officerName && !list.includes(officerName)) {
+          list.push(officerName);
+        }
+        return list;
+      }, [availableEvaluators, officerName]);
+
       function showToast(message, type = "info") {
         const id = Date.now();
         setToasts(prev => [...prev, { id, message, type }]);
@@ -473,7 +463,220 @@
         window.print();
       }
 
-      /* STREAMING_CHUNK: Membina fungsi eksport dokumen Word kDN... */
+      function handleSaveOfficerName(name) {
+        setOfficerName(name.toUpperCase());
+        showToast(`Sesi pegawai penilai disetkan kepada: ${name || "Lalai"}`, "info");
+      }
+
+      function triggerEditItem(item) {
+        setEditingCompany(JSON.parse(JSON.stringify(item))); 
+        setShowEditModal(true);
+      }
+
+      function handleBirthDateChange(dateStr) {
+        if (!dateStr) return;
+        const birthYear = new Date(dateStr).getFullYear();
+        const currentYear = new Date().getFullYear();
+        const age = currentYear - birthYear;
+        setNewPenyandang(prev => ({
+          ...prev,
+          tarikhLahir: dateStr,
+          umur: `${age} THN`
+        }));
+      }
+
+      function handleEditBirthDateChange(dateStr) {
+        if (!dateStr) return;
+        const birthYear = new Date(dateStr).getFullYear();
+        const currentYear = new Date().getFullYear();
+        const age = currentYear - birthYear;
+        setEditPenyandang(prev => ({
+          ...prev,
+          tarikhLahir: dateStr,
+          umur: `${age} THN`
+        }));
+      }
+
+      function addPenyandangToEditingCompany() {
+        if (!editPenyandang.nama) return;
+        setEditingCompany(prev => {
+          const updatedPenyandang = [...(prev.penyandang || []), editPenyandang];
+          const { valB, valWN } = calculateBAndWN(updatedPenyandang);
+          return {
+            ...prev,
+            penyandang: updatedPenyandang,
+            valB,
+            valWN
+          };
+        });
+        setEditPenyandang({
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+        });
+        setEditNationalityQuery("");
+      }
+
+      function removePenyandangFromEditingCompany(idx) {
+        setEditingCompany(prev => {
+          const filtered = (prev.penyandang || []).filter((_, i) => i !== idx);
+          const { valB, valWN } = calculateBAndWN(filtered);
+          return {
+            ...prev,
+            penyandang: filtered,
+            valB,
+            valWN
+          };
+        });
+      }
+
+      function handleUpdateCompany(e) {
+        e.preventDefault();
+        if (!editingCompany) return;
+
+        let updatedList = [];
+        if (activeSector === "og") {
+          setDataOG(prev => {
+            updatedList = prev.map(item => item.id === editingCompany.id ? editingCompany : item);
+            return updatedList;
+          });
+        } else {
+          setDataOthers(prev => {
+            const sectorData = prev[activeSector] || [];
+            updatedList = sectorData.map(item => item.id === editingCompany.id ? editingCompany : item);
+            return { ...prev, [activeSector]: updatedList };
+          });
+        }
+
+        if (sheetUrl) {
+          syncEditRowToGoogleSheets(editingCompany, updatedList);
+        } else {
+          showToast("Kemaskini permohonan berjaya disimpan secara setempat!", "success");
+        }
+        setShowEditModal(false);
+        setEditingCompany(null);
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          meetingContainerRef.current?.requestFullscreen?.().then(() => {
+            setIsFullscreen(true);
+          }).catch(err => {
+            showToast("Gagal mengaktifkan skrin penuh.", "error");
+          });
+        } else {
+          document.exitFullscreen?.();
+          setIsFullscreen(false);
+        }
+      }
+
+      async function scanEvaluatorsForMeeting(number, year) {
+        if (!sheetUrl) return;
+        addLog(`Mengekstrak nama penilai dari Google Sheets untuk Sesi Bil. ${number}/${year}...`, "info");
+        try {
+          const listRes = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({ action: "get_sheets_list" })
+          });
+          const listResult = await listRes.json();
+          if (listResult.status === "success") {
+            const sheets = listResult.sheets || [];
+            const regex = new RegExp(`Bil\\.\\s*${number}/${year}\\s*\\(([^)]+)\\)`, 'i');
+            const evaluators = [];
+            sheets.forEach(sh => {
+              const match = sh.match(regex);
+              if (match) {
+                evaluators.push(match[1].trim().toUpperCase());
+              }
+            });
+            const uniqueEvaluators = [...new Set(evaluators)];
+            setAvailableEvaluators(uniqueEvaluators);
+            
+            if (uniqueEvaluators.length > 0) {
+              addLog(`Ditemui ${uniqueEvaluators.length} pegawai penilai: ${uniqueEvaluators.join(", ")}`, "success");
+              // Jika tiada pegawai aktif disetkan, auto-pilih yang pertama
+              if (!officerName || !uniqueEvaluators.includes(officerName)) {
+                setOfficerName(uniqueEvaluators[0]);
+              }
+            } else {
+              addLog(`Tiada draf pegawai khusus ditemui untuk Bil. ${number}/${year}. Menggunakan sesi am.`, "info");
+            }
+          }
+        } catch (err) {
+          addLog(`Gagal memaut senarai penilai dinamik: ${err.message}`, "error");
+        }
+      }
+
+      useEffect(() => {
+        const handleFsChange = () => {
+          setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener("fullscreenchange", handleFsChange);
+        return () => document.removeEventListener("fullscreenchange", handleFsChange);
+      }, []);
+
+      function handleSaveDecision(id, keputusan, ulasan) {
+        if (activeSector === "og") {
+          setDataOG(prev => prev.map(item => item.id === id ? { ...item, keputusan, ulasan } : item));
+        } else {
+          setDataOthers(prev => {
+            const sectorData = prev[activeSector] || [];
+            const updated = sectorData.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+            return { ...prev, [activeSector]: updated };
+          });
+        }
+
+        if (sheetUrl) {
+          syncSingleRowToGoogleSheets(id, keputusan, ulasan);
+        } else {
+          showToast("Keputusan disimpan dalam memori sesi.", "info");
+        }
+      }
+
+      async function handleFullSync() {
+        if (!sheetUrl) {
+          showToast("URL Google Apps Script tidak ditemui.", "error");
+          return;
+        }
+        setIsSyncing(true);
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
+        addLog(`Memulai penyelarasan penuh untuk tab [${sheetName}]...`, "info");
+        try {
+          const res = await fetch(sheetUrl, {
+            method: "POST",
+            mode: "cors",
+            redirect: "follow",
+            body: JSON.stringify({
+              action: "sync_all",
+              data: currentSectData,
+              activeSector,
+              sheetName: sheetName
+            })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            addLog(`Penyelarasan penuh berjaya untuk Sektor ${activeSector.toUpperCase()}!`, "success");
+            showToast("Penyelarasan pangkalan data penuh ke Google Sheets selesai!", "success");
+            
+            if (activeSector === "og") {
+              setDataOG(prev => prev.map(item => ({ ...item, synced: true })));
+            } else {
+              setDataOthers(prev => {
+                const sectorData = prev[activeSector] || [];
+                const updated = sectorData.map(item => ({ ...item, synced: true }));
+                return { ...prev, [activeSector]: updated };
+              });
+            }
+          } else {
+            addLog(`Ralat penyelarasan penuh: ${result.message || 'Isu tidak dikesan.'}`, "error");
+          }
+        } catch (err) {
+          addLog(`Gagal penyelarasan penuh: ${err.message}`, "error");
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+
       function exportToWord() {
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
@@ -572,7 +775,6 @@
           `;
         } else {
           currentSectData.forEach((item, index) => {
-            const hasDecision = !!item.keputusan;
             let penyandangRows = "";
             (item.penyandang || []).forEach((p, idx) => {
               penyandangRows += `<div><b>${idx + 1}. ${p.nama}</b> / ${p.jantina} / ${p.warganegara} / ${p.pasport || "-"} / ${p.umur} &ndash; <i>${p.jawatan}</i><br/><b>GAJI: ${p.gaji || "-"}</b></div><br/>`;
@@ -652,7 +854,6 @@
         showToast("Dokumen format Word berjaya draf dan dimuat turun!", "success");
       }
 
-      /* STREAMING_CHUNK: Menyediakan fungsi pengambilan draf kementerian... */
       async function loadCurrentMeetingFromSheets(targetTabName) {
         if (!sheetUrl) return;
         addLog(`[AUTO-SYNC] Menyemak jika tab "${targetTabName}" wujud di Google Sheets...`, "info");
@@ -685,7 +886,6 @@
                 }
               });
 
-              // Kemaskini state HANYA sekiranya tab semasa yang aktif masih sama!
               if (targetTabName === getSheetName(meetingNumber, meetingYear, officerName)) {
                 setDataOG(ogRecords);
                 setDataOthers(newOthers);
@@ -695,7 +895,6 @@
             }
           } else {
             addLog(`[AUTO-SYNC] Tab "${targetTabName}" belum wujud di awan. Memulai draf bersih untuk pegawai ini.`, "info");
-            // Set draf bersih bagi mengelakkan kebocoran data jika tidak ditemui di awan
             if (targetTabName === getSheetName(meetingNumber, meetingYear, officerName)) {
               setDataOG([]);
               setDataOthers({});
@@ -769,7 +968,7 @@
               sheetName: sheetName
             })
           });
-          addLog(`[AUTO-SYNC] Rekod ID ${id} berjaya dipadam daripada Google Sheets.`, "success");
+          addLog(`[AUTO-SYNC] Pemadaman ID ${id} berjaya daripada Google Sheets.`, "success");
         } catch (err) {
           addLog(`[AUTO-SYNC] Gagal padam di Google Sheets: ${err.message}`, "error");
         }
@@ -812,8 +1011,8 @@
           if (result.status === "success") {
             setGlobalCompanies(result.companies || []);
             setGlobalOwners(result.owners || []);
-            setGlobalApplicants(result.applicants || []); // Pemuatan senarai ahli penyandang sejarah kementerian
-            addLog(`Berjaya memuatkan ${result.companies.length} syarikat dan ${result.applicants ? result.applicants.length : 0} ahli penyandang dari arkib awan.`, "success");
+            setGlobalApplicants(result.applicants || []); 
+            addLog(`Berjaya memuatkan ${result.companies.length} syarikat dan ${result.applicants ? result.applicants.length : 0} ahli dari arkib awan.`, "success");
           }
         } catch (err) {
           addLog("Gagal menghubungi pangkalan data awan untuk carian sejarah.", "error");
@@ -977,7 +1176,7 @@
         if (sheetUrl) {
           syncAddRowToGoogleSheets(newItem);
         } else {
-          showToast("Syarikat berjaya disimpan secara tempatan!", "success");
+          showToast("Syarikat berjaya disimpan secara setempat dalam sesi!", "success");
         }
 
         setNewCompany({
@@ -1057,23 +1256,53 @@
         setViewMode("dashboard");
       }
 
-      /* STREAMING_CHUNK: Kesan useEffect kementerian untuk menguruskan penyelarasan PC... */
+      useEffect(() => {
+        // Imbas senarai penilai dahulu apabila bil / tahun berubah
+        scanEvaluatorsForMeeting(meetingNumber, meetingYear);
+      }, [meetingNumber, meetingYear]);
+
       useEffect(() => {
         const currentTabName = getSheetName(meetingNumber, meetingYear, officerName);
         
-        // Sifar draf permulaan untuk keselamatan pertukaran nama penilai
+        // Sifar draf sesi draf sedia ada untuk pertukaran tab yang bersih
         setDataOG([]);
         setDataOthers({});
         setCurrentSlideIndex(0);
 
         const delayDebounce = setTimeout(() => {
           loadCurrentMeetingFromSheets(currentTabName);
+          fetchGlobalHistory();
         }, 1200);
 
         return () => clearTimeout(delayDebounce);
       }, [meetingNumber, meetingYear, officerName]);
 
-      /* STREAMING_CHUNK: useMemo pembolehubah untuk mengelakkan ralat ReferenceError... */
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (viewMode !== "meeting") return;
+          if (e.key === "ArrowLeft") {
+            setCurrentSlideIndex(prev => Math.max(0, prev - 1));
+          } else if (e.key === "ArrowRight") {
+            setCurrentSlideIndex(prev => Math.min(filteredData.length - 1, prev + 1));
+          }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }, [viewMode, filteredData]);
+
+      useEffect(() => {
+        const handleOutsideClick = () => {
+          setShowCompanyDropdown(false);
+          setShowOwnerDropdown(false);
+          setShowWarganegaraDropdown(false);
+          setShowEditWarganegaraDropdown(false);
+          setShowApplicantDropdown(false);
+          setShowEditApplicantDropdown(false);
+        };
+        document.addEventListener("click", handleOutsideClick);
+        return () => document.removeEventListener("click", handleOutsideClick);
+      }, []);
+
       const currentSectData = useMemo(() => {
         if (activeSector === "og") return dataOG;
         return dataOthers[activeSector] || [];
@@ -1249,7 +1478,6 @@
         );
       }, [editNationalityQuery]);
 
-      /* STREAMING_CHUNK: Menyusun antaramuka JSX bagi Header dan Statistik... */
       return (
         <div className="flex-1 flex flex-col min-h-screen">
           
@@ -1292,7 +1520,7 @@
             </div>
           )}
 
-          {/* ================================= HEADER / NAVIGASI KERAJAAN ================================= */}
+          {/* ================================= HEADER / NAVIGASI ================================= */}
           <header className="sticky top-0 z-40 bg-white border-b-4 border-amber-500 shadow-md px-6 py-4 flex flex-wrap items-center justify-between gap-4 no-print">
             <div className="flex items-center gap-4">
               <div className="bg-white p-1 rounded-xl shadow-md border border-slate-200/60 flex items-center justify-center">
@@ -1313,7 +1541,7 @@
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider flex items-center gap-2">
                   <span>Jawatankuasa Pas Lawatan Ikhtisas</span>
                   <span className="h-3 w-px bg-slate-300" />
-                  <span className="text-amber-600 font-bold">Sesi Mesyuarat Dinamik</span>
+                  <span className="text-amber-600 font-bold">Sesi Mesyuarat Dinamik (Bebas LocalStorage)</span>
                 </p>
               </div>
             </div>
@@ -1326,7 +1554,7 @@
                   type="number" 
                   value={meetingNumber} 
                   onChange={(e) => setMeetingNumber(e.target.value)}
-                  className="w-12 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-blue-900 focus:outline-none focus:border-blue-700"
+                  className="w-12 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-blue-900 focus:outline-none"
                 />
               </div>
               <div className="flex items-center gap-1">
@@ -1335,7 +1563,7 @@
                   type="number" 
                   value={meetingYear} 
                   onChange={(e) => setMeetingYear(e.target.value)}
-                  className="w-16 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-blue-900 focus:outline-none focus:border-blue-700"
+                  className="w-16 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-blue-900 focus:outline-none"
                 />
               </div>
               
@@ -1432,7 +1660,7 @@
           {/* ================================= KANDUNGAN UTAMA ================================= */}
           <main className="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full gap-6 no-print">
 
-            {/* BAR STATISTIK PINTAR DENGAN PECAHAN JANTINA & WARGANEGARA DUNIA (MENEPATI REKABENTUK image_131899.png) */}
+            {/* BAR STATISTIK PINTAR DENGAN PECAHAN JANTINA & WARGANEGARA */}
             {viewMode !== "meeting" && (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
@@ -1445,13 +1673,11 @@
                   <span className="text-sm font-black text-teal-600">{stats.totalApplicants} Orang</span>
                 </div>
 
-                {/* PECAHAN JANTINA DINAMIK */}
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Pecahan Jantina</span>
                   <span className="text-[12px] font-black text-indigo-700">L: {stats.jantinaL} | P: {stats.jantinaP}</span>
                 </div>
 
-                {/* PECAHAN WARGANEGARA DINAMIK */}
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1 overflow-hidden">
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Warganegara</span>
                   <span className="text-[10.5px] font-black text-slate-700 truncate" title={stats.wnBreakdown}>
@@ -1503,16 +1729,16 @@
                   <div className="flex flex-wrap items-center gap-3">
                     {/* DROPDOWN PEMILIHAN PENILAI SECARA LANGSUNG DENGAN AUTO-SYNC */}
                     {displayEvaluators.length > 0 && (
-                      <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-350">
+                      <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300">
                         <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
                           <Icon name="users" size={12} /> Sesi Penilai:
                         </span>
                         <select
                           value={officerName}
-                          onChange={(e) => handleSaveOfficerName(e.target.value.toUpperCase())}
-                          className="bg-white text-xs font-black text-blue-900 border border-slate-300 rounded-md px-2 py-0.5 focus:outline-none focus:border-blue-700"
+                          onChange={(e) => handleSaveOfficerName(e.target.value)}
+                          className="bg-white text-xs font-black text-blue-900 border border-slate-300 rounded-md px-2 py-0.5 focus:outline-none focus:border-blue-700 uppercase"
                         >
-                          <option value="">Lalai (Tiada Nama)</option>
+                          <option value="">AM (TIADA PEGAWAI)</option>
                           {displayEvaluators.filter(Boolean).map((ev, idx) => (
                             <option key={idx} value={ev}>
                               {ev}
@@ -1720,10 +1946,10 @@
                                     <span className="text-[10px] font-bold text-slate-600">Sesi Penilai:</span>
                                     <select
                                       value={officerName}
-                                      onChange={(e) => handleSaveOfficerName(e.target.value.toUpperCase())}
-                                      className="bg-white text-[11px] font-black text-blue-900 border border-slate-350 rounded px-1.5 py-0.5 focus:outline-none"
+                                      onChange={(e) => handleSaveOfficerName(e.target.value)}
+                                      className="bg-white text-[11px] font-black text-blue-900 border border-slate-350 rounded px-1.5 py-0.5 focus:outline-none uppercase"
                                     >
-                                      <option value="">LALAI (TIADA NAMA)</option>
+                                      <option value="">AM (TIADA PEGAWAI)</option>
                                       {displayEvaluators.filter(Boolean).map((ev, idx) => (
                                         <option key={idx} value={ev}>
                                           {ev}
@@ -1734,7 +1960,6 @@
                                 )}
 
                                 <div className="ml-auto flex items-center gap-2">
-                                  {/* Butang Fullscreen interaktif berdasarkan image_10746a.png */}
                                   <button
                                     onClick={toggleFullscreen}
                                     className="p-1.5 hover:bg-slate-150 rounded-lg text-slate-600 transition-colors"
@@ -1800,7 +2025,7 @@
                             </div>
                           </div>
 
-                          {/* Senarai Penyandang (Kakitangan) - Diubah kepada grid padat 2-lajur atau 3-lajur agar memuatkan maksima bilangan penyandang di skrin */}
+                          {/* Senarai Penyandang (Kakitangan) */}
                           <div className="flex-1 flex flex-col gap-3 min-h-[220px]">
                             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                               <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
@@ -1813,11 +2038,9 @@
                               </div>
                             </div>
                             
-                            {/* Kotak tatalan adaptif: Ketinggian akan bertambah besar secara dinamik apabila isFullscreen aktif */}
                             <div className={`flex-1 overflow-y-auto pr-2 ${
                               isFullscreen ? 'max-h-[calc(100vh-340px)]' : 'max-h-[280px]'
                             }`}>
-                              {/* Grid Kompak: grid-cols-1 md:grid-cols-2 xl:grid-cols-3 untuk memaksimumkan pameran nama penyandang */}
                               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
                                 {(item.penyandang || []).map((p, idx) => (
                                   <div 
@@ -1827,13 +2050,11 @@
                                     <div className="font-bold text-blue-955 truncate leading-tight" title={p.nama}>
                                       {idx + 1}. {p.nama}
                                     </div>
-                                    
                                     <div className="text-[10px] text-slate-500 flex flex-wrap items-center gap-1.5 leading-none">
                                       <span className="font-semibold text-slate-700 truncate max-w-[120px]">{p.jawatan || "TECHNICAL EXPERTISE"}</span>
                                       <span>•</span>
                                       <span className="text-blue-900 font-bold">{p.gaji || "Gaji: -"}</span>
                                     </div>
-                                    
                                     <div className="flex items-center gap-1 flex-wrap text-[9px] mt-1">
                                       <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-semibold text-slate-700">
                                         {p.warganegara || "-"}
@@ -1893,7 +2114,6 @@
                             <p className="text-[9px] text-slate-400 font-medium">Keputusan diselaraskan secara auto-sync.</p>
                           </div>
 
-                          {/* Diperkemaskan dengan whitespace-normal, leading-tight, text-[11px] supaya TIADA OVERFLOW */}
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
@@ -1964,7 +2184,7 @@
                             </button>
                           </div>
 
-                          {/* Catatan Sampingan - Tukar warna latar belakang kepada putih dan teks hitam */}
+                          {/* Catatan Sampingan */}
                           <div className="flex flex-col gap-2 mt-1">
                             <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                               <Icon name="edit" size={11} className="text-amber-400" /> Catatan & Ulasan Rasmi Mesyuarat
@@ -2019,15 +2239,14 @@
                     type="text"
                     placeholder="Sila masukkan nama penuh pegawai di sini..."
                     value={officerName}
-                    onChange={(e) => setOfficerName(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
+                    onChange={(e) => setOfficerName(e.target.value.toUpperCase())}
+                    className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold uppercase"
                   />
                 </div>
 
-                {/* Sifar CORS Google Web App */}
+                {/* Kebenaran Apps Script */}
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 flex flex-col gap-3">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Kebenaran Google Apps Script</span>
-                  
                   <div className="flex flex-col gap-2">
                     <label className="text-[11px] font-bold text-slate-600">URL Google Apps Script Web App</label>
                     <input
@@ -2226,7 +2445,7 @@
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
                     {/* Auto-suggest Nama Syarikat */}
-                    <div className="flex flex-col gap-1.5 relative">
+                    <div className="flex flex-col gap-1.5 relative" onClick={(e) => e.stopPropagation()}>
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Syarikat & No. Pendaftaran</span>
                         <span className="text-[9px] text-blue-700 italic font-medium">SSM draf sejarah dikesan</span>
@@ -2271,7 +2490,7 @@
                     </div>
 
                     {/* Auto-suggest Pemilik Projek */}
-                    <div className="flex flex-col gap-1.5 relative">
+                    <div className="flex flex-col gap-1.5 relative" onClick={(e) => e.stopPropagation()}>
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Pemilik Projek (Owner Project)</span>
                         <span className="text-[9px] text-amber-700 italic font-medium">Auto-semak pemilik sedia ada</span>
@@ -2437,7 +2656,7 @@
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                       
                       {/* FIELD NAMA PENUH DENGAN AUTOCOMPLETE SEJARAH KEMENTERIAN */}
-                      <div className="flex flex-col gap-1 relative">
+                      <div className="flex flex-col gap-1 relative" onClick={(e) => e.stopPropagation()}>
                         <span className="text-[10px] text-slate-500 font-bold">Nama Penuh</span>
                         <input
                           type="text"
@@ -2458,7 +2677,6 @@
                               <div
                                 key={idx}
                                 onClick={() => {
-                                  // Auto-fill profil penuh daripada pangkalan data sejarah sheets-sheets lepas!
                                   setNewPenyandang({
                                     nama: app.nama,
                                     jantina: app.jantina || "L",
@@ -2526,7 +2744,7 @@
                       </div>
 
                       {/* FIELD WARGANEGARA DENGAN AUTOCOMPLETE CARIAN DUNIA */}
-                      <div className="flex flex-col gap-1 relative">
+                      <div className="flex flex-col gap-1 relative" onClick={(e) => e.stopPropagation()}>
                         <span className="text-[10px] text-slate-500 font-bold">Warganegara (Taip Negara/Kod)</span>
                         <input
                           type="text"
@@ -2547,7 +2765,7 @@
                               <div
                                 key={idx}
                                 onClick={() => {
-                                  setNewPenyandang({...newPenyandang, warganegara: country.code}); // Hanya simpan Kod 3 abjad
+                                  setNewPenyandang({...newPenyandang, warganegara: country.code}); 
                                   setNationalityQuery(`${country.name} - ${country.code}`);
                                   setShowWarganegaraDropdown(false);
                                 }}
@@ -2753,6 +2971,7 @@
                           value={editingCompany.valB}
                           readOnly
                           className="bg-slate-100 border border-amber-300 rounded p-1 text-center font-bold text-xs text-slate-500 cursor-not-allowed"
+                          title="Dikira secara automatik berdasarkan bilangan penyandang."
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -2795,7 +3014,7 @@
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                       
                       {/* FIELD NAMA PENUH DENGAN AUTOCOMPLETE SEJARAH KEMENTERIAN (EDIT MODE) */}
-                      <div className="flex flex-col gap-1 relative">
+                      <div className="flex flex-col gap-1 relative" onClick={(e) => e.stopPropagation()}>
                         <span className="text-[10px] text-slate-500 font-bold">Nama Penuh</span>
                         <input
                           type="text"
@@ -2816,7 +3035,6 @@
                               <div
                                 key={idx}
                                 onClick={() => {
-                                  // Auto-fill profil penuh daripada pangkalan data sejarah sheets-sheets lepas!
                                   setEditPenyandang({
                                     nama: app.nama,
                                     jantina: app.jantina || "L",
@@ -2884,7 +3102,7 @@
                       </div>
 
                       {/* EDIT WARGANEGARA AUTOCOMPLETE */}
-                      <div className="flex flex-col gap-1 relative">
+                      <div className="flex flex-col gap-1 relative" onClick={(e) => e.stopPropagation()}>
                         <span className="text-[10px] text-slate-500 font-bold">Warganegara (Negara/Kod)</span>
                         <input
                           type="text"
@@ -2905,7 +3123,7 @@
                               <div
                                 key={idx}
                                 onClick={() => {
-                                  setEditPenyandang({...editPenyandang, warganegara: country.code}); // Hanya simpan Kod 3 abjad
+                                  setEditPenyandang({...editPenyandang, warganegara: country.code}); 
                                   setEditNationalityQuery(`${country.name} - ${country.code}`);
                                   setShowEditWarganegaraDropdown(false);
                                 }}
