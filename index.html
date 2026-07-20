@@ -80,10 +80,8 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    /* STREAMING_CHUNK: Menyediakan URL Google Apps Script yang dikunci masuk secara selamat dan kekal... */
     const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbz_kOQBbcwuVyLTtxOZJ5pVFVu6mIatvNQ7vrooWg5d91nhq-2bd2Zh9Fk6ARNC5TukMw/exec";
 
-    /* STREAMING_CHUNK: Menyediakan pembolehubah global negara di seluruh dunia beserta kod 3 abjad... */
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
       { name: "INDONESIA", code: "IDN" },
@@ -129,13 +127,11 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
-    /* STREAMING_CHUNK: Mendefinisikan kod penyesuai format tab nama pegawai penilai mesyuarat... */
     function getSheetName(meetingNumber, meetingYear, officerName) {
       const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim().toUpperCase()})` : '';
       return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
     }
 
-    /* STREAMING_CHUNK: Membina fungsi pemecahan teks (parser) yang sangat jitu dan kalis ralat... */
     function normalizePenyandang(p) {
       if (!p) return {};
       
@@ -155,12 +151,11 @@
         pasport: getVal(p, ['pasport', 'PASPORT', 'Pasport', 'passport', 'PASSPORT', 'Passport']) || '',
         tarikhLahir: getVal(p, ['tarikhLahir', 'tarikh_lahir', 'TARIKH_LAHIR', 'TarikhLahir', 'tarikh', 'TARIKH']) || '',
         umur: getVal(p, ['umur', 'UMUR', 'Umur', 'umur_penyandang', 'UMUR_PENYANDANG']) || '',
-        jawatan: getVal(p, ['jawatan', 'JAWATAN', 'Jawatan', 'jawatan_penyandang', 'JAWATAN_PENYANDANG']) || 'TECHNICAL EXPERTISE',
+        jawatan: getVal(p, ['jawatan', 'JAWATAN', 'Jawatan', 'jawatan_penyandang', 'JAWATAN_PENYANDANG']) || '',
         gaji: getVal(p, ['gaji', 'GAJI', 'Gaji', 'gaji_bulanan', 'GAJI_BULANAN']) || ''
       };
     }
 
-    /* STREAMING_CHUNK: Membina penentu pemecah rentetan baris tulisan standard Google Sheets... */
     function parsePlainPenyandang(text) {
       if (!text) return [];
       
@@ -171,11 +166,9 @@
         let clean = line.trim();
         if (!clean) continue;
 
-        // Padam nombor senarai di permulaan (e.g., "1. ", "2) ", "1- ")
         clean = clean.replace(/^\d+[\.\)\s\-–]*/, '').trim();
         if (!clean) continue;
 
-        // Standard: NAMA / JANTINA / WARGANEGARA / PASPORT / UMUR – JAWATAN (GAJI: ...)
         const parts = clean.split('/').map(p => p.trim());
         
         let nama = parts[0] || "";
@@ -186,39 +179,32 @@
         let rest = parts.slice(4).join(" / ");
         
         let umur = "";
-        let jawatan = "TECHNICAL EXPERTISE";
+        let jawatan = "";
         let gaji = "";
         let tarikhLahir = "";
 
-        // Ekstrak Gaji: (GAJI: ...)
+        // Ekstrak Gaji
         const gajiMatch = rest.match(/GAJI:\s*([^)]+)/i) || rest.match(/(RM\s*[0-9,.]+)/i);
         if (gajiMatch) {
           gaji = gajiMatch[1].trim();
           rest = rest.replace(/\(?GAJI:\s*[^)]+\)?/i, '').trim();
         }
 
-        // Ekstrak Tarikh Lahir jika ditulis: (TL: ...) atau TL: ...
-        const tlMatch = rest.match(/T\.?\s*LAHIR:\s*([0-9\-\/]{8,10})/i) || rest.match(/TL:\s*([0-9\-\/]{8,10})/i);
+        // Ekstrak Tarikh Lahir
+        const tlMatch = rest.match(/([0-9]{2}[.\/-][0-9]{2}[.\/-][0-9]{4})/) || rest.match(/TL:\s*([0-9\-\/\.]{8,10})/i) || rest.match(/T\.?\s*LAHIR:\s*([0-9\-\/\.]{8,10})/i);
         if (tlMatch) {
-          tarikhLahir = tlMatch[1].trim();
-          rest = rest.replace(/T\.?\s*LAHIR:\s*[0-9\-\/]{8,10}/i, '').replace(/TL:\s*[0-9\-\/]{8,10}/i, '').trim();
+          tarikhLahir = tlMatch[1] || tlMatch[0];
+          rest = rest.replace(tarikhLahir, '').replace(/TL:/i, '').replace(/T\.?LAHIR:/i, '').trim();
         }
 
-        // Ekstrak Umur: "38 THN", "38 TAHUN"
+        // Ekstrak Umur
         const umurMatch = rest.match(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i);
         if (umurMatch) {
           umur = umurMatch[1].trim();
           rest = rest.replace(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i, '').trim();
-        } else {
-          // Sekiranya umur berada secara berasingan
-          const simpleAgeMatch = rest.match(/^(\d+)\s*$/) || rest.match(/^(\d+)\s*–/);
-          if (simpleAgeMatch) {
-            umur = `${simpleAgeMatch[1]} THN`;
-            rest = rest.replace(/^\d+/, '').trim();
-          }
         }
 
-        let cleanedRest = rest.replace(/^[\s–\-]+/, '').replace(/[\s–\-]+$/, '').trim();
+        let cleanedRest = rest.replace(/^[\s–\-]+/, '').replace(/[\s–\-]+$/, '').replace(/^\s*\(\s*/, '').replace(/\s*\)\s*$/, '').trim();
         if (cleanedRest) {
           jawatan = cleanedRest;
         }
@@ -238,7 +224,14 @@
       return result;
     }
 
-    /* STREAMING_CHUNK: Membina penyusun semula objek React kembali ke baris tulisan standard Google Sheets... */
+    function getProjekArray(projekField) {
+      if (Array.isArray(projekField)) return projekField.length > 0 ? projekField : [""];
+      if (typeof projekField === 'string' && projekField.trim()) {
+        return projekField.split(/\r?\n/).map(p => p.replace(/^➢\s*/, "").trim()).filter(Boolean);
+      }
+      return [""];
+    }
+
     function formatPenyandangToPlain(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) return "";
       return penyandangList.map((p, idx) => {
@@ -251,27 +244,34 @@
           norm.pasport || "-"
         ];
 
-        let suffix = norm.umur || "-";
-        if (norm.tarikhLahir) {
-          suffix += ` (TL: ${norm.tarikhLahir})`;
+        let formattedDate = norm.tarikhLahir || "";
+        if (formattedDate.includes("-")) {
+          const s = formattedDate.split("-");
+          if (s.length === 3 && s[0].length === 4) {
+            formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
+          }
         }
-        parts.push(suffix);
+
+        let dateAndAge = formattedDate;
+        if (norm.umur) {
+          dateAndAge += ` (${norm.umur})`;
+        } else if (!dateAndAge) {
+          dateAndAge = "-";
+        }
+        parts.push(dateAndAge);
 
         let mainStr = parts.join(" / ");
-        let jawatanStr = norm.jawatan ? ` – ${norm.jawatan}` : " – TECHNICAL EXPERTISE";
-        let gajiStr = norm.gaji ? ` (GAJI: ${norm.gaji})` : "";
+        let jawatanStr = norm.jawatan ? ` – ${norm.jawatan}` : "";
+        let gajiStr = norm.gaji ? ` GAJI: ${norm.gaji}` : "";
 
         return `${idx + 1}. ${mainStr}${jawatanStr}${gajiStr}`;
       }).join("\n");
     }
 
-    /* STREAMING_CHUNK: Membina pemproses rekod pintar bagi data yang ditarik dari Google Sheets... */
     function processRecordsFromSheet(records) {
       if (!Array.isArray(records)) return [];
       return records.map(r => {
         let parsedPenyandang = [];
-        
-        // Guna lajur rawPenyandangStr jika wujud, jika tidak guna data biasa
         const sourceStr = (r.rawPenyandangStr || r.penyandang || "").toString().trim();
         
         if (sourceStr) {
@@ -288,12 +288,12 @@
 
         return {
           ...r,
+          projek: getProjekArray(r.projek),
           penyandang: parsedPenyandang.map(normalizePenyandang)
         };
       });
     }
 
-    /* STREAMING_CHUNK: Mengira ringkasan warganegara serta bilangan pemohon secara dinamik... */
     function calculateBAndWN(penyandangList) {
       if (!penyandangList || penyandangList.length === 0) {
         return { valB: "01", valWN: "-" };
@@ -329,7 +329,6 @@
       };
     }
 
-    /* STREAMING_CHUNK: Menyediakan komponen Icon SVG tersuai bagi mengelakkan ralat pustaka luar... */
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
         database: (
@@ -499,13 +498,15 @@
     }
 
     function App() {
-      /* STREAMING_CHUNK: Mengasaskan takrifan semua state kementerian secara tulen (In-Memory)... */
       const [meetingNumber, setMeetingNumber] = useState("14");
       const [meetingYear, setMeetingYear] = useState("2026");
       const [officerName, setOfficerName] = useState("");
 
+      // Satu-satunya punca kebenaran (Source of Truth) bagi semua draf penilai secara dinamik
+      const [sessionData, setSessionData] = useState({});
+
       const [activeSector, setActiveSector] = useState("og");
-      const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
+      const [viewMode, setViewMode] = useState("dashboard");
       const [isFullscreen, setIsFullscreen] = useState(false);
       const meetingContainerRef = useRef(null);
 
@@ -526,12 +527,8 @@
       const [editingCompany, setEditingCompany] = useState(null);
       
       const [editPenyandang, setEditPenyandang] = useState({
-        nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "TECHNICAL EXPERTISE", gaji: ""
+        nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
-
-      // Pangkalan data tempatan berstruktur memori (Sifar localStorage)
-      const [dataOG, setDataOG] = useState([]);
-      const [dataOthers, setDataOthers] = useState({});
 
       // Senarai semua pegawai penilai yang dikesan dari tab Google Sheets
       const [availableEvaluators, setAvailableEvaluators] = useState([]);
@@ -543,23 +540,19 @@
       const [searchQuery, setSearchQuery] = useState("");
       const [statusFilter, setStatusFilter] = useState("semua");
 
-      // URL Google Apps Script yang ditetapkan secara kekal (hardcoded)
       const sheetUrl = GOOGLE_APPS_SCRIPT_LALAI;
       const [isSyncing, setIsSyncing] = useState(false);
       const [syncLogs, setSyncLogs] = useState([]);
 
-      // Notifikasi Toast & Dialog Pengesahan
       const [toasts, setToasts] = useState([]);
       const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: "" });
 
-      // Modal Pendaftaran & State Auto-suggest Sejarah
       const [showAddModal, setShowAddModal] = useState(false);
       const [companySearchQuery, setCompanySearchQuery] = useState("");
       const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
       const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
       const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
-      // State Pengisytiharan Pencarian Arkib
       const [pastSheets, setPastSheets] = useState([]);
       const [showArchiveModal, setShowArchiveModal] = useState(false);
       const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
@@ -568,11 +561,22 @@
       const [globalApplicants, setGlobalApplicants] = useState([]); 
       const [isLoadingArchive, setIsLoadingArchive] = useState(false);
 
+      const activeCacheKey = useMemo(() => {
+        return `${meetingNumber}_${meetingYear}_${officerName.trim().toUpperCase() || "AM"}`;
+      }, [meetingNumber, meetingYear, officerName]);
+
+      const activeDataSlice = useMemo(() => {
+        return sessionData[activeCacheKey] || { og: [], others: {} };
+      }, [sessionData, activeCacheKey]);
+
+      const dataOG = activeDataSlice.og || [];
+      const dataOthers = activeDataSlice.others || {};
+
       const [newCompany, setNewCompany] = useState({
         namaSyarikat: "",
         alamat: "",
         kegiatan: "",
-        projek: "",
+        projek: [""], 
         noKontrak: "",
         tempohProjek: "",
         ownerProjek: "",
@@ -586,10 +590,19 @@
       });
 
       const [newPenyandang, setNewPenyandang] = useState({
-        nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "TECHNICAL EXPERTISE", gaji: ""
+        nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      /* STREAMING_CHUNK: Menyediakan senarai pegawai penilai tersaring secara dinamik... */
+      const updateActiveData = (newOg, newOthers) => {
+        setSessionData(prev => ({
+          ...prev,
+          [activeCacheKey]: {
+            og: newOg !== undefined ? newOg : (prev[activeCacheKey]?.og || []),
+            others: newOthers !== undefined ? newOthers : (prev[activeCacheKey]?.others || {})
+          }
+        }));
+      };
+
       const displayEvaluators = useMemo(() => {
         const list = [...availableEvaluators];
         if (officerName && !list.includes(officerName)) {
@@ -612,15 +625,14 @@
       }
 
       function markAsSynced(id, status) {
-        if (activeSector === "og") {
-          setDataOG(prev => prev.map(item => item.id === id ? { ...item, synced: status } : item));
-        } else {
-          setDataOthers(prev => {
-            const sectorData = prev[activeSector] || [];
-            const updated = sectorData.map(item => item.id === id ? { ...item, synced: status } : item);
-            return { ...prev, [activeSector]: updated };
-          });
-        }
+        const updatedOg = dataOG.map(item => item.id === id ? { ...item, synced: status } : item);
+        const updatedOthers = {};
+        SECTORS_LIST.forEach(s => {
+          if (s.id !== "og") {
+            updatedOthers[s.id] = (dataOthers[s.id] || []).map(item => item.id === id ? { ...item, synced: status } : item);
+          }
+        });
+        updateActiveData(updatedOg, updatedOthers);
       }
 
       function handlePrint() {
@@ -629,11 +641,13 @@
 
       function handleSaveOfficerName(name) {
         setOfficerName(name.toUpperCase());
-        showToast(`Sesi pegawai penilai disetkan kepada: ${name || "Lalai"}`, "info");
+        showToast(`Sesi pegawai penilai disetkan kepada: ${name || "Am"}`, "info");
       }
 
       function triggerEditItem(item) {
-        setEditingCompany(JSON.parse(JSON.stringify(item))); 
+        const normalizedItem = JSON.parse(JSON.stringify(item));
+        normalizedItem.projek = getProjekArray(normalizedItem.projek);
+        setEditingCompany(normalizedItem); 
         setShowEditModal(true);
       }
 
@@ -661,7 +675,6 @@
         }));
       }
 
-      /* STREAMING_CHUNK: Membina manipulasi penyandang di dalam panel edit dan draf... */
       function addPenyandangToEditingCompany() {
         if (!editPenyandang.nama) return;
         setEditingCompany(prev => {
@@ -675,7 +688,7 @@
           };
         });
         setEditPenyandang({
-          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "TECHNICAL EXPERTISE", gaji: ""
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
         });
         setEditNationalityQuery("");
       }
@@ -693,35 +706,36 @@
         });
       }
 
-      // Membina penyesuai format sebelum menyelaraskan draf dengan Google Sheets
       function prepareRecordForSync(item) {
+        const rawProjekArray = getProjekArray(item.projek);
+        const joinedProjects = rawProjekArray.length > 1 
+          ? rawProjekArray.join("\n➢ ") 
+          : rawProjekArray[0] || "-";
+
         return {
           ...item,
+          projek: joinedProjects,
           penyandang: formatPenyandangToPlain(item.penyandang)
         };
       }
 
-      /* STREAMING_CHUNK: Menyimpan kemas kini maklumat draf syarikat di memori... */
       function handleUpdateCompany(e) {
         e.preventDefault();
         if (!editingCompany) return;
 
-        let updatedList = [];
+        let updatedOg = [...dataOG];
+        let updatedOthers = { ...dataOthers };
+
         if (activeSector === "og") {
-          setDataOG(prev => {
-            updatedList = prev.map(item => item.id === editingCompany.id ? editingCompany : item);
-            return updatedList;
-          });
+          updatedOg = dataOG.map(item => item.id === editingCompany.id ? editingCompany : item);
         } else {
-          setDataOthers(prev => {
-            const sectorData = prev[activeSector] || [];
-            updatedList = sectorData.map(item => item.id === editingCompany.id ? editingCompany : item);
-            return { ...prev, [activeSector]: updatedList };
-          });
+          updatedOthers[activeSector] = (dataOthers[activeSector] || []).map(item => item.id === editingCompany.id ? editingCompany : item);
         }
 
+        updateActiveData(updatedOg, updatedOthers);
+
         if (sheetUrl) {
-          syncEditRowToGoogleSheets(editingCompany, updatedList);
+          syncEditRowToGoogleSheets(editingCompany, activeSector === "og" ? updatedOg : updatedOthers[activeSector]);
         } else {
           showToast("Kemaskini permohonan berjaya disimpan secara setempat!", "success");
         }
@@ -742,7 +756,6 @@
         }
       }
 
-      /* STREAMING_CHUNK: Menyediakan pemetaan senarai pegawai penilai secara dinamik daripada helaian GAS... */
       async function scanEvaluatorsForMeeting(number, year) {
         if (!sheetUrl) return;
         addLog(`Mengekstrak nama penilai dari Google Sheets untuk Sesi Bil. ${number}/${year}...`, "info");
@@ -790,15 +803,14 @@
       }, []);
 
       function handleSaveDecision(id, keputusan, ulasan) {
-        if (activeSector === "og") {
-          setDataOG(prev => prev.map(item => item.id === id ? { ...item, keputusan, ulasan } : item));
-        } else {
-          setDataOthers(prev => {
-            const sectorData = prev[activeSector] || [];
-            const updated = sectorData.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
-            return { ...prev, [activeSector]: updated };
-          });
-        }
+        const updatedOg = dataOG.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+        const updatedOthers = {};
+        SECTORS_LIST.forEach(s => {
+          if (s.id !== "og") {
+            updatedOthers[s.id] = (dataOthers[s.id] || []).map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+          }
+        });
+        updateActiveData(updatedOg, updatedOthers);
 
         if (sheetUrl) {
           syncSingleRowToGoogleSheets(id, keputusan, ulasan);
@@ -807,7 +819,6 @@
         }
       }
 
-      /* STREAMING_CHUNK: Membina penyelarasan penuh semua data ke helaian awan GAS... */
       async function handleFullSync() {
         if (!sheetUrl) {
           showToast("URL Google Apps Script tidak ditemui.", "error");
@@ -817,7 +828,7 @@
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`Memulai penyelarasan penuh untuk tab [${sheetName}]...`, "info");
         
-        // Sediakan rekod draf bertulis sebelum diserahkan kepada Sheets
+        const currentSectData = activeSector === "og" ? dataOG : (dataOthers[activeSector] || []);
         const preparedData = currentSectData.map(prepareRecordForSync);
 
         try {
@@ -837,15 +848,7 @@
             addLog(`Penyelarasan penuh berjaya untuk Sektor ${activeSector.toUpperCase()}!`, "success");
             showToast("Penyelarasan pangkalan data penuh ke Google Sheets selesai!", "success");
             
-            if (activeSector === "og") {
-              setDataOG(prev => prev.map(item => ({ ...item, synced: true })));
-            } else {
-              setDataOthers(prev => {
-                const sectorData = prev[activeSector] || [];
-                const updated = sectorData.map(item => ({ ...item, synced: true }));
-                return { ...prev, [activeSector]: updated };
-              });
-            }
+            markAsSynced(null, true); 
           } else {
             addLog(`Ralat penyelarasan penuh: ${result.message || 'Isu tidak dikesan.'}`, "error");
           }
@@ -856,7 +859,6 @@
         }
       }
 
-      /* STREAMING_CHUNK: Menyediakan penjana fail Word (.doc) rasmi JKPLIK KDN... */
       function exportToWord() {
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
@@ -947,6 +949,8 @@
                 <tbody>
         `;
 
+        const currentSectData = activeSector === "og" ? dataOG : (dataOthers[activeSector] || []);
+
         if (currentSectData.length === 0) {
           wordContent += `
             <tr>
@@ -956,13 +960,30 @@
         } else {
           currentSectData.forEach((item, index) => {
             let penyandangRows = "";
+            const hasPenyandang = item.penyandang && item.penyandang.length > 0;
+
             (item.penyandang || []).forEach((p, idx) => {
               const norm = normalizePenyandang(p);
-              penyandangRows += `<div><b>${idx + 1}. ${norm.nama}</b> / ${norm.jantina} / ${norm.warganegara} / ${norm.pasport || "-"} / ${norm.umur || "-"} &ndash; <i>${norm.jawatan}</i><br/><b>GAJI: ${norm.gaji || "-"}</b>${norm.tarikhLahir ? ` (TL: ${norm.tarikhLahir})` : ''}</div><br/>`;
+              let formattedDate = norm.tarikhLahir || "";
+              if (formattedDate.includes("-")) {
+                const s = formattedDate.split("-");
+                if (s.length === 3 && s[0].length === 4) {
+                  formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
+                }
+              }
+              const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
+              
+              penyandangRows += `<div><b>${idx + 1}. ${norm.nama}</b> / ${norm.jantina} / ${norm.warganegara || "-"} / ${norm.pasport || "-"} / ${dateAndAge} &ndash; <i>${norm.jawatan || "-"}</i> <b>GAJI: ${norm.gaji || "-"}</b></div><br/>`;
             });
 
             const escapedKegiatan = (item.kegiatan || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            const escapedProjek = (item.projek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            
+            // Format pelbagai projek pembentangan untuk fail Word
+            const rawProjekArray = getProjekArray(item.projek);
+            const formattedProjekWord = rawProjekArray
+              .map(p => `&#10148; ${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}`)
+              .join("<br/>");
+
             const escapedNoKontrak = (item.noKontrak || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const escapedTempohProjek = (item.tempohProjek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const escapedOwner = (item.ownerProjek || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -971,7 +992,7 @@
               <div><b>KEGIATAN SYARIKAT</b><br/>&#10148; ${escapedKegiatan}</div><br/>
               <div style="border-top: 1px solid #e2e8f0; padding-top: 5px;">
                 <b>PROJECT:</b><br/>
-                &#10148; ${escapedProjek}<br/>
+                ${formattedProjekWord}<br/>
                 ${escapedNoKontrak ? `&#10148; NO. KONTRAK: ${escapedNoKontrak}<br/>` : ''}
                 ${escapedTempohProjek ? `&#10148; TEMPOH PROJEK: ${escapedTempohProjek}<br/>` : ''}
                 ${escapedOwner ? `&#10148; OWNER PROJECT: ${escapedOwner}` : ''}
@@ -1004,10 +1025,10 @@
                 <td class="font-bold uppercase">${item.namaSyarikat}<br/><span style="font-size: 8pt; font-weight: normal;">${item.alamat || ""}</span></td>
                 <td>${penyandangRows}</td>
                 <td class="align-center font-bold">${item.tempohMohon || "-"}</td>
-                <td class="align-center font-bold">${item.valB || "-"}</td>
-                <td class="align-center font-bold">${item.valL || "-"}</td>
-                <td class="align-center font-bold">${item.valTR || "-"}</td>
-                <td class="align-center font-bold" style="font-size: 8pt; white-space: pre-line;">${item.valWN || "-"}</td>
+                <td class="align-center font-bold">${hasPenyandang ? (item.valB || "-") : "-"}</td>
+                <td class="align-center font-bold">${hasPenyandang ? (item.valL || "-") : "-"}</td>
+                <td class="align-center font-bold">${hasPenyandang ? (item.valTR || "-") : "-"}</td>
+                <td class="align-center font-bold" style="font-size: 8pt; white-space: pre-line;">${hasPenyandang ? (item.valWN || "-") : "-"}</td>
                 <td>${projectDetails}</td>
                 <td>${decisionCol}</td>
               </tr>
@@ -1035,7 +1056,6 @@
         showToast("Dokumen format Word berjaya draf dan dimuat turun!", "success");
       }
 
-      /* STREAMING_CHUNK: Membina fungsi pengambilan data semasa daripada helaian GAS secara dinamik... */
       async function loadCurrentMeetingFromSheets(targetTabName) {
         if (!sheetUrl) return;
         addLog(`[AUTO-SYNC] Menyemak jika tab "${targetTabName}" wujud di Google Sheets...`, "info");
@@ -1059,8 +1079,6 @@
             const dataResult = await dataRes.json();
             if (dataResult.status === "success") {
               const records = dataResult.records || [];
-              
-              // Lakukan penormalan dan pemecahan teks Google Sheets secara dinamik
               const normalizedRecords = processRecordsFromSheet(records);
 
               const ogRecords = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith("OG-"));
@@ -1071,19 +1089,26 @@
                 }
               });
 
-              if (targetTabName === getSheetName(meetingNumber, meetingYear, officerName)) {
-                setDataOG(ogRecords);
-                setDataOthers(newOthers);
-                addLog(`[AUTO-SYNC] Berjaya memuatkan ${records.length} rekod dari Google Sheets. Data selari!`, "success");
-                showToast("Penyelarasan automatik dari Google Sheets berjaya dilakukan!", "success");
-              }
+              // Kemas kini terus ke tab penilai sasaran secara kalis tindihan
+              setSessionData(prev => ({
+                ...prev,
+                [activeCacheKey]: {
+                  og: ogRecords,
+                  others: newOthers
+                }
+              }));
+              addLog(`[AUTO-SYNC] Berjaya memuatkan ${records.length} rekod dari Google Sheets. Data selari!`, "success");
+              showToast("Penyelarasan automatik dari Google Sheets berjaya dilakukan!", "success");
             }
           } else {
             addLog(`[AUTO-SYNC] Tab "${targetTabName}" belum wujud di awan. Memulai draf bersih untuk pegawai ini.`, "info");
-            if (targetTabName === getSheetName(meetingNumber, meetingYear, officerName)) {
-              setDataOG([]);
-              setDataOthers({});
-            }
+            setSessionData(prev => ({
+              ...prev,
+              [activeCacheKey]: {
+                og: [],
+                others: {}
+              }
+            }));
           }
         } catch (err) {
           addLog(`[AUTO-SYNC] Sambungan ke awan gagal: ${err.message}`, "error");
@@ -1095,7 +1120,6 @@
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
         
-        // Sediakan draf bertulis penyandang sebelum penyerahan
         const preparedData = allItems.map(prepareRecordForSync);
 
         try {
@@ -1117,13 +1141,11 @@
         }
       }
 
-      /* STREAMING_CHUNK: Menghantar rekod baru syarikat ke Google Sheets... */
       async function syncAddRowToGoogleSheets(item) {
         if (!sheetUrl) return;
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[AUTO-SYNC] Menghantar "${item.namaSyarikat}" ke Google Sheets...`, "info");
         
-        // Sediakan baris bertulis penyandang
         const preparedItem = prepareRecordForSync(item);
 
         try {
@@ -1192,7 +1214,6 @@
         }
       }
 
-      /* STREAMING_CHUNK: Menyediakan fungsi pengambilan draf sejarah global daripada Sheets... */
       async function fetchGlobalHistory() {
         if (!sheetUrl) return;
         try {
@@ -1207,7 +1228,6 @@
             setGlobalCompanies(result.companies || []);
             setGlobalOwners(result.owners || []);
             
-            // Proses pemecahan teks global penyandang
             const rawApplicants = result.applicants || [];
             const mappedApps = [];
             rawApplicants.forEach(appStr => {
@@ -1253,7 +1273,6 @@
         }
       }
 
-      /* STREAMING_CHUNK: Menyediakan pengimport data draf helaian arkib tertentu secara terus... */
       async function loadPastSheetData(selectedSheetName) {
         setIsLoadingArchive(true);
         addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
@@ -1267,15 +1286,23 @@
           const result = await res.json();
           if (result.status === "success") {
             const records = result.records || [];
-            
-            // Nyah-serialize dan normalisasi data teks Sheets secara dinamik
             const normalizedRecords = processRecordsFromSheet(records);
 
-            if (activeSector === "og") {
-              setDataOG(normalizedRecords);
-            } else {
-              setDataOthers(prev => ({ ...prev, [activeSector]: normalizedRecords }));
-            }
+            const ogRecords = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith("OG-"));
+            const newOthers = {};
+            SECTORS_LIST.forEach(s => {
+              if (s.id !== "og") {
+                newOthers[s.id] = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith(`${s.id.toUpperCase()}-`));
+              }
+            });
+
+            setSessionData(prev => ({
+              ...prev,
+              [activeCacheKey]: {
+                og: ogRecords,
+                others: newOthers
+              }
+            }));
 
             const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
             if (match) {
@@ -1304,19 +1331,16 @@
       }
 
       function executeDeleteItem(id) {
-        let updatedList = [];
+        let updatedOg = [...dataOG];
+        let updatedOthers = { ...dataOthers };
+
         if (activeSector === "og") {
-          setDataOG(prev => {
-            updatedList = prev.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
-            return updatedList;
-          });
+          updatedOg = dataOG.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
         } else {
-          setDataOthers(prev => {
-            const filtered = (prev[activeSector] || []).filter(item => item.id !== id);
-            updatedList = filtered.map((item, i) => ({ ...item, bil: i + 1 }));
-            return { ...prev, [activeSector]: updatedList };
-          });
+          updatedOthers[activeSector] = (dataOthers[activeSector] || []).filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
         }
+
+        updateActiveData(updatedOg, updatedOthers);
 
         if (sheetUrl) {
           syncDeleteRowFromGoogleSheets(id);
@@ -1339,12 +1363,11 @@
           };
         });
         setNewPenyandang({
-          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "TECHNICAL EXPERTISE", gaji: ""
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
         });
         setNationalityQuery("");
       }
 
-      /* STREAMING_CHUNK: Menyediakan fungsi pendaftaran permohonan syarikat baharu secara memori... */
       function removePenyandangFromNewCompany(idx) {
         setNewCompany(prev => {
           const filtered = prev.penyandang.filter((_, i) => i !== idx);
@@ -1362,28 +1385,28 @@
         e.preventDefault();
         if (!newCompany.namaSyarikat) return;
 
+        const cleanProjects = newCompany.projek.filter(p => p.trim() !== "");
+
         const newItem = {
           ...newCompany,
+          projek: cleanProjects.length > 0 ? cleanProjects : [""],
           id: `${activeSector.toUpperCase()}-${Date.now()}`,
-          bil: currentSectData.length + 1,
+          bil: (activeSector === "og" ? dataOG.length : (dataOthers[activeSector] || []).length) + 1,
           keputusan: "",
           ulasan: "",
           synced: !!sheetUrl
         };
 
-        let updatedList = [];
+        let updatedOg = [...dataOG];
+        let updatedOthers = { ...dataOthers };
+
         if (activeSector === "og") {
-          setDataOG(prev => {
-            updatedList = [...prev, newItem];
-            return updatedList;
-          });
+          updatedOg = [...dataOG, newItem];
         } else {
-          setDataOthers(prev => {
-            const sectorData = prev[activeSector] || [];
-            updatedList = [...sectorData, newItem];
-            return { ...prev, [activeSector]: updatedList };
-          });
+          updatedOthers[activeSector] = [...(dataOthers[activeSector] || []), newItem];
         }
+
+        updateActiveData(updatedOg, updatedOthers);
 
         if (sheetUrl) {
           syncAddRowToGoogleSheets(newItem);
@@ -1395,7 +1418,7 @@
           namaSyarikat: "",
           alamat: "",
           kegiatan: "",
-          projek: "",
+          projek: [""],
           noKontrak: "",
           tempohProjek: "",
           ownerProjek: "",
@@ -1420,7 +1443,7 @@
             namaSyarikat: "BARISAN SAMUDERA SDN BHD (514578-X)",
             alamat: "LOT NO. 23A, BLOCK C, 1ST & 2ND FLOOR, BUNDUSAN SQUARE, KOTA KINABALU SABAH.",
             kegiatan: "REPAIR AND MAINTENANCE OF INDUSTRIAL MACHINERY AND EQUIPMENT, GENERAL CONSTRUCTION, HOUSEKEEPING, GRASS CUTTING AND LANDSCAPING, ELECTRICAL/ELECTRONIC COMPONENTS AND ACCESSORIES.",
-            projek: "CONTRACT PROVISION OF HEAT EXCHANGER, PRESSURE VESSEL AND UTILITY TANK MAINTENANCE SERVICES FOR PETRONAS CARIGALI SDN BHD (PACKAGE A).",
+            projek: ["CONTRACT PROVISION OF HEAT EXCHANGER, PRESSURE VESSEL AND UTILITY TANK MAINTENANCE SERVICES FOR PETRONAS CARIGALI SDN BHD (PACKAGE A)."],
             noKontrak: "RFP-000000032393(A)",
             tempohProjek: "11 JAN 2026 – 10 JAN 2027",
             ownerProjek: "PETRONAS CARIGALI SDN BHD",
@@ -1435,45 +1458,18 @@
             penyandang: [
               { nama: "AHMAD AQMAL BIN RAHMAT", jantina: "L", warganegara: "MYS", pasport: "A72545666", tarikhLahir: "1988-02-25", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000" }
             ]
-          },
-          {
-            id: `OG-${Date.now()}-2`,
-            bil: 2,
-            namaSyarikat: "BUMITECH GLOBAL ENERGY SDN BHD (781730-D)",
-            alamat: "NO 47 & 47-1 JALAN INDUSTRI TMP 1, TAMAN PERINDUSTRIAN TANJUNG MINYAK PERDANA, 75260 MELAKA.",
-            kegiatan: "ENGINEERING INSPECTION AND SERVICES",
-            projek: "CONTRACT PROVISION OF PAN MALAYSIA – ADVANCE NDT INSPECTION SERVICES (PACKAGE A) FOR MALAYSIA LNG SDN BHD BERTARIKH 17 AUG 2023",
-            noKontrak: "RFP-000000041163/MLNG",
-            tempohProjek: "17 AUG 2023 – 14 JUN 2028",
-            ownerProjek: "PETRONAS CARIGALI SDN BHD",
-            tempohMohon: "06 BULAN",
-            valB: "04",
-            valL: "-",
-            valTR: "-",
-            valWN: "04 MYS 'A'",
-            keputusan: "",
-            ulasan: "",
-            synced: false,
-            penyandang: [
-              { nama: "MUHD RIDHWAN BIN MUHD ALI", jantina: "L", warganegara: "MYS", pasport: "A958060", tarikhLahir: "1995-09-24", umur: "31 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MUHAMAD SAHRIN BIN MUSTAFA", jantina: "L", warganegara: "MYS", pasport: "A71240648", tarikhLahir: "1992-12-23", umur: "34 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MUHAMMAD IRFAN BIN AZMI", jantina: "L", warganegara: "MYS", pasport: "A72522080", tarikhLahir: "2001-01-18", umur: "25 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" },
-              { nama: "MOHD REEZA BIN MOHD ROSLI", jantina: "L", warganegara: "MYS", pasport: "A71072026", tarikhLahir: "1981-06-07", umur: "45 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM25,000" }
-            ]
           }
         ];
         
-        setDataOG(demoData);
-        showToast("Dua data ujian JKPLIK draf berjaya dimuatkan!", "success");
+        updateActiveData(demoData, {});
+        showToast("Data ujian JKPLIK draf berjaya dimuatkan!", "success");
         setViewMode("dashboard");
       }
 
-      /* STREAMING_CHUNK: Menyediakan fungsi penyalinan kod GAS rasmi yang telah diperbaiki ke clipboard... */
       function handleCopyGASCode() {
         const gasCodeStr = `/**
- * Fungsi utama menerima permintaan HTTP POST daripada frontend web JKPLIK.
- * Ia menyokong penyelarasan penuh, penambahan permohonan baru, kemas kini, pemadaman,
- * carian sejarah, serta senarai helaian arkib.
+ * SISTEM PENULISAN & PENYELARASAN DATA JKPLIK MALAYSIA (VERSI KUKUH - DIPERBAIKI)
+ * Menguruskan simpanan warganegara, umur, tarikh lahir, jawatan dan gaji secara jitu.
  */
 function doPost(e) {
   function sendResponse(data) {
@@ -1490,6 +1486,62 @@ function doPost(e) {
     var action = params.action;
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheetName = params.sheetName || "Utama";
+
+    function parsePenyandangLine(line) {
+      var cleanLine = line.replace(/^\\d+[\\.\\)\\s\\-–]*/, '').trim();
+      if (!cleanLine) return null;
+
+      var parts = cleanLine.split('/').map(function(p) { return p.trim(); });
+      var name = parts[0] || "";
+      var jantina = parts[1] || "L";
+      var warganegara = parts[2] || "";
+      var pasport = parts[3] || "";
+
+      var restOfLine = parts.slice(4).join(" / ").trim();
+      var tarikhLahir = "";
+      var umur = "";
+      var jawatan = "";
+      var gaji = "";
+
+      // 1. Ekstrak GAJI
+      var gajiMatch = restOfLine.match(/GAJI:\\s*([^)]+)/i) || restOfLine.match(/(RM\\s*[0-9,.]+)/i);
+      if (gajiMatch) {
+        gaji = gajiMatch[1].trim();
+        restOfLine = restOfLine.replace(/GAJI:\\s*.*$/i, "").trim();
+      }
+
+      // 2. Ekstrak Tarikh Lahir (Format DD.MM.YYYY atau YYYY-MM-DD)
+      var dateMatch = restOfLine.match(/([0-9]{2}[.\\/-][0-9]{2}[.\\/-][0-9]{4})/) || restOfLine.match(/([0-9]{4}[.\\/-][0-9]{2}[.\\/-][0-9]{2})/);
+      if (dateMatch) {
+        tarikhLahir = dateMatch[1].trim();
+        restOfLine = restOfLine.replace(tarikhLahir, "").trim();
+      }
+
+      // 3. Ekstrak UMUR
+      var umurMatch = restOfLine.match(/(\\d+\\s*THN|\\d+\\s*TAHUN|\\d+\\s*YEARS?)/i);
+      if (umurMatch) {
+        umur = umurMatch[1].trim();
+        restOfLine = restOfLine.replace(umurMatch[1], "").trim();
+        restOfLine = restOfLine.replace(/\\(\\s*\\)/g, "").trim();
+      }
+
+      // 4. Sisa baris bersih adalah Jawatan
+      var jawatanClean = restOfLine.replace(/^[\\s–\\-]+/, "").replace(/[\\s–\\-]+$/, "").replace(/^\\s*\\(\\s*/, "").replace(/\\s*\\)\\s*$/, "").trim();
+      if (jawatanClean) {
+        jawatan = jawatanClean;
+      }
+
+      return {
+        nama: name,
+        jantina: jantina,
+        warganegara: warganegara,
+        pasport: pasport,
+        tarikhLahir: tarikhLahir,
+        umur: umur,
+        jawatan: jawatan,
+        gaji: gaji
+      };
+    }
 
     if (action === "get_sheets_list") {
       var sheets = ss.getSheets();
@@ -1516,9 +1568,9 @@ function doPost(e) {
           var row = values[r];
           var rawCompany = row[3] ? row[3].toString().trim() : "";
           if (rawCompany) {
-            var parts = rawCompany.split("\\n");
-            var compName = parts[0].trim().toUpperCase();
-            var compAddress = parts.slice(1).join("\\n").trim().toUpperCase();
+            var compParts = rawCompany.split("\\n");
+            var compName = compParts[0].trim().toUpperCase();
+            var compAddress = compParts.slice(1).join("\\n").trim().toUpperCase();
             var rawProjectDetails = row[10] ? row[10].toString() : "";
             var compActivity = "";
             var activityMatch = rawProjectDetails.match(/KEGIATAN SYARIKAT:\\s*\\n➢\\s*([^\\n]+)/i);
@@ -1550,51 +1602,13 @@ function doPost(e) {
           if (rawPenyandangStr) {
             var lines = rawPenyandangStr.split("\\n");
             for (var l = 0; l < lines.length; l++) {
-              var line = lines[l].trim();
-              if (!line) continue;
-              var cleanLine = line.replace(/^\\d+\\.\\s*/, "");
-              var partsP = cleanLine.split(" / ");
-              var pName = partsP[0] ? partsP[0].trim().toUpperCase() : "";
-              if (!pName) continue;
-
-              var pJantina = partsP[1] ? partsP[1].trim() : "L";
-              var pWarganegara = partsP[2] ? partsP[2].trim() : "";
-              var pPasport = partsP[3] ? partsP[3].trim() : "";
-              
-              var restOfLine = partsP.slice(4).join(" / ");
-              var pUmur = "";
-              var pJawatan = "TECHNICAL EXPERTISE";
-              var pGaji = "";
-
-              var gajiMatch = restOfLine.match(/GAJI:\\s*([^)]+)/i);
-              if (gajiMatch) {
-                pGaji = gajiMatch[1].trim();
-                restOfLine = restOfLine.replace(/\\(?GAJI:\\s*[^)]+\\)?/i, "").trim();
-              }
-
-              var umurMatch = restOfLine.match(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i);
-              if (umurMatch) {
-                pUmur = umurMatch[1].trim();
-                restOfLine = restOfLine.replace(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i, "").trim();
-              }
-
-              var jawatanClean = restOfLine.replace(/^[\\s–\\-]+/, "").replace(/[\\s–\\-]+$/, "").trim();
-              if (jawatanClean) {
-                pJawatan = jawatanClean;
-              }
-
-              var uniqKey = pName + "_" + pPasport;
-              if (!seenApplicants[uniqKey]) {
-                seenApplicants[uniqKey] = true;
-                applicants.push({
-                  nama: pName,
-                  jantina: pJantina,
-                  warganegara: pWarganegara,
-                  pasport: pPasport,
-                  umur: pUmur,
-                  jawatan: pJawatan,
-                  gaji: pGaji
-                });
+              var parsed = parsePenyandangLine(lines[l]);
+              if (parsed) {
+                var uniqKey = parsed.nama + "_" + parsed.pasport;
+                if (!seenApplicants[uniqKey]) {
+                  seenApplicants[uniqKey] = true;
+                  applicants.push(parsed);
+                }
               }
             }
           }
@@ -1623,46 +1637,13 @@ function doPost(e) {
         if (!row[0]) continue;
 
         var rawPenyandang = row[4] ? row[4].toString().split("\\n") : [];
-        var penyandangs = rawPenyandang.map(function(line) {
-          var cleanLine = line.replace(/^\\d+\\.\\s*/, "");
-          var parts = cleanLine.split(" / ");
-          var name = parts[0] || "";
-          var jantina = parts[1] || "L";
-          var warganegara = parts[2] || "";
-          var pasport = parts[3] || "";
-          
-          var restOfLine = parts.slice(4).join(" / ");
-          var umur = "";
-          var jawatan = "TECHNICAL EXPERTISE";
-          var gaji = "";
-
-          var gajiMatch = restOfLine.match(/GAJI:\\s*([^)]+)/i);
-          if (gajiMatch) {
-            gaji = gajiMatch[1].trim();
-            restOfLine = restOfLine.replace(/\\(?GAJI:\\s*[^)]+\\)?/i, "").trim();
+        var penyandangs = [];
+        for (var pi = 0; pi < rawPenyandang.length; pi++) {
+          var parsed = parsePenyandangLine(rawPenyandang[pi]);
+          if (parsed) {
+            penyandangs.push(parsed);
           }
-
-          var umurMatch = restOfLine.match(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i);
-          if (umurMatch) {
-            umur = umurMatch[1].trim();
-            restOfLine = restOfLine.replace(/(\\d+\\s*THN|\\d+\\s*YEARS?|\\d+\\s*TAHUN)/i, "").trim();
-          }
-
-          var jawatanClean = restOfLine.replace(/^[\\s–\\-]+/, "").replace(/[\\s–\\-]+$/, "").trim();
-          if (jawatanClean) {
-            jawatan = jawatanClean;
-          }
-
-          return {
-            nama: name,
-            jantina: jantina,
-            warganegara: warganegara,
-            pasport: pasport,
-            umur: umur,
-            jawatan: jawatan,
-            gaji: gaji
-          };
-        });
+        }
 
         var rawProject = row[10] ? row[10].toString() : "";
         var kegiatan = "";
@@ -1820,7 +1801,31 @@ function appendSingleRow(sheet, item, bilNum, activeSector) {
   if (item.penyandang && Array.isArray(item.penyandang) && item.penyandang.length > 0) {
     penyandangStr = item.penyandang.map(function(p, idx) {
       if (!p) return "";
-      return (idx + 1) + ". " + (p.nama || "") + " / " + (p.jantina || "L") + " / " + (p.warganegara || "") + " / " + (p.pasport || "-") + " / " + (p.umur || "") + " – " + (p.jawatan || "") + " (GAJI: " + (p.gaji || "-") + ")";
+      var pName = p.nama || "";
+      var pJantina = p.jantina || "L";
+      var pWarganegara = p.warganegara || "";
+      var pPasport = p.pasport || "-";
+      
+      var formattedDate = p.tarikhLahir || "";
+      if (formattedDate.indexOf("-") !== -1) {
+        var s = formattedDate.split("-");
+        if (s.length === 3 && s[0].length === 4) {
+          formattedDate = s[2] + "." + s[1] + "." + s[0];
+        }
+      }
+
+      var dateAndAge = formattedDate;
+      if (p.umur) {
+        if (dateAndAge) {
+          dateAndAge += " (" + p.umur + ")";
+        } else {
+          dateAndAge = p.umur;
+        }
+      } else {
+        if (!dateAndAge) dateAndAge = "-";
+      }
+
+      return (idx + 1) + ". " + pName + " / " + pJantina + " / " + pWarganegara + " / " + pPasport + " / " + dateAndAge + " – " + (p.jawatan || "") + " GAJI: " + (p.gaji || "-");
     }).filter(Boolean).join("\\n");
   }
 
@@ -1854,7 +1859,6 @@ function doGet(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }`;
 
-        // Menggunakan kaedah fallback yang sah merentasi peranti pelayar browser
         const tempTextArea = document.createElement("textarea");
         tempTextArea.value = gasCodeStr;
         document.body.appendChild(tempTextArea);
@@ -1868,7 +1872,6 @@ function doGet(e) {
         document.body.removeChild(tempTextArea);
       }
 
-      /* STREAMING_CHUNK: Mengasaskan permulaan useEffect untuk memulakan draf dan sejarah... */
       useEffect(() => {
         scanEvaluatorsForMeeting(meetingNumber, meetingYear);
       }, [meetingNumber, meetingYear]);
@@ -1876,10 +1879,6 @@ function doGet(e) {
       useEffect(() => {
         const currentTabName = getSheetName(meetingNumber, meetingYear, officerName);
         
-        setDataOG([]);
-        setDataOthers({});
-        setCurrentSlideIndex(0);
-
         const delayDebounce = setTimeout(() => {
           loadCurrentMeetingFromSheets(currentTabName);
           fetchGlobalHistory();
@@ -1919,7 +1918,6 @@ function doGet(e) {
         return dataOthers[activeSector] || [];
       }, [activeSector, dataOG, dataOthers]);
 
-      /* STREAMING_CHUNK: Menyediakan memo penapis data draf permohonan... */
       const filteredData = useMemo(() => {
         return currentSectData.filter(item => {
           const matchSearch = item.namaSyarikat.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -1979,7 +1977,6 @@ function doGet(e) {
         };
       }, [currentSectData]);
 
-      /* STREAMING_CHUNK: Memetakan saranan syarikat dan pemilik secara memori... */
       const uniqueCompanies = useMemo(() => {
         const local = [...dataOG];
         Object.values(dataOthers).forEach(arr => {
@@ -2092,7 +2089,6 @@ function doGet(e) {
         );
       }, [editNationalityQuery]);
 
-      /* STREAMING_CHUNK: Menyediakan paparan Header dan sistem navigasi menu atas portal... */
       return (
         <div className="flex-1 flex flex-col min-h-screen">
           
@@ -2425,6 +2421,7 @@ function doGet(e) {
                         ) : (
                           filteredData.map((item, index) => {
                             const hasDecision = !!item.keputusan;
+                            const hasPenyandang = item.penyandang && item.penyandang.length > 0;
                             return (
                               <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
                                 <td className="px-4 py-4 text-center font-bold text-slate-500 border-r border-slate-100">{index + 1}.</td>
@@ -2444,11 +2441,18 @@ function doGet(e) {
                                   <div className="flex flex-col gap-2">
                                     {(item.penyandang || []).map((p, idx) => {
                                       const norm = normalizePenyandang(p);
+                                      let formattedDate = norm.tarikhLahir || "";
+                                      if (formattedDate.includes("-")) {
+                                        const s = formattedDate.split("-");
+                                        if (s.length === 3 && s[0].length === 4) {
+                                          formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
+                                        }
+                                      }
+                                      const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
                                       return (
                                         <div key={idx} className="border-l-2 border-slate-300 pl-2 text-[11px] leading-relaxed">
-                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {norm.umur || "-"} – <span className="italic">{norm.jawatan || "-"}</span>
+                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic">{norm.jawatan || "-"}</span>
                                           <div className="font-bold text-blue-900 mt-0.5">GAJI: {norm.gaji || "-"}</div>
-                                          {norm.tarikhLahir && <div className="text-[9px] text-slate-500 mt-0.5 font-semibold text-slate-600">T. LAHIR: {norm.tarikhLahir}</div>}
                                         </div>
                                       );
                                     })}
@@ -2456,10 +2460,21 @@ function doGet(e) {
                                 </td>
 
                                 <td className="px-4 py-4 text-center border-r border-slate-100 font-medium">{item.tempohMohon}</td>
-                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valB || "-"}</td>
-                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valL || "-"}</td>
-                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">{item.valTR || "-"}</td>
-                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-blue-955 text-[10px] whitespace-pre-line leading-relaxed">{item.valWN || "-"}</td>
+                                
+                                {/* Jangan muat data B, L, TR, WN sekiranya tiada penyandang */}
+                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">
+                                  {hasPenyandang ? (item.valB || "-") : "-"}
+                                </td>
+                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">
+                                  {hasPenyandang ? (item.valL || "-") : "-"}
+                                </td>
+                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-slate-600">
+                                  {hasPenyandang ? (item.valTR || "-") : "-"}
+                                </td>
+                                <td className="px-2 py-4 text-center border-r border-slate-100 font-bold text-blue-955 text-[10px] whitespace-pre-line leading-relaxed">
+                                  {hasPenyandang ? (item.valWN || "-") : "-"}
+                                </td>
+
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[280px]">
                                   <div className="flex flex-col gap-2 text-[11px] leading-relaxed">
                                     <div>
@@ -2468,7 +2483,9 @@ function doGet(e) {
                                     </div>
                                     <div className="pt-1.5 border-t border-slate-100">
                                       <strong className="text-amber-800 block uppercase">Project:</strong>
-                                      <p className="text-slate-700 font-medium">➢ {item.projek}</p>
+                                      {getProjekArray(item.projek).map((proj, pIdx) => (
+                                        <p key={pIdx} className="text-slate-700 font-medium">➢ {proj}</p>
+                                      ))}
                                       {item.noKontrak && <p className="text-slate-600 mt-1">➢ NO. KONTRAK: {item.noKontrak}</p>}
                                       {item.tempohProjek && <p className="text-slate-600">➢ TEMPOH PROJEK: {item.tempohProjek}</p>}
                                       {item.ownerProjek && <p className="text-blue-955 font-bold mt-1">➢ OWNER PROJECT: {item.ownerProjek}</p>}
@@ -2545,6 +2562,7 @@ function doGet(e) {
                 ) : (
                   (() => {
                     const item = filteredData[currentSlideIndex];
+                    const hasPenyandang = item.penyandang && item.penyandang.length > 0;
                     return (
                       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px] bg-slate-50 p-2 rounded-xl">
                         
@@ -2626,7 +2644,9 @@ function doGet(e) {
                               <div className="flex flex-col gap-2 text-xs">
                                 <div>
                                   <span className="text-slate-400 text-[9px] uppercase block font-bold">Butiran Projek</span>
-                                  <p className="text-slate-800 font-semibold">{item.projek || "N/A"}</p>
+                                  {getProjekArray(item.projek).map((proj, pIdx) => (
+                                    <p key={pIdx} className="text-slate-800 font-semibold">➢ {proj}</p>
+                                  ))}
                                 </div>
                                 <div className="pt-1.5 border-t border-slate-200 flex flex-col gap-1.5">
                                   <div>
@@ -2652,9 +2672,15 @@ function doGet(e) {
                                 <Icon name="users" size={14} className="text-blue-900" /> Senarai Penyandang ({(item.penyandang || []).length} Orang)
                               </span>
                               <div className="flex gap-2 text-[10px]">
-                                <span className="bg-blue-50 text-blue-900 font-bold px-2 py-0.5 rounded border border-blue-150">B: {item.valB}</span>
-                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200 whitespace-pre-line">WN: {item.valWN}</span>
-                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">Tempoh Mohon: {item.tempohMohon}</span>
+                                <span className="bg-blue-50 text-blue-900 font-bold px-2 py-0.5 rounded border border-blue-150">
+                                  B: {hasPenyandang ? item.valB : "-"}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200 whitespace-pre-line">
+                                  WN: {hasPenyandang ? item.valWN : "-"}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">
+                                  Tempoh Mohon: {item.tempohMohon}
+                                </span>
                               </div>
                             </div>
                             
@@ -2664,6 +2690,14 @@ function doGet(e) {
                               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
                                 {(item.penyandang || []).map((p, idx) => {
                                   const norm = normalizePenyandang(p);
+                                  let formattedDate = norm.tarikhLahir || "";
+                                  if (formattedDate.includes("-")) {
+                                    const s = formattedDate.split("-");
+                                    if (s.length === 3 && s[0].length === 4) {
+                                      formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
+                                    }
+                                  }
+                                  const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
                                   return (
                                     <div 
                                       key={idx} 
@@ -2673,9 +2707,9 @@ function doGet(e) {
                                         {idx + 1}. {norm.nama}
                                       </div>
                                       <div className="text-[10px] text-slate-500 flex flex-wrap items-center gap-1.5 leading-none">
-                                        <span className="font-semibold text-slate-700 truncate max-w-[120px]">{norm.jawatan || "TECHNICAL EXPERTISE"}</span>
-                                        <span>•</span>
-                                        <span className="text-blue-900 font-bold">{norm.gaji || "Gaji: -"}</span>
+                                        <span className="font-semibold text-slate-700 truncate max-w-[120px]">{norm.jawatan || "-"}</span>
+                                        {norm.gaji && <span>•</span>}
+                                        {norm.gaji && <span className="text-blue-900 font-bold">GAJI: {norm.gaji}</span>}
                                       </div>
                                       <div className="flex items-center gap-1 flex-wrap text-[9px] mt-1">
                                         <span className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-semibold text-slate-700">
@@ -2845,7 +2879,7 @@ function doGet(e) {
               </div>
             )}
 
-            {/* ================================= VIEW 3: SETTINGS (URL DIBUANG) ================================= */}
+            {/* ================================= VIEW 3: SETTINGS ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -2872,7 +2906,7 @@ function doGet(e) {
                   />
                 </div>
 
-                {/* PUSAT PENYALIN KOD GOOGLE APPS SCRIPT YANG TELAH DIPERBAIKI (Secara Tempatan) */}
+                {/* PUSAT PENYALIN KOD GOOGLE APPS SCRIPT */}
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 flex flex-col gap-3">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Kemas Kini Enjin Penyelarasan (Google Apps Script)</span>
                   <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
@@ -2970,87 +3004,100 @@ function doGet(e) {
                 </tr>
               </thead>
               <tbody>
-                {currentSectData.map((item, idx) => (
-                  <tr key={item.id} className="border-b border-black font-serif">
-                    <td className="p-2 text-center font-bold border-r border-black align-top">{idx + 1}.</td>
-                    
-                    <td className="p-2 border-r border-black align-top">
-                      <div className="font-bold uppercase text-black leading-tight">{item.namaSyarikat}</div>
-                      <div className="text-[9px] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
-                    </td>
-                    
-                    <td className="p-2 border-r border-black align-top">
-                      <div className="flex flex-col gap-2">
-                        {(item.penyandang || []).map((p, pidx) => {
-                          const norm = normalizePenyandang(p);
-                          return (
-                            <div key={pidx} className="text-[9.5px] leading-relaxed">
-                              <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {norm.umur || "-"} – <span className="italic">{norm.jawatan || "-"}</span>
-                              <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"} {norm.tarikhLahir ? ` | T. LAHIR: ${norm.tarikhLahir}` : ''}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    
-                    <td className="p-2 text-center border-r border-black align-top font-semibold">{item.tempohMohon}</td>
-                    
-                    <td className="p-2 text-center border-r border-black align-top font-bold">{item.valB || "-"}</td>
-                    <td className="p-2 text-center border-r border-black align-top font-bold">{item.valL || "-"}</td>
-                    <td className="p-2 text-center border-r border-black align-top font-bold">{item.valTR || "-"}</td>
-                    <td className="p-2 text-center border-r border-black align-top font-bold text-[9px] uppercase whitespace-pre-line leading-relaxed">{item.valWN || "-"}</td>
-                    
-                    <td className="p-2 border-r border-black align-top">
-                      <div className="flex flex-col gap-2 text-[9.5px] leading-relaxed">
-                        <div>
-                          <span className="font-bold uppercase block text-black">KEGIATAN SYARIKAT</span>
-                          <p className="text-slate-800 italic">➢ {item.kegiatan}</p>
+                {currentSectData.map((item, idx) => {
+                  const hasPenyandang = item.penyandang && item.penyandang.length > 0;
+                  return (
+                    <tr key={item.id} className="border-b border-black font-serif">
+                      <td className="p-2 text-center font-bold border-r border-black align-top">{idx + 1}.</td>
+                      
+                      <td className="p-2 border-r border-black align-top">
+                        <div className="font-bold uppercase text-black leading-tight">{item.namaSyarikat}</div>
+                        <div className="text-[9px] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
+                      </td>
+                      
+                      <td className="p-2 border-r border-black align-top">
+                        <div className="flex flex-col gap-2">
+                          {(item.penyandang || []).map((p, pidx) => {
+                            const norm = normalizePenyandang(p);
+                            let formattedDate = norm.tarikhLahir || "";
+                            if (formattedDate.includes("-")) {
+                              const s = formattedDate.split("-");
+                              if (s.length === 3 && s[0].length === 4) {
+                                formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
+                              }
+                            }
+                            const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
+                            return (
+                              <div key={pidx} className="text-[9.5px] leading-relaxed">
+                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic">{norm.jawatan || "-"}</span>
+                                <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"}</div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="pt-1.5 border-t border-slate-300">
-                          <span className="font-bold uppercase block text-black">PROJECT:</span>
-                          <p className="text-slate-800 font-semibold">➢ {item.projek}</p>
-                          {item.noKontrak && <p className="text-slate-800 font-medium">➢ NO. KONTRAK : {item.noKontrak}</p>}
-                          {item.tempohProjek && <p className="text-slate-800 font-medium">➢ TEMPOH PROJEK : {item.tempohProjek}</p>}
-                          {item.ownerProjek && <p className="text-black font-bold">➢ OWNER PROJECT : {item.ownerProjek}</p>}
+                      </td>
+                      
+                      <td className="p-2 text-center border-r border-black align-top font-semibold">{item.tempohMohon}</td>
+                      
+                      <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valB || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valL || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valTR || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold text-[9px] uppercase whitespace-pre-line leading-relaxed">{hasPenyandang ? (item.valWN || "-") : "-"}</td>
+                      
+                      <td className="p-2 border-r border-black align-top">
+                        <div className="flex flex-col gap-2 text-[9.5px] leading-relaxed">
+                          <div>
+                            <span className="font-bold uppercase block text-black">KEGIATAN SYARIKAT</span>
+                            <p className="text-slate-800 italic">➢ {item.kegiatan}</p>
+                          </div>
+                          <div className="pt-1.5 border-t border-slate-300">
+                            <span className="font-bold uppercase block text-black">PROJECT:</span>
+                            {getProjekArray(item.projek).map((proj, pIdx) => (
+                              <p key={pIdx} className="text-slate-800 font-semibold">➢ {proj}</p>
+                            ))}
+                            {item.noKontrak && <p className="text-slate-800 font-medium">➢ NO. KONTRAK : {item.noKontrak}</p>}
+                            {item.tempohProjek && <p className="text-slate-800 font-medium">➢ TEMPOH PROJEK : {item.tempohProjek}</p>}
+                            {item.ownerProjek && <p className="text-black font-bold">➢ OWNER PROJECT : {item.ownerProjek}</p>}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    
-                    <td className="p-2 align-top text-left">
-                      <div className="flex flex-col gap-1.5 text-[10px] font-semibold text-black">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[12px] font-mono">{item.keputusan === "LULUS" ? "☒" : "☐"}</span>
-                          <span>LULUS</span>
+                      </td>
+                      
+                      <td className="p-2 align-top text-left">
+                        <div className="flex flex-col gap-1.5 text-[10px] font-semibold text-black">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-mono">{item.keputusan === "LULUS" ? "☒" : "☐"}</span>
+                            <span>LULUS</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-mono">{item.keputusan === "LULUS BERSYARAT" ? "☒" : "☐"}</span>
+                            <span>LULUS BERSYARAT</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-mono">{item.keputusan === "TOLAK" ? "☒" : "☐"}</span>
+                            <span>TOLAK</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-mono">{item.keputusan === "SEMAKAN / NAZIRAN" ? "☒" : "☐"}</span>
+                            <span>SEMAKAN / NAZIRAN</span>
+                          </div>
+                          
+                          <div className="mt-2.5 pt-1.5 border-t border-slate-300 text-[9.5px]">
+                            <strong>ULASAN :</strong>
+                            {item.ulasan ? (
+                              <p className="text-slate-900 italic mt-1 leading-normal font-bold">"{item.ulasan}"</p>
+                            ) : (
+                              <div className="flex flex-col gap-1.5 mt-2 text-slate-400 font-mono">
+                                <div>.......................................................................</div>
+                                <div>.......................................................................</div>
+                                <div>.......................................................................</div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[12px] font-mono">{item.keputusan === "LULUS BERSYARAT" ? "☒" : "☐"}</span>
-                          <span>LULUS BERSYARAT</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[12px] font-mono">{item.keputusan === "TOLAK" ? "☒" : "☐"}</span>
-                          <span>TOLAK</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[12px] font-mono">{item.keputusan === "SEMAKAN / NAZIRAN" ? "☒" : "☐"}</span>
-                          <span>SEMAKAN / NAZIRAN</span>
-                        </div>
-                        
-                        <div className="mt-2.5 pt-1.5 border-t border-slate-300 text-[9.5px]">
-                          <strong>ULASAN :</strong>
-                          {item.ulasan ? (
-                            <p className="text-slate-900 italic mt-1 leading-normal font-bold">"{item.ulasan}"</p>
-                          ) : (
-                            <div className="flex flex-col gap-1.5 mt-2 text-slate-400 font-mono">
-                              <div>.......................................................................</div>
-                              <div>.......................................................................</div>
-                              <div>.......................................................................</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -3065,23 +3112,21 @@ function doGet(e) {
                     <Icon name="plusCircle" size={18} className="text-emerald-600" /> Daftar Permohonan Baru
                   </h3>
                   <button 
-                    onClick={() => {
-                      setShowAddModal(false);
-                    }}
-                    className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    onClick={() => setShowAddModal(false)}
+                    className="text-slate-400 hover:text-slate-600 text-xs font-bold font-sans"
                   >
                     Tutup Tetingkap
                   </button>
                 </div>
 
-                <form onSubmit={handleRegisterCompany} className="flex flex-col gap-4 text-xs text-slate-700">
+                <form onSubmit={handleRegisterCompany} className="flex flex-col gap-4 text-xs text-slate-700 font-sans">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
                     {/* Auto-suggest Nama Syarikat */}
                     <div className="flex flex-col gap-1.5 relative" onClick={(e) => e.stopPropagation()}>
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Syarikat & No. Pendaftaran</span>
-                        <span className="text-[9px] text-blue-700 italic font-medium">SSM draf sejarah dikesan</span>
+                        <span className="text-[9px] text-blue-700 italic font-semibold">SSM draf sejarah dikesan</span>
                       </label>
                       <input
                         type="text"
@@ -3095,7 +3140,7 @@ function doGet(e) {
                           setShowCompanyDropdown(true);
                         }}
                         onFocus={() => setShowCompanyDropdown(true)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-semibold"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold uppercase"
                       />
                       {showCompanyDropdown && filteredCompanySuggestions.length > 0 && (
                         <div className="absolute top-[58px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -3126,7 +3171,7 @@ function doGet(e) {
                     <div className="flex flex-col gap-1.5 relative" onClick={(e) => e.stopPropagation()}>
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Pemilik Projek (Owner Project)</span>
-                        <span className="text-[9px] text-amber-700 italic font-medium">Auto-semak pemilik sedia ada</span>
+                        <span className="text-[9px] text-amber-700 italic font-semibold">Auto-semak pemilik sedia ada</span>
                       </label>
                       <input
                         type="text"
@@ -3140,7 +3185,7 @@ function doGet(e) {
                           setShowOwnerDropdown(true);
                         }}
                         onFocus={() => setShowOwnerDropdown(true)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-805 focus:outline-none focus:border-blue-700 font-semibold"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-805 focus:outline-none focus:border-blue-700 font-bold uppercase"
                       />
                       {showOwnerDropdown && filteredOwnerSuggestions.length > 0 && (
                         <div className="absolute top-[58px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -3172,7 +3217,7 @@ function doGet(e) {
                         placeholder="Masukkan alamat berdaftar syarikat..."
                         value={newCompany.alamat}
                         onChange={(e) => setNewCompany({...newCompany, alamat: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 uppercase"
                       />
                     </div>
 
@@ -3183,20 +3228,56 @@ function doGet(e) {
                         placeholder="Perincikan mengikut aktiviti SSM..."
                         value={newCompany.kegiatan}
                         onChange={(e) => setNewCompany({...newCompany, kegiatan: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg p-3 text-xs text-slate-800 focus:outline-none focus:border-blue-700 resize-none font-sans"
+                        className="bg-slate-50 border border-slate-300 rounded-lg p-3 text-xs text-slate-800 focus:outline-none focus:border-blue-700 resize-none font-sans uppercase"
                       />
                     </div>
 
-                    <div className="flex flex-col gap-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-700">Nama Projek Pembentangan (Project Title)</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Butiran kontrak seperti Letter of Award (LOA)..."
-                        value={newCompany.projek}
-                        onChange={(e) => setNewCompany({...newCompany, projek: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
-                      />
+                    {/* Bahagian Projek Pembentangan Dinamik dengan Butang "+" */}
+                    <div className="flex flex-col gap-2.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                        <span>Nama Projek Pembentangan (Project Title)</span>
+                        <span className="text-[10px] text-blue-900 font-bold">Tekan "+" sekiranya syarikat mempunyai banyak projek</span>
+                      </label>
+                      
+                      <div className="flex flex-col gap-2">
+                        {newCompany.projek.map((proj, pIdx) => (
+                          <div key={pIdx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              required
+                              placeholder={`Masukkan tajuk projek pembentangan ${pIdx + 1}...`}
+                              value={proj}
+                              onChange={(e) => {
+                                const listProj = [...newCompany.projek];
+                                listProj[pIdx] = e.target.value.toUpperCase();
+                                setNewCompany({...newCompany, projek: listProj});
+                              }}
+                              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 flex-1 font-semibold"
+                            />
+                            {newCompany.projek.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const listProj = newCompany.projek.filter((_, i) => i !== pIdx);
+                                  setNewCompany({...newCompany, projek: listProj});
+                                }}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded border border-slate-200"
+                                title="Buang Projek"
+                              >
+                                <Icon name="trash" size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setNewCompany({...newCompany, projek: [...newCompany.projek, ""]})}
+                        className="self-start text-xs text-blue-900 hover:text-blue-800 font-bold flex items-center gap-1.5 mt-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors"
+                      >
+                        <Icon name="plus" size={12} /> Tambah Projek Pembentangan (+)
+                      </button>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
@@ -3205,8 +3286,8 @@ function doGet(e) {
                         type="text"
                         placeholder="Contoh: RFP-000000032393"
                         value={newCompany.noKontrak}
-                        onChange={(e) => setNewCompany({...newCompany, noKontrak: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-850 focus:outline-none"
+                        onChange={(e) => setNewCompany({...newCompany, noKontrak: e.target.value.toUpperCase()})}
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-850 focus:outline-none uppercase"
                       />
                     </div>
 
@@ -3217,8 +3298,8 @@ function doGet(e) {
                         required
                         placeholder="Contoh: 11 JAN 2026 – 10 JAN 2027 atau UNTIL COMPLETION"
                         value={newCompany.tempohProjek}
-                        onChange={(e) => setNewCompany({...newCompany, tempohProjek: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-semibold"
+                        onChange={(e) => setNewCompany({...newCompany, tempohProjek: e.target.value.toUpperCase()})}
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
                       />
                     </div>
 
@@ -3229,11 +3310,12 @@ function doGet(e) {
                         required
                         placeholder="Contoh: 06 BULAN, 12 BULAN, atau 06 MONTH"
                         value={newCompany.tempohMohon}
-                        onChange={(e) => setNewCompany({...newCompany, tempohMohon: e.target.value})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-semibold"
+                        onChange={(e) => setNewCompany({...newCompany, tempohMohon: e.target.value.toUpperCase()})}
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
                       />
                     </div>
 
+                    {/* Kolum manual B, L, T/R dan W/N */}
                     <div className="grid grid-cols-4 gap-2 md:col-span-2 bg-amber-50 p-3 rounded-lg border border-amber-200">
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-bold text-amber-900">B (Baru)</span>
@@ -3249,7 +3331,7 @@ function doGet(e) {
                         <input
                           type="text"
                           value={newCompany.valL}
-                          onChange={(e) => setNewCompany({...newCompany, valL: e.target.value})}
+                          onChange={(e) => setNewCompany({...newCompany, valL: e.target.value.toUpperCase()})}
                           className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs focus:outline-none"
                         />
                       </div>
@@ -3258,7 +3340,7 @@ function doGet(e) {
                         <input
                           type="text"
                           value={newCompany.valTR}
-                          onChange={(e) => setNewCompany({...newCompany, valTR: e.target.value})}
+                          onChange={(e) => setNewCompany({...newCompany, valTR: e.target.value.toUpperCase()})}
                           className="bg-white border border-amber-300 rounded p-1 text-center font-bold text-xs focus:outline-none"
                         />
                       </div>
@@ -3311,7 +3393,7 @@ function doGet(e) {
                                     pasport: app.pasport || "",
                                     tarikhLahir: app.tarikhLahir || "",
                                     umur: app.umur || "",
-                                    jawatan: app.jawatan || "TECHNICAL EXPERTISE",
+                                    jawatan: app.jawatan || "",
                                     gaji: app.gaji || ""
                                   });
                                   setShowApplicantDropdown(false);
@@ -3322,7 +3404,7 @@ function doGet(e) {
                               >
                                 <div className="font-bold text-blue-955">{app.nama}</div>
                                 <div className="text-[9px] text-slate-500 font-semibold">
-                                  {app.jawatan || "TECHNICAL EXPERTISE"} • Gaji: {app.gaji || "-"} • WN: {app.warganegara || "-"}
+                                  {app.jawatan || "Tiada Jawatan"} • Gaji: {app.gaji || "-"} • WN: {app.warganegara || "-"}
                                 </div>
                               </div>
                             ))}
@@ -3347,7 +3429,7 @@ function doGet(e) {
                           placeholder="Contoh: RM15,000"
                           value={newPenyandang.gaji}
                           onChange={(e) => setNewPenyandang({...newPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-semibold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3366,7 +3448,7 @@ function doGet(e) {
                           type="date"
                           value={newPenyandang.tarikhLahir}
                           onChange={(e) => handleBirthDateChange(e.target.value)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
 
@@ -3411,15 +3493,15 @@ function doGet(e) {
                           placeholder="Contoh: 38 THN"
                           value={newPenyandang.umur}
                           onChange={(e) => setNewPenyandang({...newPenyandang, umur: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] text-slate-500 font-bold">Jantina</span>
                         <select
                           value={newPenyandang.jantina}
-                          onChange={(e) => setNewPenyandang({...newPenyandang, jantina: e.target})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none"
+                          onChange={(e) => setNewPenyandang({...newPenyandang, jantina: e.target.value})}
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none font-bold"
                         >
                           <option value="L">Lelaki</option>
                           <option value="P">Perempuan</option>
@@ -3429,7 +3511,7 @@ function doGet(e) {
                         <button
                           type="button"
                           onClick={addPenyandangToNewCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 rounded text-xs border border-blue-900 shadow-sm transition-colors"
+                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs border border-blue-900 shadow-sm transition-colors"
                         >
                           + Tambah Pemohon Kakitangan ke Senarai
                         </button>
@@ -3443,7 +3525,7 @@ function doGet(e) {
                           const norm = normalizePenyandang(p);
                           return (
                             <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                              <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "N/A"} • {norm.gaji || "N/A"} • Pasport: {norm.pasport || "-"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
+                              <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "Tiada Jawatan"} {norm.gaji ? `• ${norm.gaji}` : ''} • Pasport: {norm.pasport || "-"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromNewCompany(idx)}
@@ -3461,9 +3543,7 @@ function doGet(e) {
                   <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 mt-4">
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowAddModal(false);
-                      }}
+                      onClick={() => setShowAddModal(false)}
                       className="bg-transparent text-slate-500 hover:text-slate-700 text-xs font-bold px-4 py-2"
                     >
                       Batal Pendaftaran
@@ -3497,13 +3577,13 @@ function doGet(e) {
                       setShowEditModal(false);
                       setEditingCompany(null);
                     }}
-                    className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    className="text-slate-400 hover:text-slate-600 text-xs font-bold font-sans"
                   >
                     Tutup
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdateCompany} className="flex flex-col gap-4 text-xs text-slate-700">
+                <form onSubmit={handleUpdateCompany} className="flex flex-col gap-4 text-xs text-slate-700 font-sans">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
                     <div className="flex flex-col gap-1.5">
@@ -3522,7 +3602,7 @@ function doGet(e) {
                       <input
                         type="text"
                         required
-                        value={editingCompany.ownerProjek}
+                        value={editingCompany.ownerProjek || ""}
                         onChange={(e) => setEditingCompany({...editingCompany, ownerProjek: e.target.value.toUpperCase()})}
                         className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold"
                       />
@@ -3535,7 +3615,7 @@ function doGet(e) {
                         required
                         value={editingCompany.alamat}
                         onChange={(e) => setEditingCompany({...editingCompany, alamat: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-350 rounded-lg px-3 py-2 text-xs text-slate-800"
+                        className="bg-slate-50 border border-slate-355 rounded-lg px-3 py-2 text-xs text-slate-800"
                       />
                     </div>
 
@@ -3549,22 +3629,59 @@ function doGet(e) {
                       />
                     </div>
 
-                    <div className="flex flex-col gap-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-700">Nama Projek Pembentangan (Project Title)</label>
-                      <input
-                        type="text"
-                        required
-                        value={editingCompany.projek}
-                        onChange={(e) => setEditingCompany({...editingCompany, projek: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800"
-                      />
+                    {/* Bahagian Pelbagai Projek Pembentangan Dinamik untuk Skrin Kemaskini */}
+                    <div className="flex flex-col gap-2.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                        <span>Nama Projek Pembentangan (Project Title)</span>
+                        <span className="text-[10px] text-blue-900 font-bold">Syarikat boleh memuatkan banyak projek draf</span>
+                      </label>
+                      
+                      <div className="flex flex-col gap-2">
+                        {editingCompany.projek.map((proj, pIdx) => (
+                          <div key={pIdx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              required
+                              placeholder={`Masukkan nama projek pembentangan ${pIdx + 1}...`}
+                              value={proj}
+                              onChange={(e) => {
+                                const listProj = [...editingCompany.projek];
+                                listProj[pIdx] = e.target.value.toUpperCase();
+                                setEditingCompany({...editingCompany, projek: listProj});
+                              }}
+                              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 flex-1 font-semibold"
+                            />
+                            {editingCompany.projek.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const listProj = editingCompany.projek.filter((_, i) => i !== pIdx);
+                                  setEditingCompany({...editingCompany, projek: listProj});
+                                }}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded border border-slate-200"
+                                title="Buang Projek"
+                              >
+                                <Icon name="trash" size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditingCompany({...editingCompany, projek: [...editingCompany.projek, ""]})}
+                        className="self-start text-xs text-blue-900 hover:text-blue-800 font-bold flex items-center gap-1.5 mt-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors"
+                      >
+                        <Icon name="plus" size={12} /> Tambah Projek Pembentangan (+)
+                      </button>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-slate-700">Nombor Kontrak</label>
                       <input
                         type="text"
-                        value={editingCompany.noKontrak}
+                        value={editingCompany.noKontrak || ""}
                         onChange={(e) => setEditingCompany({...editingCompany, noKontrak: e.target.value.toUpperCase()})}
                         className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800"
                       />
@@ -3577,7 +3694,7 @@ function doGet(e) {
                         required
                         value={editingCompany.tempohProjek}
                         onChange={(e) => setEditingCompany({...editingCompany, tempohProjek: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-semibold"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold"
                       />
                     </div>
 
@@ -3588,7 +3705,7 @@ function doGet(e) {
                         required
                         value={editingCompany.tempohMohon}
                         onChange={(e) => setEditingCompany({...editingCompany, tempohMohon: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-semibold"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold"
                       />
                     </div>
 
@@ -3669,7 +3786,7 @@ function doGet(e) {
                                     pasport: app.pasport || "",
                                     tarikhLahir: app.tarikhLahir || "",
                                     umur: app.umur || "",
-                                    jawatan: app.jawatan || "TECHNICAL EXPERTISE",
+                                    jawatan: app.jawatan || "",
                                     gaji: app.gaji || ""
                                   });
                                   setShowEditApplicantDropdown(false);
@@ -3680,7 +3797,7 @@ function doGet(e) {
                               >
                                 <div className="font-bold text-blue-955">{app.nama}</div>
                                 <div className="text-[9px] text-slate-500 font-semibold">
-                                  {app.jawatan || "TECHNICAL EXPERTISE"} • Gaji: {app.gaji || "-"} • WN: {app.warganegara || "-"}
+                                  {app.jawatan || "Tiada Jawatan"} • Gaji: {app.gaji || "-"} • WN: {app.warganegara || "-"}
                                 </div>
                               </div>
                             ))}
@@ -3695,7 +3812,7 @@ function doGet(e) {
                           placeholder="Jawatan dalam syarikat"
                           value={editPenyandang.jawatan}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jawatan: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:outline-none"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3705,7 +3822,7 @@ function doGet(e) {
                           placeholder="Contoh: RM8,500"
                           value={editPenyandang.gaji}
                           onChange={(e) => setEditPenyandang({...editPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:outline-none"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3715,7 +3832,7 @@ function doGet(e) {
                           placeholder="Mula dengan huruf"
                           value={editPenyandang.pasport}
                           onChange={(e) => setEditPenyandang({...editPenyandang, pasport: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:outline-none"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3741,7 +3858,7 @@ function doGet(e) {
                             setShowEditWarganegaraDropdown(true);
                           }}
                           onFocus={() => setShowEditWarganegaraDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none"
                         />
                         {showEditNationalityDropdown && filteredEditWarganegaraSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3775,7 +3892,7 @@ function doGet(e) {
                         <span className="text-[10px] text-slate-500 font-bold">Jantina</span>
                         <select
                           value={editPenyandang.jantina}
-                          onChange={(e) => setEditPenyandang({...editPenyandang, jantina: e.target})}
+                          onChange={(e) => setEditPenyandang({...editPenyandang, jantina: e.target.value})}
                           className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         >
                           <option value="L">Lelaki</option>
@@ -3786,7 +3903,7 @@ function doGet(e) {
                         <button
                           type="button"
                           onClick={addPenyandangToEditingCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 rounded text-xs"
+                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs"
                         >
                           + Masukkan Penyandang Baharu Ini
                         </button>
@@ -3880,7 +3997,7 @@ function doGet(e) {
 
                 <div className="flex-1 max-h-60 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-150">
                   {filteredPastSheets.length === 0 ? (
-                    <div className="p-4 text-center text-[11px] text-slate-400 italic">Tiada draf dijumpai / draf padan dengan carian.</div>
+                    <div className="p-4 text-center text-[11px] text-slate-400 italic">Tiada draf dijumpai.</div>
                   ) : (
                     filteredPastSheets.map((shName, idx) => (
                       <div
@@ -3922,7 +4039,6 @@ function doGet(e) {
       );
     }
 
-    // Melakukan render aplikasi React ke dalam DOM Element
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
