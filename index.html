@@ -153,7 +153,6 @@
 
     function cleanText(text) {
       if (!text || typeof text !== 'string') return text ? String(text).trim() : '';
-      // Tukar simbol literal \n kepada baris baharu sebenar dan bersihkan \r
       let cleaned = text.replace(/\\n/g, '\n').replace(/\r/g, '');
       return cleaned.trim();
     }
@@ -216,30 +215,30 @@
         let warganegara = parts[2] || "";
         let pasport = parts[3] || "";
 
-        let rest = parts.slice(4).join(" / ");
+        let rest = parts.slice(4).join(" / ").trim();
         
         let umur = "";
         let jawatan = "";
         let gaji = "";
         let tarikhLahir = "";
 
-        const gajiMatch = rest.match(/GAJI:\s*([^)]+)/i) || rest.match(/(RM\s*[0-9,.]+)/i);
+        const gajiMatch = rest.match(/GAJI:\s*(RM\s*[0-9,.]+)/i) || rest.match(/(RM\s*[0-9,.]+)/i);
         if (gajiMatch) {
           gaji = gajiMatch[1].trim();
-          rest = rest.replace(/\(?GAJI:\s*[^)]+\)?/i, '').trim();
+          rest = rest.replace(/GAJI:\s*RM\s*[0-9,.]+/i, "").trim();
           rest = rest.replace(/(RM\s*[0-9,.]+)/i, "").trim();
         }
 
-        const tlMatch = rest.match(/([0-9]{2}[.\/-][0-9]{2}[.\/-][0-9]{4})/) || rest.match(/TL:\s*([0-9\-\/\.]{8,10})/i) || rest.match(/T\.?\s*LAHIR:\s*([0-9\-\/\.]{8,10})/i);
-        if (tlMatch) {
-          tarikhLahir = tlMatch[1] || tlMatch[0];
-          rest = rest.replace(tarikhLahir, '').replace(/TL:/i, '').replace(/T\.?LAHIR:/i, '').trim();
+        const dateMatch = rest.match(/([0-9]{2}\.[0-9]{2}\.[0-9]{4}|[0-9]{2}\/[0-9]{2}\/[0-9]{4}|[0-9]{4}-[0-9]{2}-[0-9]{2})/);
+        if (dateMatch) {
+          tarikhLahir = dateMatch[1].trim();
+          rest = rest.replace(tarikhLahir, "").trim();
         }
 
-        const umurMatch = rest.match(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i);
+        const umurMatch = rest.match(/\((\d+)\s*(?:THN|TAHUN|YEARS?)\)/i) || rest.match(/(\d+)\s*(?:THN|TAHUN|YEARS?)/i);
         if (umurMatch) {
-          umur = umurMatch[1].trim();
-          rest = rest.replace(/(\d+\s*THN|\d+\s*YEARS?|\d+\s*TAHUN)/i, '').trim();
+          umur = umurMatch[1].trim() + " THN";
+          rest = rest.replace(umurMatch[0], "").trim();
         }
 
         rest = rest.replace(/\(\s*\)/g, "").trim();
@@ -265,6 +264,7 @@
       return result;
     }
 
+    // ===== FIXED: parseProjectAndDetails – lebih tepat untuk data Google Sheets =====
     function parseProjectAndDetails(item) {
       if (!item) return { kegiatan: '', projek: [''], noKontrak: '', tempohProjek: '', ownerProjek: '' };
 
@@ -276,72 +276,65 @@
       let rawTempohProjek = cleanText(item.tempohProjek || '');
       let rawOwnerProjek = cleanText(item.ownerProjek || '');
 
-      const combinedText = `${rawKegiatan}\n${rawProjek}`;
+      const combinedText = rawKegiatan + '\n' + rawProjek;
 
-      let extractedKegiatan = rawKegiatan;
-      let extractedProjekLines = [];
-      let extractedNoKontrak = rawNoKontrak;
-      let extractedTempohProjek = rawTempohProjek;
-      let extractedOwnerProjek = rawOwnerProjek;
+      let kegiatan = rawKegiatan;
+      let projekLines = [];
+      let noKontrak = rawNoKontrak;
+      let tempohProjek = rawTempohProjek;
+      let ownerProjek = rawOwnerProjek;
 
-      if (/KEGIATAN SYARIKAT:/i.test(combinedText) || /PROJECT:/i.test(combinedText)) {
-        const kegMatch = combinedText.match(/KEGIATAN SYARIKAT:\s*[\n➢\s]*([\s\S]*?)(?=\n\s*PROJECT:|\n\s*NO\.?\s*KONTRAK:|$)/i);
-        if (kegMatch && kegMatch[1]) {
-          extractedKegiatan = kegMatch[1].replace(/^➢\s*/gm, '').trim();
-        }
-
-        const projMatch = combinedText.match(/PROJECT:\s*[\n➢\s]*([\s\S]*?)(?=\n\s*NO\.?\s*KONTRAK:|\n\s*TEMPOH\s*PROJEK:|\n\s*OWNER\s*PROJECT:|$)/i);
-        if (projMatch && projMatch[1]) {
-          const projBlock = projMatch[1];
-          extractedProjekLines = projBlock.split('\n')
-            .map(l => l.replace(/^➢\s*/, '').trim())
-            .filter(l => l.length > 0 && 
-              !/^NO\.?\s*KONTRAK/i.test(l) && 
-              !/^TEMPOH\s*PROJEK/i.test(l) && 
-              !/^OWNER\s*PROJECT/i.test(l) &&
-              !/^KEGIATAN\s*SYARIKAT/i.test(l) &&
-              !/^PROJECT:/i.test(l)
-            );
-        }
-
-        const nokMatch = combinedText.match(/NO\.?\s*KONTRAK\s*:\s*➢?\s*([^\n]+)/i);
-        if (nokMatch && nokMatch[1] && !extractedNoKontrak) {
-          extractedNoKontrak = nokMatch[1].trim();
-        }
-
-        const tempMatch = combinedText.match(/TEMPOH\s*PROJEK\s*:\s*➢?\s*([^\n]+)/i);
-        if (tempMatch && tempMatch[1] && !extractedTempohProjek) {
-          extractedTempohProjek = tempMatch[1].trim();
-        }
-
-        const ownMatch = combinedText.match(/OWNER\s*PROJECT\s*:\s*➢?\s*([^\n]+)/i);
-        if (ownMatch && ownMatch[1] && !extractedOwnerProjek) {
-          extractedOwnerProjek = ownMatch[1].trim();
-        }
+      // 1. Ekstrak KEGIATAN SYARIKAT (ambil sehingga baris seterusnya)
+      const kegMatch = combinedText.match(/KEGIATAN SYARIKAT:\s*\n\s*➢\s*([^\n]+)/i);
+      if (kegMatch && kegMatch[1]) {
+        kegiatan = kegMatch[1].trim();
       }
 
-      if (extractedProjekLines.length === 0) {
-        extractedProjekLines = rawProjek.split('\n')
+      // 2. Ekstrak PROJECT (ambil semua baris yang bermula dengan ➢ sehingga tamat atau jumpa label)
+      const projectMatch = combinedText.match(/PROJECT:\s*\n\s*➢\s*([^\n]+(?:\n\s*➢\s*[^\n]+)*)/i);
+      if (projectMatch && projectMatch[1]) {
+        const projBlock = projectMatch[1];
+        projekLines = projBlock.split('\n')
           .map(l => l.replace(/^➢\s*/, '').trim())
-          .filter(l => l.length > 0 && 
-            !/^NO\.?\s*KONTRAK/i.test(l) && 
-            !/^TEMPOH\s*PROJEK/i.test(l) && 
-            !/^OWNER\s*PROJECT/i.test(l) &&
-            !/^KEGIATAN\s*SYARIKAT/i.test(l) &&
-            !/^PROJECT:/i.test(l)
-          );
+          .filter(l => l && !/^(NO\.?\s*KONTRAK|TEMPOH\s*PROJEK|OWNER\s*PROJECT|KEGIATAN\s*SYARIKAT|PROJECT:)/i.test(l));
       }
 
-      if (extractedProjekLines.length === 0) {
-        extractedProjekLines = [""];
+      // Jika tiada PROJECT, cuba ambil dari rawProjek sebagai baris-baris
+      if (projekLines.length === 0 && rawProjek) {
+        projekLines = rawProjek.split('\n')
+          .map(l => l.replace(/^➢\s*/, '').trim())
+          .filter(l => l && !/^(NO\.?\s*KONTRAK|TEMPOH\s*PROJEK|OWNER\s*PROJECT|KEGIATAN\s*SYARIKAT|PROJECT:)/i.test(l));
+      }
+
+      // 3. Ekstrak NO. KONTRAK
+      if (!noKontrak) {
+        const nokMatch = combinedText.match(/NO\.?\s*KONTRAK\s*:\s*➢?\s*([^\n]+)/i);
+        if (nokMatch && nokMatch[1]) noKontrak = nokMatch[1].trim();
+      }
+
+      // 4. Ekstrak TEMPOH PROJEK
+      if (!tempohProjek) {
+        const tempMatch = combinedText.match(/TEMPOH\s*PROJEK\s*:\s*➢?\s*([^\n]+)/i);
+        if (tempMatch && tempMatch[1]) tempohProjek = tempMatch[1].trim();
+      }
+
+      // 5. Ekstrak OWNER PROJECT
+      if (!ownerProjek) {
+        const ownMatch = combinedText.match(/OWNER\s*PROJECT\s*:\s*➢?\s*([^\n]+)/i);
+        if (ownMatch && ownMatch[1]) ownerProjek = ownMatch[1].trim();
+      }
+
+      // Pastikan projekLines tidak kosong
+      if (projekLines.length === 0) {
+        projekLines = [""];
       }
 
       return {
-        kegiatan: extractedKegiatan,
-        projek: extractedProjekLines,
-        noKontrak: extractedNoKontrak,
-        tempohProjek: extractedTempohProjek,
-        ownerProjek: extractedOwnerProjek
+        kegiatan: kegiatan,
+        projek: projekLines,
+        noKontrak: noKontrak,
+        tempohProjek: tempohProjek,
+        ownerProjek: ownerProjek
       };
     }
 
