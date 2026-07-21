@@ -618,14 +618,27 @@
       }
 
       function markAsSynced(id, status) {
-        const updatedOg = dataOG.map(item => item.id === id ? { ...item, synced: status } : item);
-        const updatedOthers = {};
-        SECTORS_LIST.forEach(s => {
-          if (s.id !== "og") {
-            updatedOthers[s.id] = (dataOthers[s.id] || []).map(item => item.id === id ? { ...item, synced: status } : item);
-          }
+        setSessionData(prev => {
+          const currentSlice = prev[activeCacheKey] || { og: [], others: {} };
+          const currentOg = currentSlice.og || [];
+          const currentOthers = currentSlice.others || {};
+
+          const updatedOg = currentOg.map(item => item.id === id ? { ...item, synced: status } : item);
+          const updatedOthers = {};
+          SECTORS_LIST.forEach(s => {
+            if (s.id !== "og") {
+              updatedOthers[s.id] = (currentOthers[s.id] || []).map(item => item.id === id ? { ...item, synced: status } : item);
+            }
+          });
+
+          return {
+            ...prev,
+            [activeCacheKey]: {
+              og: updatedOg,
+              others: updatedOthers
+            }
+          };
         });
-        updateActiveData(updatedOg, updatedOthers);
       }
 
       function handlePrint() {
@@ -716,20 +729,37 @@
         e.preventDefault();
         if (!editingCompany) return;
 
-        let updatedOg = [...dataOG];
-        let updatedOthers = { ...dataOthers };
+        setSessionData(prev => {
+          const currentSlice = prev[activeCacheKey] || { og: [], others: {} };
+          const currentOg = currentSlice.og || [];
+          const currentOthers = currentSlice.others || {};
 
-        if (activeSector === "og") {
-          updatedOg = dataOG.map(item => item.id === editingCompany.id ? editingCompany : item);
-        } else {
-          updatedOthers[activeSector] = (dataOthers[activeSector] || []).map(item => item.id === editingCompany.id ? editingCompany : item);
-        }
+          let updatedOg = [...currentOg];
+          let updatedOthers = { ...currentOthers };
 
-        updateActiveData(updatedOg, updatedOthers);
+          if (activeSector === "og") {
+            updatedOg = currentOg.map(item => item.id === editingCompany.id ? editingCompany : item);
+          } else {
+            updatedOthers[activeSector] = (currentOthers[activeSector] || []).map(item => item.id === editingCompany.id ? editingCompany : item);
+          }
 
-        if (sheetUrl) {
-          syncEditRowToGoogleSheets(editingCompany, activeSector === "og" ? updatedOg : updatedOthers[activeSector]);
-        } else {
+          if (sheetUrl) {
+            const targetListForSync = activeSector === "og" ? updatedOg : updatedOthers[activeSector];
+            setTimeout(() => {
+              syncEditRowToGoogleSheets(editingCompany, targetListForSync);
+            }, 0);
+          }
+
+          return {
+            ...prev,
+            [activeCacheKey]: {
+              og: updatedOg,
+              others: updatedOthers
+            }
+          };
+        });
+
+        if (!sheetUrl) {
           showToast("Kemaskini permohonan berjaya disimpan secara setempat!", "success");
         }
         setShowEditModal(false);
@@ -796,14 +826,27 @@
       }, []);
 
       function handleSaveDecision(id, keputusan, ulasan) {
-        const updatedOg = dataOG.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
-        const updatedOthers = {};
-        SECTORS_LIST.forEach(s => {
-          if (s.id !== "og") {
-            updatedOthers[s.id] = (dataOthers[s.id] || []).map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
-          }
+        setSessionData(prev => {
+          const currentSlice = prev[activeCacheKey] || { og: [], others: {} };
+          const currentOg = currentSlice.og || [];
+          const currentOthers = currentSlice.others || {};
+
+          const updatedOg = currentOg.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+          const updatedOthers = {};
+          SECTORS_LIST.forEach(s => {
+            if (s.id !== "og") {
+              updatedOthers[s.id] = (currentOthers[s.id] || []).map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+            }
+          });
+
+          return {
+            ...prev,
+            [activeCacheKey]: {
+              og: updatedOg,
+              others: updatedOthers
+            }
+          };
         });
-        updateActiveData(updatedOg, updatedOthers);
 
         if (sheetUrl) {
           syncSingleRowToGoogleSheets(id, keputusan, ulasan);
@@ -1322,20 +1365,32 @@
       }
 
       function executeDeleteItem(id) {
-        let updatedOg = [...dataOG];
-        let updatedOthers = { ...dataOthers };
+        setSessionData(prev => {
+          const currentSlice = prev[activeCacheKey] || { og: [], others: {} };
+          const currentOg = currentSlice.og || [];
+          const currentOthers = currentSlice.others || {};
 
-        if (activeSector === "og") {
-          updatedOg = dataOG.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
-        } else {
-          updatedOthers[activeSector] = (dataOthers[activeSector] || []).filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
-        }
+          let updatedOg = [...currentOg];
+          let updatedOthers = { ...currentOthers };
 
-        updateActiveData(updatedOg, updatedOthers);
+          if (activeSector === "og") {
+            updatedOg = currentOg.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
+          } else {
+            updatedOthers[activeSector] = (currentOthers[activeSector] || []).filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
+          }
 
-        if (sheetUrl) {
-          syncDeleteRowFromGoogleSheets(id);
-        }
+          if (sheetUrl) {
+            syncDeleteRowFromGoogleSheets(id);
+          }
+
+          return {
+            ...prev,
+            [activeCacheKey]: {
+              og: updatedOg,
+              others: updatedOthers
+            }
+          };
+        });
         
         showToast("Rekod berjaya dipadam.", "success");
         setConfirmModal({ show: false, action: null, message: "" });
@@ -1382,26 +1437,43 @@
           ...newCompany,
           projek: cleanProjects.length > 0 ? cleanProjects : [""],
           id: `${activeSector.toUpperCase()}-${Date.now()}`,
-          bil: (activeSector === "og" ? dataOG.length : (dataOthers[activeSector] || []).length) + 1,
           keputusan: "",
           ulasan: "",
           synced: !!sheetUrl
         };
 
-        let updatedOg = [...dataOG];
-        let updatedOthers = { ...dataOthers };
+        setSessionData(prev => {
+          const currentSlice = prev[activeCacheKey] || { og: [], others: {} };
+          const currentOg = currentSlice.og || [];
+          const currentOthers = currentSlice.others || {};
 
-        if (activeSector === "og") {
-          updatedOg = [...dataOG, newItem];
-        } else {
-          updatedOthers[activeSector] = [...(dataOthers[activeSector] || []), newItem];
-        }
+          let updatedOg = [...currentOg];
+          let updatedOthers = { ...currentOthers };
 
-        updateActiveData(updatedOg, updatedOthers);
+          newItem.bil = (activeSector === "og" ? currentOg.length : (currentOthers[activeSector] || []).length) + 1;
 
-        if (sheetUrl) {
-          syncAddRowToGoogleSheets(newItem);
-        } else {
+          if (activeSector === "og") {
+            updatedOg = [...currentOg, newItem];
+          } else {
+            updatedOthers[activeSector] = [...(currentOthers[activeSector] || []), newItem];
+          }
+
+          if (sheetUrl) {
+            setTimeout(() => {
+              syncAddRowToGoogleSheets(newItem);
+            }, 0);
+          }
+
+          return {
+            ...prev,
+            [activeCacheKey]: {
+              og: updatedOg,
+              others: updatedOthers
+            }
+          };
+        });
+
+        if (!sheetUrl) {
           showToast("Syarikat berjaya disimpan secara setempat dalam sesi!", "success");
         }
 
@@ -2270,7 +2342,7 @@
                                 </span>
                                 <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">
                                   Tempoh Mohon: {item.tempohMohon}
-                                Plat</span>
+                                </span>
                               </div>
                             </div>
                             
@@ -2737,7 +2809,7 @@
                                 setShowCompanyDropdown(false);
                                 setCompanySearchQuery("");
                               }}
-                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-155 last:border-b-0 text-left"
+                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-150 last:border-b-0 text-left"
                             >
                               <div className="font-bold text-blue-955">{suggestion.namaSyarikat}</div>
                               <div className="text-[10px] text-slate-500 truncate">{suggestion.alamat}</div>
@@ -2765,7 +2837,7 @@
                           setShowOwnerDropdown(true);
                         }}
                         onFocus={() => setShowOwnerDropdown(true)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-805 focus:outline-none focus:border-blue-700 font-bold uppercase"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold uppercase"
                       />
                       {showOwnerDropdown && filteredOwnerSuggestions.length > 0 && (
                         <div className="absolute top-[58px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -2958,7 +3030,7 @@
                             setShowApplicantDropdown(true);
                           }}
                           onFocus={() => setShowApplicantDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
                         />
                         {showApplicantDropdown && filteredApplicantSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -2999,7 +3071,7 @@
                           placeholder="Jawatan Pemohon"
                           value={newPenyandang.jawatan}
                           onChange={(e) => setNewPenyandang({...newPenyandang, jawatan: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3009,7 +3081,7 @@
                           placeholder="Contoh: RM15,000"
                           value={newPenyandang.gaji}
                           onChange={(e) => setNewPenyandang({...newPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3019,7 +3091,7 @@
                           placeholder="Contoh: A72545666"
                           value={newPenyandang.pasport}
                           onChange={(e) => setNewPenyandang({...newPenyandang, pasport: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3028,7 +3100,7 @@
                           type="date"
                           value={newPenyandang.tarikhLahir}
                           onChange={(e) => handleBirthDateChange(e.target.value)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
 
@@ -3045,7 +3117,7 @@
                             setShowWarganegaraDropdown(true);
                           }}
                           onFocus={() => setShowWarganegaraDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold"
                         />
                         {showNationalityDropdown && filteredWarganegaraSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3073,7 +3145,7 @@
                           placeholder="Contoh: 38 THN"
                           value={newPenyandang.umur}
                           onChange={(e) => setNewPenyandang({...newPenyandang, umur: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3081,7 +3153,7 @@
                         <select
                           value={newPenyandang.jantina}
                           onChange={(e) => setNewPenyandang({...newPenyandang, jantina: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none font-bold"
                         >
                           <option value="L">Lelaki</option>
                           <option value="P">Perempuan</option>
@@ -3109,7 +3181,7 @@
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromNewCompany(idx)}
-                                className="text-red-600 hover:text-red-855 font-bold text-[10px]"
+                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
                               >
                                 Padam Rekod Kakitangan
                               </button>
@@ -3195,7 +3267,7 @@
                         required
                         value={editingCompany.alamat}
                         onChange={(e) => setEditingCompany({...editingCompany, alamat: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-315 rounded-lg px-3 py-2 text-xs text-slate-800"
+                        className="bg-slate-50 border border-slate-355 rounded-lg px-3 py-2 text-xs text-slate-800"
                       />
                     </div>
 
