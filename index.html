@@ -103,7 +103,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbxG1JEz4TgRoRh994z7mS8N8XrO6Qrc1D7L24Qb_SjPnqVLj2OOBUS056TKnejFBt560A/exec";
+    const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbyr6mRXogSlfeiwRA7ZER4chp0uSQB5RGVSrl4wR2MbDbnEFEEh2hNEyrLUEWYox2JA/exec";
     const DEFAULT_EVALUATORS = ["SUFFARI", "IMELDA", "EVELYN", "FREDDIE"];
 
     const WORLD_COUNTRIES = [
@@ -264,38 +264,65 @@
       return result;
     }
 
-    // ===== DIPERBAIKI: Jentera Pembersih Data Pintar (Line-by-Line Parsing) =====
     function parseProjectAndDetails(item) {
       if (!item) return { kegiatan: '', projek: [''], noKontrak: '', tempohProjek: '', ownerProjek: '' };
 
-      // Gunakan rawProjectStr dari Google Apps Script jika ia wujud. Jika tiada, gabungkan kembali semuanya.
-      let combinedText = item.rawProjectStr 
-          ? item.rawProjectStr 
-          : [
-              item.kegiatan || '', 
-              Array.isArray(item.projek) ? item.projek.join('\n') : (item.projek || ''), 
-              item.noKontrak || '', 
-              item.tempohProjek || '', 
-              item.ownerProjek || ''
-            ].join('\n');
+      // 1. Jika data ini sudah cantik berstruktur dari form memori React (tiada rawProjectStr)
+      if (Array.isArray(item.projek) && !item.rawProjectStr) {
+          return {
+              kegiatan: item.kegiatan || '',
+              projek: item.projek.length > 0 ? item.projek : [""],
+              noKontrak: item.noKontrak || '',
+              tempohProjek: item.tempohProjek || '',
+              ownerProjek: item.ownerProjek || ''
+          };
+      }
 
+      // 2. Jika data ini ditarik mentah dari Google Sheets (mempunyai rawProjectStr)
+      let combinedText = item.rawProjectStr || '';
+      
+      // Fallback sekiranya rawProjectStr kosong tapi item mempunyai nilai (legacy data)
+      if (!combinedText) {
+          return {
+              kegiatan: item.kegiatan || '',
+              projek: Array.isArray(item.projek) ? item.projek : (item.projek ? [item.projek] : ['']),
+              noKontrak: item.noKontrak || '',
+              tempohProjek: item.tempohProjek || '',
+              ownerProjek: item.ownerProjek || ''
+          };
+      }
+
+      // 3. Mod Pembersihan Agresif (Untuk Data dari Awan)
       let lines = combinedText.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
-
+      
       let nk = "";
       let tp = "";
       let op = "";
       
       let cleanKegiatanLines = [];
       let cleanProjectLines = [];
-      let currentSection = "K"; // Secara default, kita mula dengan memburu "Kegiatan"
+      let currentSection = "K"; 
 
       for (let line of lines) {
           let cleanLine = line.replace(/^[➢\-\*]\s*/, '').trim(); 
           if (!cleanLine) continue;
           let upperLine = cleanLine.toUpperCase();
 
-          // 1. Tangkap Metadata (No Kontrak, Tempoh, Owner) secara mendalam
-          // Ambil nilai yang PERTAMA ditemui. Mana-mana baris lain yang bunyinya sama akan dimusnahkan.
+          // Deteksi Pengepala (Headers)
+          if (upperLine.startsWith("KEGIATAN SYARIKAT")) {
+              currentSection = "K";
+              let rem = cleanLine.replace(/^KEGIATAN\s*SYARIKAT\s*:?\s*[➢\-\*]?\s*/i, '').trim();
+              if (rem && !cleanKegiatanLines.includes(rem)) cleanKegiatanLines.push(rem);
+              continue;
+          }
+          if (upperLine.startsWith("PROJECT:") || upperLine === "PROJECT") {
+              currentSection = "P";
+              let rem = cleanLine.replace(/^PROJECT\s*:?\s*[➢\-\*]?\s*/i, '').trim();
+              if (rem && !cleanProjectLines.includes(rem)) cleanProjectLines.push(rem);
+              continue;
+          }
+
+          // Ekstrak Metadata Projek
           if (upperLine.startsWith("NO. KONTRAK") || upperLine.startsWith("NO KONTRAK")) {
               let val = cleanLine.replace(/^NO\.?\s*KONTRAK\s*:?\s*[➢\-\*]?\s*/i, '').trim();
               if (val && !nk) nk = val;
@@ -312,27 +339,12 @@
               continue;
           }
 
-          // 2. Tangkap Pengepala (Header Block) untuk mengubah sasaran (Kumpulan Kegiatan / Kumpulan Projek)
-          if (upperLine.startsWith("KEGIATAN SYARIKAT")) {
-              currentSection = "K";
-              let rem = cleanLine.replace(/^KEGIATAN\s*SYARIKAT\s*:?\s*[➢\-\*]?\s*/i, '').trim();
-              if (rem && !cleanKegiatanLines.includes(rem)) cleanKegiatanLines.push(rem);
-              continue;
-          }
-          if (upperLine.startsWith("PROJECT:") || upperLine === "PROJECT") {
-              currentSection = "P";
-              let rem = cleanLine.replace(/^PROJECT\s*:?\s*[➢\-\*]?\s*/i, '').trim();
-              if (rem && !cleanProjectLines.includes(rem)) cleanProjectLines.push(rem);
-              continue;
-          }
-
-          // 3. PEMBUNUH PENGULANGAN (Duplication Killer)
-          // Jika kod menemui nilai nk, tp, op yang sama dengan apa yang dijumpai sebelum ini, SKIP/Musnahkan!
+          // PEMBUNUH PENGULANGAN (Pastikan baris ini diabaikan jika telah diekstrak)
           if (nk && upperLine === nk.toUpperCase()) continue;
           if (tp && upperLine === tp.toUpperCase()) continue;
           if (op && upperLine === op.toUpperCase()) continue;
 
-          // 4. Masukkan baris data yang bersih ke dalam kumpulan yang ditetapkan
+          // Simpan baris yang betul-betul bersih ke kumpulan yang tepat
           if (currentSection === "K") {
               if (!cleanKegiatanLines.includes(cleanLine)) cleanKegiatanLines.push(cleanLine);
           } else {
@@ -478,24 +490,24 @@
     function prepareRecordForSync(item) {
       const cleanComp = cleanText(item.namaSyarikat);
       const cleanAddr = cleanText(item.alamat);
-      const parsedProj = parseProjectAndDetails(item);
 
-      const rawProjekArray = parsedProj.projek;
-      // Jangan gabungkan metadata (No Kontrak dll) ke dalam medan projek lagi
-      // Simpan projek hanya sebagai rentetan projek
+      // KUNCI PENYELESAIAN: 
+      // Guna nilai mentah dari item asal (borang UI) tanpa menghuraikannya (parse) semula.
+      // Jika kita parse semula, ia akan meenyebabkan semua data ranap.
+      const rawProjekArray = Array.isArray(item.projek) ? item.projek : (item.projek ? [item.projek] : [""]);
       const joinedProjects = rawProjekArray.length > 1 
-        ? rawProjekArray.join("\n➢ ") 
+        ? rawProjekArray.filter(p => p.trim() !== "").join("\n➢ ") 
         : rawProjekArray[0] || "-";
 
       return {
         ...item,
         namaSyarikat: cleanComp,
         alamat: cleanAddr,
-        kegiatan: parsedProj.kegiatan,
-        projek: joinedProjects, // Hanya hantar senarai nama projek
-        noKontrak: parsedProj.noKontrak,
-        tempohProjek: parsedProj.tempohProjek,
-        ownerProjek: parsedProj.ownerProjek,
+        kegiatan: cleanText(item.kegiatan) || "-",
+        projek: joinedProjects,
+        noKontrak: cleanText(item.noKontrak) || "-",
+        tempohProjek: cleanText(item.tempohProjek) || "-",
+        ownerProjek: cleanText(item.ownerProjek) || "-",
         penyandang: formatPenyandangToPlain(item.penyandang)
       };
     }
