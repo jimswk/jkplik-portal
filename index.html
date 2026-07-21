@@ -8,12 +8,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
   <link rel="manifest" href="site.webmanifest">
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React & ReactDOM CDN -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel Standalone CDN -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
@@ -26,13 +23,17 @@
     @media print {
       @page {
         size: A4 landscape;
-        margin: 1.0cm;
+        margin: 0.8cm;
       }
-      body {
+      html, body {
+        height: auto !important;
+        min-height: 0 !important;
         background-color: white !important;
         color: black !important;
         font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 10pt !important;
+        font-size: 9.5pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       .no-print {
         display: none !important;
@@ -42,11 +43,14 @@
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        height: auto !important;
+        page-break-after: avoid !important;
       }
       table {
         table-layout: fixed !important;
         width: 100% !important;
         border-collapse: collapse !important;
+        page-break-after: auto !important;
       }
       table, th, td {
         border: 1px solid #000000 !important;
@@ -56,6 +60,7 @@
       }
       tr {
         page-break-inside: avoid !important;
+        page-break-after: auto !important;
       }
       th, td {
         word-wrap: break-word !important;
@@ -146,6 +151,13 @@
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
 
+    function cleanText(text) {
+      if (!text || typeof text !== 'string') return text || '';
+      // Tukar simbol literal \n (backslash diikuti n) kepada baris baharu sebenar
+      let cleaned = text.replace(/\\n/g, '\n').replace(/\r/g, '');
+      return cleaned.trim();
+    }
+
     function getSectorDisplayName(sectorId) {
       if (sectorId === "og") return "MINYAK & GAS";
       const found = SECTORS_LIST.find(s => s.id === sectorId);
@@ -166,7 +178,7 @@
       const getVal = (obj, keys) => {
         for (let key of keys) {
           if (obj[key] !== undefined && obj[key] !== null) {
-            return obj[key];
+            return cleanText(obj[key].toString());
           }
         }
         return undefined;
@@ -186,8 +198,8 @@
 
     function parsePlainPenyandang(text) {
       if (!text) return [];
-      
-      const lines = text.split(/\r?\n/);
+      const cleanedInput = cleanText(text);
+      const lines = cleanedInput.split(/\r?\n/);
       const result = [];
 
       for (let line of lines) {
@@ -253,12 +265,31 @@
       return result;
     }
 
-    function getProjekArray(projekField) {
-      if (Array.isArray(projekField)) return projekField.length > 0 ? projekField : [""];
-      if (typeof projekField === 'string' && projekField.trim()) {
-        return projekField.split(/\r?\n/).map(p => p.replace(/^➢\s*/, "").trim()).filter(Boolean);
+    function cleanProjectTitle(projInput) {
+      if (!projInput) return [""];
+      if (Array.isArray(projInput)) {
+        const cleaned = projInput.map(p => cleanText(p)).filter(Boolean);
+        return cleaned.length > 0 ? cleaned : [""];
       }
-      return [""];
+      
+      let str = cleanText(projInput.toString());
+      
+      // Bersihkan pengepala Projek sekiranya dimuatkan daripada pangkalan data awan
+      str = str.replace(/KEGIATAN SYARIKAT:\s*[\s\S]*?(?=PROJECT:|$)/i, '');
+      str = str.replace(/PROJECT:\s*/i, '');
+      str = str.replace(/NO\.?\s*KONTRAK\s*:[\s\S]*/i, '');
+      str = str.replace(/TEMPOH\s*PROJEK\s*:[\s\S]*/i, '');
+      str = str.replace(/OWNER\s*PROJECT\s*:[\s\S]*/i, '');
+
+      const lines = str.split(/\r?\n/)
+        .map(l => l.replace(/^➢\s*/, '').trim())
+        .filter(l => l.length > 0 && !l.toUpperCase().startsWith("NO. KONTRAK") && !l.toUpperCase().startsWith("TEMPOH PROJEK") && !l.toUpperCase().startsWith("OWNER PROJECT"));
+
+      return lines.length > 0 ? lines : [""];
+    }
+
+    function getProjekArray(projekField) {
+      return cleanProjectTitle(projekField);
     }
 
     function formatPenyandangToPlain(penyandangList) {
@@ -301,7 +332,7 @@
       if (!Array.isArray(records)) return [];
       return records.map(r => {
         let parsedPenyandang = [];
-        const sourceStr = (r.rawPenyandangStr || r.penyandang || "").toString().trim();
+        const sourceStr = cleanText((r.rawPenyandangStr || r.penyandang || "").toString());
         
         if (sourceStr) {
           if (sourceStr.startsWith('[') || sourceStr.startsWith('{')) {
@@ -315,10 +346,25 @@
           }
         }
 
+        let cleanComp = cleanText(r.namaSyarikat);
+        let cleanAddr = cleanText(r.alamat);
+        if (cleanComp.includes('\n') && !cleanAddr) {
+          const parts = cleanComp.split('\n');
+          cleanComp = parts[0].trim();
+          cleanAddr = parts.slice(1).join('\n').trim();
+        }
+
         return {
           ...r,
-          projek: getProjekArray(r.projek),
-          penyandang: parsedPenyandang.map(normalizePenyandang)
+          namaSyarikat: cleanComp,
+          alamat: cleanAddr,
+          kegiatan: cleanText(r.kegiatan),
+          projek: cleanProjectTitle(r.projek),
+          noKontrak: cleanText(r.noKontrak),
+          tempohProjek: cleanText(r.tempohProjek),
+          ownerProjek: cleanText(r.ownerProjek),
+          penyandang: parsedPenyandang.map(normalizePenyandang),
+          ulasan: cleanText(r.ulasan)
         };
       });
     }
@@ -739,6 +785,9 @@
       }
 
       function prepareRecordForSync(item) {
+        const cleanComp = cleanText(item.namaSyarikat);
+        const cleanAddr = cleanText(item.alamat);
+        const cleanKeg = cleanText(item.kegiatan);
         const rawProjekArray = getProjekArray(item.projek);
         const joinedProjects = rawProjekArray.length > 1 
           ? rawProjekArray.join("\n➢ ") 
@@ -746,7 +795,13 @@
 
         return {
           ...item,
+          namaSyarikat: cleanComp,
+          alamat: cleanAddr,
+          kegiatan: cleanKeg,
           projek: joinedProjects,
+          noKontrak: cleanText(item.noKontrak),
+          tempohProjek: cleanText(item.tempohProjek),
+          ownerProjek: cleanText(item.ownerProjek),
           penyandang: formatPenyandangToPlain(item.penyandang)
         };
       }
@@ -2024,7 +2079,7 @@
               </div>
             )}
 
-            {/* VIEW 1: UTAMA / JADUAL */}
+            {}
             {viewMode === "dashboard" && (
               <div className="flex flex-col gap-6">
                 
@@ -2253,7 +2308,7 @@
               </div>
             )}
 
-            {/* VIEW 2: MOD SLAID PRESENTASI */}
+            {}
             {viewMode === "meeting" && (
               <div className="flex-1 flex flex-col gap-6" ref={meetingContainerRef}>
                 {filteredData.length === 0 ? (
@@ -2590,7 +2645,7 @@
               </div>
             )}
 
-            {/* ================================= VIEW 3: SETTINGS ================================= */}
+            {}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -2688,13 +2743,13 @@
 
           </main>
 
-          {/* ================================= DOKUMEN CETAKAN PDF RASMI (KERAJAAN LANDSKAP) ================================= */}
-          <div className="hidden print:block bg-white text-black p-4 min-h-screen print-page font-sans">
-            <div className="text-center flex flex-col gap-1 pb-4 mb-4 border-b border-black">
-              <h1 className="text-sm font-bold uppercase tracking-tight">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</h1>
-              <h2 className="text-[13px] font-bold uppercase">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</h2>
-              <h3 className="text-xs font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {getSectorDisplayName(activeSector)}</h3>
-              {officerName && <p className="text-[10px] font-medium mt-1">Disediakan Oleh Pegawai Penilai: {officerName}</p>}
+          {}
+          <div className="hidden print:block bg-white text-black p-2 print-page font-sans">
+            <div className="text-center flex flex-col gap-1 pb-3 mb-3 border-b border-black">
+              <h1 className="text-xs font-bold uppercase tracking-tight">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</h1>
+              <h2 className="text-[11px] font-bold uppercase">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</h2>
+              <h3 className="text-[10px] font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {getSectorDisplayName(activeSector)}</h3>
+              {officerName && <p className="text-[9px] font-medium mt-0.5">Disediakan Oleh Pegawai Penilai: {officerName}</p>}
             </div>
 
             <table className="w-full text-[10pt] text-left border border-black" style={{ tableLayout: "fixed", width: "100%" }}>
@@ -2825,7 +2880,7 @@
             </table>
           </div>
 
-          {/* ================================= MODAL PENDAFTARAN PERMOHONAN BARU ================================= */}
+          {}
           {showAddModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col p-6 shadow-2xl relative">
@@ -3280,7 +3335,7 @@
             </div>
           )}
 
-          {/* ================================= MODAL EDIT/KEMASKINI PERMOHONAN ================================= */}
+          {}
           {showEditModal && editingCompany && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col p-6 shadow-2xl relative">
@@ -3671,7 +3726,7 @@
             </div>
           )}
 
-          {/* ================================= MODAL CARIAN ARKIB SHEETS ================================= */}
+          {}
           {showArchiveModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4">
