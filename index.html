@@ -43,12 +43,25 @@
         margin: 0 !important;
         padding: 0 !important;
       }
-      table, th, td {
-        border: 1px solid #000000 !important;
+      table {
+        table-layout: fixed !important;
+        width: 100% !important;
         border-collapse: collapse !important;
       }
+      table, th, td {
+        border: 1px solid #000000 !important;
+      }
       thead {
-        display: table-row-group !important;
+        display: table-header-group !important;
+      }
+      tr {
+        page-break-inside: avoid !important;
+      }
+      th, td {
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        box-sizing: border-box !important;
       }
       th {
         background-color: #f1f5f9 !important;
@@ -939,8 +952,10 @@
                 margin: 2px 0;
               }
               table {
-                width: 100%;
+                width: 26.86cm;
+                table-layout: fixed;
                 border-collapse: collapse;
+                margin: 0 auto;
               }
               th, td {
                 border: 1px solid #000000;
@@ -948,6 +963,10 @@
                 vertical-align: top;
                 font-size: 10pt;
                 line-height: 1.3;
+                word-wrap: break-word;
+                word-break: break-word;
+                overflow-wrap: break-word;
+                box-sizing: border-box;
               }
               th {
                 background-color: #E2E8F0;
@@ -976,7 +995,19 @@
                 ${officerName ? `<p style="font-size: 10pt; margin: 4px 0 0 0;">Disediakan Oleh Pegawai Penilai: ${officerName}</p>` : ''}
               </div>
 
-              <table>
+              <table style="table-layout: fixed; width: 26.86cm;">
+                <colgroup>
+                  <col style="width: 1.17cm;" />
+                  <col style="width: 4.5cm;" />
+                  <col style="width: 4.25cm;" />
+                  <col style="width: 2.07cm;" />
+                  <col style="width: 0.8cm;" />
+                  <col style="width: 0.8cm;" />
+                  <col style="width: 0.8cm;" />
+                  <col style="width: 1.85cm;" />
+                  <col style="width: 6.68cm;" />
+                  <col style="width: 3.94cm;" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th rowspan="2" style="width: 1.17cm;">BIL</th>
@@ -1993,7 +2024,6 @@
               </div>
             )}
 
-            {}
             {/* VIEW 1: UTAMA / JADUAL */}
             {viewMode === "dashboard" && (
               <div className="flex flex-col gap-6">
@@ -2124,10 +2154,9 @@
                                           formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
                                         }
                                       }
-                                      const dateAndAge = formattedDate ? `${formattedDate} (<span className="font-bold">${norm.umur || "-"}</span>)` : (norm.umur ? `<span className="font-bold">${norm.umur}</span>` : "-");
                                       return (
                                         <div key={idx} className="border-l-2 border-slate-300 pl-2 text-[11px] leading-relaxed">
-                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / <span dangerouslySetInnerHTML={{ __html: dateAndAge }} /> – <span className="font-bold uppercase break-words">{norm.jawatan || "-"}</span>
+                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {formattedDate ? `${formattedDate} (` : ''}<span className="font-bold">{norm.umur || "-"}</span>{formattedDate ? ')' : ''} – <span className="font-bold uppercase break-words">{norm.jawatan || "-"}</span>
                                           <div className="font-bold text-blue-900 mt-0.5">GAJI: {norm.gaji || "-"}</div>
                                         </div>
                                       );
@@ -2224,7 +2253,6 @@
               </div>
             )}
 
-            {}
             {/* VIEW 2: MOD SLAID PRESENTASI */}
             {viewMode === "meeting" && (
               <div className="flex-1 flex flex-col gap-6" ref={meetingContainerRef}>
@@ -2255,7 +2283,6 @@
                                   Sektor: {getSectorDisplayName(activeSector)}
                                 </span>
 
-                                {/* Menu Dropdown Penilai Dinamik di Slide Presentation */}
                                 {displayEvaluators.length > 0 && (
                                   <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded border border-slate-300">
                                     <span className="text-[10px] font-bold text-slate-600">Sesi Penilai:</span>
@@ -2302,7 +2329,6 @@
                             </div>
                           </div>
 
-                          {/* Maklumat Sektor & Kontrak */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 text-xs">
                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-2">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
@@ -2379,7 +2405,6 @@
                                       formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
                                     }
                                   }
-                                  const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
                                   return (
                                     <div 
                                       key={idx} 
@@ -2423,7 +2448,6 @@
                             </div>
                           </div>
 
-                          {/* Navigasi Slaid */}
                           <div className="flex items-center justify-between border-t border-slate-200 pt-4 mt-auto">
                             <div className="flex items-center gap-2">
                               <button
@@ -2455,7 +2479,7 @@
 
                         </div>
 
-                        {/* Panel Kanan: Membuat Keputusan */}
+                        {/* Panel Kanan: Pilihan Keputusan */}
                         <div className="lg:col-span-3 bg-slate-900 text-white p-4 rounded-2xl flex flex-col gap-4 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
@@ -2535,7 +2559,6 @@
                             </button>
                           </div>
 
-                          {/* Catatan Sampingan */}
                           <div className="flex flex-col gap-2 mt-1">
                             <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                               <Icon name="edit" size={11} className="text-amber-400" /> Catatan & Ulasan Rasmi Mesyuarat
@@ -2549,7 +2572,6 @@
                             />
                           </div>
 
-                          {/* Status Automanage */}
                           <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-400 font-semibold">
                             <span className="flex items-center gap-1.5">
                               <Icon name="database" size={11} className="text-emerald-400" />
@@ -2568,7 +2590,6 @@
               </div>
             )}
 
-            {}
             {/* ================================= VIEW 3: SETTINGS ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
@@ -2582,7 +2603,6 @@
                   </div>
                 </div>
 
-                {/* Seksyen Pegawai Penilai */}
                 <div className="flex flex-col gap-3 bg-blue-50 p-4 rounded-xl border border-blue-200">
                   <label className="text-xs font-bold text-blue-955 flex items-center gap-1.5">
                     <Icon name="users" size={14} /> Nama Pegawai Penilai Aktif
@@ -2595,7 +2615,6 @@
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold uppercase"
                   />
 
-                  {/* Senarai Pegawai Penilai Terdaftar */}
                   <div className="mt-2 pt-3 border-t border-blue-200/60 flex flex-col gap-2">
                     <span className="text-[11px] font-bold text-slate-700">Senarai Pegawai Penilai (Terdaftar):</span>
                     <div className="flex flex-wrap gap-2">
@@ -2618,7 +2637,6 @@
                   </div>
                 </div>
 
-                {/* Mod Pengujian & Data Contoh */}
                 <div>
                   <h4 className="text-xs font-bold text-slate-700 mb-2">Mod Pengujian & Data Contoh</h4>
                   <button
@@ -2647,7 +2665,6 @@
                   </button>
                 </div>
 
-                {/* Log Penyelarasan API */}
                 <div className="flex flex-col gap-2 mt-4">
                   <span className="text-xs font-bold text-slate-700">Log Aktiviti Sambungan API</span>
                   <div className="bg-slate-100 p-4 rounded-xl border border-slate-300 h-40 overflow-y-auto font-mono text-[10px] flex flex-col gap-1.5">
@@ -2680,7 +2697,19 @@
               {officerName && <p className="text-[10px] font-medium mt-1">Disediakan Oleh Pegawai Penilai: {officerName}</p>}
             </div>
 
-            <table className="w-full text-[10pt] text-left border border-black">
+            <table className="w-full text-[10pt] text-left border border-black" style={{ tableLayout: "fixed", width: "100%" }}>
+              <colgroup>
+                <col style={{ width: "1.17cm" }} />
+                <col style={{ width: "4.5cm" }} />
+                <col style={{ width: "4.25cm" }} />
+                <col style={{ width: "2.07cm" }} />
+                <col style={{ width: "0.8cm" }} />
+                <col style={{ width: "0.8cm" }} />
+                <col style={{ width: "0.8cm" }} />
+                <col style={{ width: "1.85cm" }} />
+                <col style={{ width: "6.68cm" }} />
+                <col style={{ width: "3.94cm" }} />
+              </colgroup>
               <thead>
                 <tr className="bg-slate-200 border-b border-black text-black font-bold text-center text-[11pt]">
                   <th className="p-1 border-r border-black" style={{ width: "1.17cm" }} rowSpan={2}>BIL</th>
@@ -2703,14 +2732,14 @@
                   const hasPenyandang = item.penyandang && item.penyandang.length > 0;
                   return (
                     <tr key={item.id} className="border-b border-black font-sans text-[10pt]">
-                      <td className="p-2 text-center font-bold border-r border-black align-top">{idx + 1}.</td>
+                      <td className="p-2 text-center font-bold border-r border-black align-top" style={{ width: "1.17cm" }}>{idx + 1}.</td>
                       
-                      <td className="p-2 border-r border-black align-top">
+                      <td className="p-2 border-r border-black align-top" style={{ width: "4.5cm" }}>
                         <div className="font-bold uppercase text-black leading-tight">{item.namaSyarikat}</div>
                         <div className="text-[9pt] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
                       </td>
                       
-                      <td className="p-2 border-r border-black align-top">
+                      <td className="p-2 border-r border-black align-top" style={{ width: "4.25cm" }}>
                         <div className="flex flex-col gap-2">
                           {(item.penyandang || []).map((p, pidx) => {
                             const norm = normalizePenyandang(p);
@@ -2721,10 +2750,9 @@
                                 formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
                               }
                             }
-                            const dateAndAge = formattedDate ? `${formattedDate} (<b>${norm.umur || "-"}</b>)` : (norm.umur ? `<b>${norm.umur}</b>` : "-");
                             return (
                               <div key={pidx} className="text-[10pt] leading-relaxed">
-                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / <span dangerouslySetInnerHTML={{ __html: dateAndAge }} /> – <span className="font-bold uppercase">{norm.jawatan || "-"}</span>
+                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {formattedDate ? `${formattedDate} (` : ''}<b>{norm.umur || "-"}</b>{formattedDate ? ')' : ''} – <span className="font-bold uppercase">{norm.jawatan || "-"}</span>
                                 <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"}</div>
                               </div>
                             );
@@ -2732,14 +2760,14 @@
                         </div>
                       </td>
                       
-                      <td className="p-2 text-center border-r border-black align-top font-semibold">{item.tempohMohon}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-semibold" style={{ width: "2.07cm" }}>{item.tempohMohon}</td>
                       
-                      <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valB || "-") : "-"}</td>
-                      <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valL || "-") : "-"}</td>
-                      <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valTR || "-") : "-"}</td>
-                      <td className="p-2 text-center border-r border-black align-top font-bold text-[9.5pt] uppercase whitespace-pre-line leading-relaxed">{hasPenyandang ? (item.valWN || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valB || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valL || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valTR || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold text-[9.5pt] uppercase whitespace-pre-line leading-relaxed" style={{ width: "1.85cm" }}>{hasPenyandang ? (item.valWN || "-") : "-"}</td>
                       
-                      <td className="p-2 border-r border-black align-top">
+                      <td className="p-2 border-r border-black align-top" style={{ width: "6.68cm" }}>
                         <div className="flex flex-col gap-2 text-[10pt] leading-relaxed">
                           <div>
                             <span className="font-bold uppercase block text-black">KEGIATAN SYARIKAT</span>
@@ -2757,7 +2785,7 @@
                         </div>
                       </td>
                       
-                      <td className="p-2 align-top text-left">
+                      <td className="p-2 align-top text-left" style={{ width: "3.94cm" }}>
                         <div className="flex flex-col gap-1.5 text-[10pt] font-semibold text-black">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[12px] font-mono">{item.keputusan === "LULUS" ? "☒" : "☐"}</span>
@@ -2817,7 +2845,6 @@
                 <form onSubmit={handleRegisterCompany} className="flex flex-col gap-4 text-xs text-slate-700 font-sans">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
-                    {/* Auto-suggest Nama Syarikat */}
                     <div className="flex flex-col gap-1.5 relative" onClick={(e) => e.stopPropagation()}>
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Syarikat & No. Pendaftaran</span>
@@ -2862,7 +2889,6 @@
                       )}
                     </div>
 
-                    {/* Auto-suggest Pemilik Projek */}
                     <div className="flex flex-col gap-1.5 relative" onClick={(e) => e.stopPropagation()}>
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Pemilik Projek (Owner Project)</span>
@@ -2895,7 +2921,7 @@
                                 setShowOwnerDropdown(false);
                                 setOwnerSearchQuery("");
                               }}
-                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-150 last:border-b-0 text-left text-slate-800 font-bold"
+                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-150 last:border-b-0 text-left text-slate-850 font-bold"
                             >
                               {suggestion}
                             </div>
@@ -2927,7 +2953,6 @@
                       />
                     </div>
 
-                    {/* Bahagian Projek Pembentangan Dinamik dengan Butang "+" */}
                     <div className="flex flex-col gap-2.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Projek Pembentangan (Project Title)</span>
@@ -3010,7 +3035,6 @@
                       />
                     </div>
 
-                    {/* Kolum manual B, L, T/R dan W/N */}
                     <div className="grid grid-cols-4 gap-2 md:col-span-2 bg-amber-50 p-3 rounded-lg border border-amber-200">
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-bold text-amber-900">B (Baru)</span>
@@ -3052,7 +3076,6 @@
 
                   </div>
 
-                  {/* Tambah Kumpulan Penyandang */}
                   <div className="border-t border-slate-200 pt-4 mt-2 flex flex-col gap-3">
                     <span className="text-xs font-bold text-blue-955 uppercase tracking-wider">
                       Maklumat Ahli / Penyandang (Pemohon Pas Lawatan Ikhtisas)
@@ -3073,7 +3096,7 @@
                             setShowApplicantDropdown(true);
                           }}
                           onFocus={() => setShowApplicantDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
                         />
                         {showApplicantDropdown && filteredApplicantSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3114,7 +3137,7 @@
                           placeholder="Jawatan Pemohon"
                           value={newPenyandang.jawatan}
                           onChange={(e) => setNewPenyandang({...newPenyandang, jawatan: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 uppercase font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3124,7 +3147,7 @@
                           placeholder="Contoh: RM15,000"
                           value={newPenyandang.gaji}
                           onChange={(e) => setNewPenyandang({...newPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3134,7 +3157,7 @@
                           placeholder="Contoh: A72545666"
                           value={newPenyandang.pasport}
                           onChange={(e) => setNewPenyandang({...newPenyandang, pasport: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3143,7 +3166,7 @@
                           type="date"
                           value={newPenyandang.tarikhLahir}
                           onChange={(e) => handleBirthDateChange(e.target.value)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
 
@@ -3160,7 +3183,7 @@
                             setShowWarganegaraDropdown(true);
                           }}
                           onFocus={() => setShowWarganegaraDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none focus:border-blue-700 font-bold"
                         />
                         {showNationalityDropdown && filteredWarganegaraSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3188,7 +3211,7 @@
                           placeholder="Contoh: 38 THN"
                           value={newPenyandang.umur}
                           onChange={(e) => setNewPenyandang({...newPenyandang, umur: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3196,7 +3219,7 @@
                         <select
                           value={newPenyandang.jantina}
                           onChange={(e) => setNewPenyandang({...newPenyandang, jantina: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-850 focus:outline-none font-bold"
                         >
                           <option value="L">Lelaki</option>
                           <option value="P">Perempuan</option>
@@ -3213,18 +3236,17 @@
                       </div>
                     </div>
 
-                    {/* Kakitangan Yang Dipilih Semasa */}
                     {newCompany.penyandang.length > 0 && (
                       <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
                         {newCompany.penyandang.map((p, idx) => {
                           const norm = normalizePenyandang(p);
                           return (
                             <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                              <span>{idx + 1}. <strong>{norm.nama}</strong> (<strong className="uppercase">{norm.jawatan || "Tiada Jawatan"}</strong> {norm.gaji ? `• ${norm.gaji}` : ''} • Pasport: {norm.pasport || "-"} • WN: {norm.warganegara || "-"} • Umur: <strong>{norm.umur || "-"}</strong>)</span>
+                              <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "Tiada Jawatan"} {norm.gaji ? `• ${norm.gaji}` : ''} • Pasport: {norm.pasport || "-"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromNewCompany(idx)}
-                                className="text-red-600 hover:text-red-800 font-bold text-[10px]"
+                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
                               >
                                 Padam Rekod Kakitangan
                               </button>
@@ -3324,7 +3346,6 @@
                       />
                     </div>
 
-                    {/* Bahagian Pelbagai Projek Pembentangan Dinamik untuk Skrin Kemaskini */}
                     <div className="flex flex-col gap-2.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Nama Projek Pembentangan (Project Title)</span>
@@ -3445,7 +3466,6 @@
 
                   </div>
 
-                  {/* Pengurusan Penyandang Semasa Edit */}
                   <div className="border-t border-slate-200 pt-4 mt-2 flex flex-col gap-3">
                     <span className="text-xs font-bold text-blue-955 uppercase tracking-wider">
                       Urus Ahli / Penyandang Aktif
@@ -3466,7 +3486,7 @@
                             setShowEditApplicantDropdown(true);
                           }}
                           onFocus={() => setShowEditApplicantDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
                         />
                         {showEditApplicantDropdown && filteredEditApplicantSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3507,7 +3527,7 @@
                           placeholder="Jawatan dalam syarikat"
                           value={editPenyandang.jawatan}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jawatan: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs uppercase font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3517,7 +3537,7 @@
                           placeholder="Contoh: RM8,500"
                           value={editPenyandang.gaji}
                           onChange={(e) => setEditPenyandang({...editPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3536,7 +3556,7 @@
                           type="date"
                           value={editPenyandang.tarikhLahir}
                           onChange={(e) => handleEditBirthDateChange(e.target.value)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
 
@@ -3580,7 +3600,7 @@
                           type="text"
                           value={editPenyandang.umur}
                           onChange={(e) => setEditPenyandang({...editPenyandang, umur: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3588,7 +3608,7 @@
                         <select
                           value={editPenyandang.jantina}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jantina: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-sans font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-sans"
                         >
                           <option value="L">Lelaki</option>
                           <option value="P">Perempuan</option>
@@ -3598,7 +3618,7 @@
                         <button
                           type="button"
                           onClick={addPenyandangToEditingCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs transition-colors shadow-sm"
+                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs"
                         >
                           + Masukkan Penyandang Baharu Ini
                         </button>
@@ -3606,16 +3626,16 @@
                     </div>
 
                     {editingCompany.penyandang && editingCompany.penyandang.length > 0 && (
-                      <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
+                      <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
                         {editingCompany.penyandang.map((p, idx) => {
                           const norm = normalizePenyandang(p);
                           return (
                             <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0 font-sans">
-                              <span>{idx + 1}. <strong>{norm.nama}</strong> (<strong className="uppercase">{norm.jawatan || "N/A"}</strong> • {norm.gaji || "N/A"} • WN: {norm.warganegara || "-"} • Umur: <strong>{norm.umur || "-"}</strong>)</span>
+                              <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "N/A"} • {norm.gaji || "N/A"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromEditingCompany(idx)}
-                                className="text-red-600 hover:text-red-800 font-bold text-[10px] px-2 py-0.5 bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors"
+                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
                               >
                                 Padam Rekod
                               </button>
@@ -3639,7 +3659,7 @@
                     </button>
                     <button
                       type="submit"
-                      className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow-sm transition-colors"
+                      className="bg-blue-955 hover:bg-blue-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg"
                     >
                       Simpan Kemaskini Permohonan
                     </button>
