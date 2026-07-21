@@ -31,8 +31,8 @@
       body {
         background-color: white !important;
         color: black !important;
-        font-family: "Times New Roman", Times, serif !important;
-        font-size: 9.5px !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 10pt !important;
       }
       .no-print {
         display: none !important;
@@ -52,8 +52,13 @@
       }
       th {
         background-color: #f1f5f9 !important;
+        font-size: 11pt !important;
+        font-weight: bold !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+      td {
+        font-size: 10pt !important;
       }
     }
     
@@ -81,6 +86,7 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbyr6mRXogSlfeiwRA7ZER4chp0uSQB5RGVSrl4wR2MbDbnEFEEh2hNEyrLUEWYox2JA/exec";
+    const DEFAULT_EVALUATORS = ["SUFFARI", "IMELDA", "EVELYN", "FREDDIE"];
 
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" },
@@ -126,6 +132,15 @@
       { id: "lanjutan", name: "4. Lanjutan" },
       { id: "kelulusan_dasar", name: "5. Kelulusan Dasar" }
     ];
+
+    function getSectorDisplayName(sectorId) {
+      if (sectorId === "og") return "MINYAK & GAS";
+      const found = SECTORS_LIST.find(s => s.id === sectorId);
+      if (found) {
+        return found.name.replace(/^\d+\.\s*/, "").toUpperCase();
+      }
+      return (sectorId || "").toUpperCase();
+    }
 
     function getSheetName(meetingNumber, meetingYear, officerName) {
       const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim().toUpperCase()})` : '';
@@ -527,7 +542,7 @@
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      const [availableEvaluators, setAvailableEvaluators] = useState([]);
+      const [availableEvaluators, setAvailableEvaluators] = useState(DEFAULT_EVALUATORS);
       const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
       const [searchQuery, setSearchQuery] = useState("");
@@ -586,16 +601,6 @@
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
-      const updateActiveData = (newOg, newOthers) => {
-        setSessionData(prev => ({
-          ...prev,
-          [activeCacheKey]: {
-            og: newOg !== undefined ? newOg : (prev[activeCacheKey]?.og || []),
-            others: newOthers !== undefined ? newOthers : (prev[activeCacheKey]?.others || {})
-          }
-        }));
-      };
-
       const displayEvaluators = useMemo(() => {
         const list = [...availableEvaluators];
         if (officerName && !list.includes(officerName)) {
@@ -623,11 +628,11 @@
           const currentOg = currentSlice.og || [];
           const currentOthers = currentSlice.others || {};
 
-          const updatedOg = currentOg.map(item => item.id === id ? { ...item, synced: status } : item);
+          const updatedOg = currentOg.map(item => (id === null || item.id === id) ? { ...item, synced: status } : item);
           const updatedOthers = {};
           SECTORS_LIST.forEach(s => {
             if (s.id !== "og") {
-              updatedOthers[s.id] = (currentOthers[s.id] || []).map(item => item.id === id ? { ...item, synced: status } : item);
+              updatedOthers[s.id] = (currentOthers[s.id] || []).map(item => (id === null || item.id === id) ? { ...item, synced: status } : item);
             }
           });
 
@@ -682,8 +687,12 @@
       }
 
       function addPenyandangToEditingCompany() {
-        if (!editPenyandang.nama) return;
+        if (!editPenyandang.nama) {
+          showToast("Sila masukkan nama penyandang terlebih dahulu.", "error");
+          return;
+        }
         setEditingCompany(prev => {
+          if (!prev) return prev;
           const updatedPenyandang = [...(prev.penyandang || []), editPenyandang];
           const { valB, valWN } = calculateBAndWN(updatedPenyandang);
           return {
@@ -697,10 +706,13 @@
           nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
         });
         setEditNationalityQuery("");
+        setEditApplicantSearchQuery("");
+        showToast("Penyandang berjaya ditambah ke senarai draf kemaskini.", "info");
       }
 
       function removePenyandangFromEditingCompany(idx) {
         setEditingCompany(prev => {
+          if (!prev) return prev;
           const filtered = (prev.penyandang || []).filter((_, i) => i !== idx);
           const { valB, valWN } = calculateBAndWN(filtered);
           return {
@@ -710,6 +722,7 @@
             valWN
           };
         });
+        showToast("Penyandang berjaya dipadam daripada draf kemaskini.", "info");
       }
 
       function prepareRecordForSync(item) {
@@ -759,9 +772,7 @@
           };
         });
 
-        if (!sheetUrl) {
-          showToast("Kemaskini permohonan berjaya disimpan secara setempat!", "success");
-        }
+        showToast(`Kemaskini permohonan ${editingCompany.namaSyarikat} berjaya disimpan!`, "success");
         setShowEditModal(false);
         setEditingCompany(null);
       }
@@ -800,16 +811,16 @@
                 evaluators.push(match[1].trim().toUpperCase());
               }
             });
-            const uniqueEvaluators = [...new Set(evaluators)];
-            setAvailableEvaluators(uniqueEvaluators);
+            const combined = [...new Set([...DEFAULT_EVALUATORS, ...evaluators])];
+            setAvailableEvaluators(combined);
             
-            if (uniqueEvaluators.length > 0) {
-              addLog(`Ditemui ${uniqueEvaluators.length} pegawai penilai: ${uniqueEvaluators.join(", ")}`, "success");
-              if (!officerName || !uniqueEvaluators.includes(officerName)) {
-                setOfficerName(uniqueEvaluators[0]);
+            if (evaluators.length > 0) {
+              addLog(`Ditemui ${evaluators.length} pegawai penilai dari awan: ${evaluators.join(", ")}`, "success");
+              if (!officerName || !combined.includes(officerName)) {
+                setOfficerName(combined[0]);
               }
             } else {
-              addLog(`Tiada draf pegawai khusus ditemui untuk Bil. ${number}/${year}. Menggunakan sesi am.`, "info");
+              addLog(`Tiada draf pegawai khusus ditemui untuk Bil. ${number}/${year}. Menggunakan senarai penilai lalai.`, "info");
             }
           }
         } catch (err) {
@@ -881,7 +892,7 @@
           });
           const result = await res.json();
           if (result.status === "success") {
-            addLog(`Penyelarasan penuh berjaya untuk Sektor ${activeSector.toUpperCase()}!`, "success");
+            addLog(`Penyelarasan penuh berjaya untuk Sektor ${getSectorDisplayName(activeSector)}!`, "success");
             showToast("Penyelarasan pangkalan data penuh ke Google Sheets selesai!", "success");
             
             markAsSynced(null, true); 
@@ -896,8 +907,8 @@
       }
 
       function exportToWord() {
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
-        addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${activeSector.toUpperCase()}...`, "info");
+        const sectorTitleName = getSectorDisplayName(activeSector);
+        addLog(`[EXCEL/WORD] Menjana dokumen Word rasmi untuk Sektor ${sectorTitleName}...`, "info");
         
         let wordContent = `
           <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -913,7 +924,7 @@
               }
               div.Section1 { page: Section1; }
               body { 
-                font-family: "Times New Roman", Times, serif; 
+                font-family: Arial, Helvetica, sans-serif; 
                 font-size: 10pt; 
                 color: black;
               }
@@ -922,7 +933,7 @@
                 margin-bottom: 20px;
               }
               .title-header {
-                font-size: 12pt;
+                font-size: 11pt;
                 font-weight: bold;
                 text-transform: uppercase;
                 margin: 2px 0;
@@ -935,12 +946,13 @@
                 border: 1px solid #000000;
                 padding: 6px;
                 vertical-align: top;
-                font-size: 9.5pt;
+                font-size: 10pt;
                 line-height: 1.3;
               }
               th {
                 background-color: #E2E8F0;
                 font-weight: bold;
+                font-size: 11pt;
                 text-align: center;
                 text-transform: uppercase;
               }
@@ -960,7 +972,7 @@
               <div class="title-container">
                 <p class="title-header">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</p>
                 <p class="title-header">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</p>
-                <p class="title-header">BIL. ${meetingNumber}/${meetingYear} &ndash; SEKTOR ${activeSector.toUpperCase()}</p>
+                <p class="title-header">BIL. ${meetingNumber}/${meetingYear} &ndash; SEKTOR ${sectorTitleName}</p>
                 ${officerName ? `<p style="font-size: 10pt; margin: 4px 0 0 0;">Disediakan Oleh Pegawai Penilai: ${officerName}</p>` : ''}
               </div>
 
@@ -1007,9 +1019,9 @@
                   formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
                 }
               }
-              const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
+              const dateAndAge = formattedDate ? `${formattedDate} (<b>${norm.umur || "-"}</b>)` : (norm.umur ? `<b>${norm.umur}</b>` : "-");
               
-              penyandangRows += `<div><b>${idx + 1}. ${norm.nama}</b> / ${norm.jantina} / ${norm.warganegara || "-"} / ${norm.pasport || "-"} / ${dateAndAge} &ndash; <i>${norm.jawatan || "-"}</i> <b>GAJI: ${norm.gaji || "-"}</b></div><br/>`;
+              penyandangRows += `<div><b>${idx + 1}. ${norm.nama}</b> / ${norm.jantina} / ${norm.warganegara || "-"} / ${norm.pasport || "-"} / ${dateAndAge} &ndash; <b>${norm.jawatan || "-"}</b> <b>GAJI: ${norm.gaji || "-"}</b></div><br/>`;
             });
 
             const escapedKegiatan = (item.kegiatan || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -1028,9 +1040,9 @@
               <div style="border-top: 1px solid #e2e8f0; padding-top: 5px;">
                 <b>PROJECT:</b><br/>
                 ${formattedProjekWord}<br/>
-                ${escapedNoKontrak ? `&#10148; NO. KONTRAK: ${escapedNoKontrak}<br/>` : ''}
-                ${escapedTempohProjek ? `&#10148; TEMPOH PROJEK: ${escapedTempohProjek}<br/>` : ''}
-                ${escapedOwner ? `&#10148; OWNER PROJECT: ${escapedOwner}` : ''}
+                ${escapedNoKontrak ? `&#10148; <b>NO. KONTRAK: ${escapedNoKontrak}</b><br/>` : ''}
+                ${escapedTempohProjek ? `&#10148; <b>TEMPOH PROJEK: ${escapedTempohProjek}</b><br/>` : ''}
+                ${escapedOwner ? `&#10148; <b>OWNER PROJECT: ${escapedOwner}</b>` : ''}
               </div>
             `;
 
@@ -1040,7 +1052,7 @@
             const checkSemakan = item.keputusan === "SEMAKAN / NAZIRAN" ? "&#9746;" : "&#9744;";
 
             const decisionCol = `
-              <div style="font-size: 8.5pt;">
+              <div style="font-size: 9pt;">
                 <div>${checkLulus} LULUS</div>
                 <div style="margin-top: 3px;">${checkLulusBersyarat} LULUS BERSYARAT</div>
                 <div style="margin-top: 3px;">${checkTolak} TOLAK</div>
@@ -1057,13 +1069,13 @@
             wordContent += `
               <tr>
                 <td class="align-center font-bold">${index + 1}.</td>
-                <td class="font-bold uppercase">${item.namaSyarikat}<br/><span style="font-size: 8pt; font-weight: normal;">${item.alamat || ""}</span></td>
+                <td class="font-bold uppercase">${item.namaSyarikat}<br/><span style="font-size: 8.5pt; font-weight: normal;">${item.alamat || ""}</span></td>
                 <td>${penyandangRows}</td>
                 <td class="align-center font-bold">${item.tempohMohon || "-"}</td>
                 <td class="align-center font-bold">${hasPenyandang ? (item.valB || "-") : "-"}</td>
                 <td class="align-center font-bold">${hasPenyandang ? (item.valL || "-") : "-"}</td>
                 <td class="align-center font-bold">${hasPenyandang ? (item.valTR || "-") : "-"}</td>
-                <td class="align-center font-bold" style="font-size: 8pt; white-space: pre-line;">${hasPenyandang ? (item.valWN || "-") : "-"}</td>
+                <td class="align-center font-bold" style="font-size: 8.5pt; white-space: pre-line;">${hasPenyandang ? (item.valWN || "-") : "-"}</td>
                 <td>${projectDetails}</td>
                 <td>${decisionCol}</td>
               </tr>
@@ -1083,7 +1095,7 @@
         const downloadUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = downloadUrl;
-        a.download = `JKPLIK_Sektor_${activeSector.toUpperCase()}_Bil_${meetingNumber}_${meetingYear}.doc`;
+        a.download = `JKPLIK_Sektor_${sectorTitleName.replace(/\s+/g, "_")}_Bil_${meetingNumber}_${meetingYear}.doc`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1524,7 +1536,13 @@
           }
         ];
         
-        updateActiveData(demoData, {});
+        setSessionData(prev => ({
+          ...prev,
+          [activeCacheKey]: {
+            og: demoData,
+            others: {}
+          }
+        }));
         showToast("Data ujian JKPLIK draf berjaya dimuatkan!", "success");
         setViewMode("dashboard");
       }
@@ -1975,6 +1993,7 @@
               </div>
             )}
 
+            {}
             {/* VIEW 1: UTAMA / JADUAL */}
             {viewMode === "dashboard" && (
               <div className="flex flex-col gap-6">
@@ -2105,10 +2124,10 @@
                                           formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
                                         }
                                       }
-                                      const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
+                                      const dateAndAge = formattedDate ? `${formattedDate} (<span className="font-bold">${norm.umur || "-"}</span>)` : (norm.umur ? `<span className="font-bold">${norm.umur}</span>` : "-");
                                       return (
                                         <div key={idx} className="border-l-2 border-slate-300 pl-2 text-[11px] leading-relaxed">
-                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic break-words">{norm.jawatan || "-"}</span>
+                                          <span className="font-bold">{idx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / <span dangerouslySetInnerHTML={{ __html: dateAndAge }} /> – <span className="font-bold uppercase break-words">{norm.jawatan || "-"}</span>
                                           <div className="font-bold text-blue-900 mt-0.5">GAJI: {norm.gaji || "-"}</div>
                                         </div>
                                       );
@@ -2134,16 +2153,16 @@
                                 <td className="px-4 py-4 border-r border-slate-100 max-w-[280px]">
                                   <div className="flex flex-col gap-2 text-[11px] leading-relaxed">
                                     <div>
-                                      <strong className="text-slate-900 block uppercase">Kegiatan Syarikat</strong>
+                                      <strong className="text-slate-900 block uppercase font-bold">Kegiatan Syarikat</strong>
                                       <p className="text-slate-600 italic">➢ {item.kegiatan}</p>
                                     </div>
                                     <div className="pt-1.5 border-t border-slate-100">
-                                      <strong className="text-amber-800 block uppercase">Project:</strong>
+                                      <strong className="text-amber-800 block uppercase font-bold">Project:</strong>
                                       {getProjekArray(item.projek).map((proj, pIdx) => (
                                         <p key={pIdx} className="text-slate-700 font-medium">➢ {proj}</p>
                                       ))}
-                                      {item.noKontrak && <p className="text-slate-600 mt-1">➢ NO. KONTRAK: {item.noKontrak}</p>}
-                                      {item.tempohProjek && <p className="text-slate-600">➢ TEMPOH PROJEK: {item.tempohProjek}</p>}
+                                      {item.noKontrak && <p className="text-slate-900 font-bold mt-1">➢ NO. KONTRAK: {item.noKontrak}</p>}
+                                      {item.tempohProjek && <p className="text-slate-900 font-bold">➢ TEMPOH PROJEK: {item.tempohProjek}</p>}
                                       {item.ownerProjek && <p className="text-blue-955 font-bold mt-1">➢ OWNER PROJECT: {item.ownerProjek}</p>}
                                     </div>
                                   </div>
@@ -2205,6 +2224,7 @@
               </div>
             )}
 
+            {}
             {/* VIEW 2: MOD SLAID PRESENTASI */}
             {viewMode === "meeting" && (
               <div className="flex-1 flex flex-col gap-6" ref={meetingContainerRef}>
@@ -2232,7 +2252,7 @@
                                   SLAID {currentSlideIndex + 1} DARIPADA {filteredData.length}
                                 </span>
                                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
-                                  Sektor: {activeSector.toUpperCase()}
+                                  Sektor: {getSectorDisplayName(activeSector)}
                                 </span>
 
                                 {/* Menu Dropdown Penilai Dinamik di Slide Presentation */}
@@ -2311,7 +2331,7 @@
                                   </div>
                                   <div>
                                     <span className="text-slate-400 text-[9px] uppercase block font-bold">Tempoh Projek</span>
-                                    <p className="text-slate-800 font-semibold leading-normal">{item.tempohProjek || "N/A"}</p>
+                                    <p className="text-slate-800 font-bold leading-normal">{item.tempohProjek || "N/A"}</p>
                                   </div>
                                 </div>
                                 <div className="pt-1.5 border-t border-slate-200">
@@ -2370,7 +2390,7 @@
                                           {idx + 1}. {norm.nama}
                                         </div>
                                         <div className="text-[11px] text-slate-600 flex flex-col gap-1 mt-1.5 leading-normal">
-                                          <div className="font-semibold text-slate-700 break-words">
+                                          <div className="font-bold text-slate-900 uppercase break-words">
                                             {norm.jawatan || "-"}
                                           </div>
                                           {norm.gaji && (
@@ -2384,7 +2404,7 @@
                                         <span className="px-1.5 py-0.5 bg-white border border-slate-250 rounded font-semibold text-slate-700">
                                           {norm.warganegara || "-"}
                                         </span>
-                                        <span className="px-1.5 py-0.5 bg-white border border-slate-250 rounded text-slate-600">
+                                        <span className="px-1.5 py-0.5 bg-white border border-slate-250 rounded text-slate-900 font-bold">
                                           {norm.umur || "-"}
                                         </span>
                                         {norm.tarikhLahir && (
@@ -2548,6 +2568,7 @@
               </div>
             )}
 
+            {}
             {/* ================================= VIEW 3: SETTINGS ================================= */}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
@@ -2562,9 +2583,9 @@
                 </div>
 
                 {/* Seksyen Pegawai Penilai */}
-                <div className="flex flex-col gap-2 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <div className="flex flex-col gap-3 bg-blue-50 p-4 rounded-xl border border-blue-200">
                   <label className="text-xs font-bold text-blue-955 flex items-center gap-1.5">
-                    <Icon name="users" size={14} /> Nama Pegawai Penilai / Bertanggungjawab
+                    <Icon name="users" size={14} /> Nama Pegawai Penilai Aktif
                   </label>
                   <input
                     type="text"
@@ -2573,6 +2594,28 @@
                     onChange={(e) => setOfficerName(e.target.value.toUpperCase())}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold uppercase"
                   />
+
+                  {/* Senarai Pegawai Penilai Terdaftar */}
+                  <div className="mt-2 pt-3 border-t border-blue-200/60 flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-slate-700">Senarai Pegawai Penilai (Terdaftar):</span>
+                    <div className="flex flex-wrap gap-2">
+                      {availableEvaluators.map((evaluator, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleSaveOfficerName(evaluator)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                            officerName === evaluator
+                              ? "bg-blue-900 text-white border-blue-900 shadow-xs"
+                              : "bg-white text-slate-700 border-slate-300 hover:border-blue-500 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span>{evaluator}</span>
+                          {officerName === evaluator && <Icon name="check" size={12} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Mod Pengujian & Data Contoh */}
@@ -2629,17 +2672,17 @@
           </main>
 
           {/* ================================= DOKUMEN CETAKAN PDF RASMI (KERAJAAN LANDSKAP) ================================= */}
-          <div className="hidden print:block bg-white text-black p-4 min-h-screen print-page font-serif">
+          <div className="hidden print:block bg-white text-black p-4 min-h-screen print-page font-sans">
             <div className="text-center flex flex-col gap-1 pb-4 mb-4 border-b border-black">
               <h1 className="text-sm font-bold uppercase tracking-tight">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</h1>
               <h2 className="text-[13px] font-bold uppercase">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</h2>
-              <h3 className="text-xs font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {activeSector.toUpperCase()}</h3>
+              <h3 className="text-xs font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {getSectorDisplayName(activeSector)}</h3>
               {officerName && <p className="text-[10px] font-medium mt-1">Disediakan Oleh Pegawai Penilai: {officerName}</p>}
             </div>
 
-            <table className="w-full text-[10px] text-left border border-black">
+            <table className="w-full text-[10pt] text-left border border-black">
               <thead>
-                <tr className="bg-slate-200 border-b border-black text-black font-bold text-center">
+                <tr className="bg-slate-200 border-b border-black text-black font-bold text-center text-[11pt]">
                   <th className="p-1 border-r border-black w-8" rowSpan={2}>BIL</th>
                   <th className="p-1 border-r border-black w-48" rowSpan={2}>NAMA SYARIKAT</th>
                   <th className="p-1 border-r border-black w-60" rowSpan={2}>BUTIRAN PENYANDANG</th>
@@ -2648,7 +2691,7 @@
                   <th className="p-1 border-r border-black w-64" rowSpan={2}>NAMA PROJEK</th>
                   <th className="p-1 w-44" rowSpan={2}>KEPUTUSAN</th>
                 </tr>
-                <tr className="bg-slate-100 border-b border-black text-black font-bold text-center">
+                <tr className="bg-slate-100 border-b border-black text-black font-bold text-center text-[11pt]">
                   <th className="p-1 border-r border-black w-8">B</th>
                   <th className="p-1 border-r border-black w-8">L</th>
                   <th className="p-1 border-r border-black w-8">T/R</th>
@@ -2659,12 +2702,12 @@
                 {currentSectData.map((item, idx) => {
                   const hasPenyandang = item.penyandang && item.penyandang.length > 0;
                   return (
-                    <tr key={item.id} className="border-b border-black font-serif">
+                    <tr key={item.id} className="border-b border-black font-sans text-[10pt]">
                       <td className="p-2 text-center font-bold border-r border-black align-top">{idx + 1}.</td>
                       
                       <td className="p-2 border-r border-black align-top">
                         <div className="font-bold uppercase text-black leading-tight">{item.namaSyarikat}</div>
-                        <div className="text-[9px] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
+                        <div className="text-[9pt] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
                       </td>
                       
                       <td className="p-2 border-r border-black align-top">
@@ -2678,10 +2721,10 @@
                                 formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
                               }
                             }
-                            const dateAndAge = formattedDate ? `${formattedDate} (${norm.umur || "-"})` : (norm.umur || "-");
+                            const dateAndAge = formattedDate ? `${formattedDate} (<b>${norm.umur || "-"}</b>)` : (norm.umur ? `<b>${norm.umur}</b>` : "-");
                             return (
-                              <div key={pidx} className="text-[9.5px] leading-relaxed">
-                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {dateAndAge} – <span className="italic break-words">{norm.jawatan || "-"}</span>
+                              <div key={pidx} className="text-[10pt] leading-relaxed">
+                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / <span dangerouslySetInnerHTML={{ __html: dateAndAge }} /> – <span className="font-bold uppercase">{norm.jawatan || "-"}</span>
                                 <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"}</div>
                               </div>
                             );
@@ -2694,10 +2737,10 @@
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valB || "-") : "-"}</td>
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valL || "-") : "-"}</td>
                       <td className="p-2 text-center border-r border-black align-top font-bold">{hasPenyandang ? (item.valTR || "-") : "-"}</td>
-                      <td className="p-2 text-center border-r border-black align-top font-bold text-[9px] uppercase whitespace-pre-line leading-relaxed">{hasPenyandang ? (item.valWN || "-") : "-"}</td>
+                      <td className="p-2 text-center border-r border-black align-top font-bold text-[9.5pt] uppercase whitespace-pre-line leading-relaxed">{hasPenyandang ? (item.valWN || "-") : "-"}</td>
                       
                       <td className="p-2 border-r border-black align-top">
-                        <div className="flex flex-col gap-2 text-[9.5px] leading-relaxed">
+                        <div className="flex flex-col gap-2 text-[10pt] leading-relaxed">
                           <div>
                             <span className="font-bold uppercase block text-black">KEGIATAN SYARIKAT</span>
                             <p className="text-slate-800 italic">➢ {item.kegiatan}</p>
@@ -2707,15 +2750,15 @@
                             {getProjekArray(item.projek).map((proj, pIdx) => (
                               <p key={pIdx} className="text-slate-800 font-semibold">➢ {proj}</p>
                             ))}
-                            {item.noKontrak && <p className="text-slate-800 font-medium">➢ NO. KONTRAK : {item.noKontrak}</p>}
-                            {item.tempohProjek && <p className="text-slate-800 font-medium">➢ TEMPOH PROJEK : {item.tempohProjek}</p>}
+                            {item.noKontrak && <p className="text-slate-800 font-bold">➢ NO. KONTRAK : {item.noKontrak}</p>}
+                            {item.tempohProjek && <p className="text-slate-800 font-bold">➢ TEMPOH PROJEK : {item.tempohProjek}</p>}
                             {item.ownerProjek && <p className="text-black font-bold">➢ OWNER PROJECT : {item.ownerProjek}</p>}
                           </div>
                         </div>
                       </td>
                       
                       <td className="p-2 align-top text-left">
-                        <div className="flex flex-col gap-1.5 text-[10px] font-semibold text-black">
+                        <div className="flex flex-col gap-1.5 text-[10pt] font-semibold text-black">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[12px] font-mono">{item.keputusan === "LULUS" ? "☒" : "☐"}</span>
                             <span>LULUS</span>
@@ -2733,7 +2776,7 @@
                             <span>SEMAKAN / NAZIRAN</span>
                           </div>
                           
-                          <div className="mt-2.5 pt-1.5 border-t border-slate-300 text-[9.5px]">
+                          <div className="mt-2.5 pt-1.5 border-t border-slate-300 text-[9.5pt]">
                             <strong>ULASAN :</strong>
                             {item.ulasan ? (
                               <p className="text-slate-900 italic mt-1 leading-normal font-bold">"{item.ulasan}"</p>
@@ -2837,7 +2880,7 @@
                           setShowOwnerDropdown(true);
                         }}
                         onFocus={() => setShowOwnerDropdown(true)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold uppercase"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold uppercase"
                       />
                       {showOwnerDropdown && filteredOwnerSuggestions.length > 0 && (
                         <div className="absolute top-[58px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -2852,7 +2895,7 @@
                                 setShowOwnerDropdown(false);
                                 setOwnerSearchQuery("");
                               }}
-                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-150 last:border-b-0 text-left text-slate-850 font-bold"
+                              className="p-2.5 hover:bg-slate-100 cursor-pointer border-b border-slate-150 last:border-b-0 text-left text-slate-800 font-bold"
                             >
                               {suggestion}
                             </div>
@@ -2939,7 +2982,7 @@
                         placeholder="Contoh: RFP-000000032393"
                         value={newCompany.noKontrak}
                         onChange={(e) => setNewCompany({...newCompany, noKontrak: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-855 focus:outline-none uppercase"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none uppercase"
                       />
                     </div>
 
@@ -3030,7 +3073,7 @@
                             setShowApplicantDropdown(true);
                           }}
                           onFocus={() => setShowApplicantDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
                         />
                         {showApplicantDropdown && filteredApplicantSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3071,7 +3114,7 @@
                           placeholder="Jawatan Pemohon"
                           value={newPenyandang.jawatan}
                           onChange={(e) => setNewPenyandang({...newPenyandang, jawatan: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 uppercase font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3081,7 +3124,7 @@
                           placeholder="Contoh: RM15,000"
                           value={newPenyandang.gaji}
                           onChange={(e) => setNewPenyandang({...newPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3091,7 +3134,7 @@
                           placeholder="Contoh: A72545666"
                           value={newPenyandang.pasport}
                           onChange={(e) => setNewPenyandang({...newPenyandang, pasport: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3100,7 +3143,7 @@
                           type="date"
                           value={newPenyandang.tarikhLahir}
                           onChange={(e) => handleBirthDateChange(e.target.value)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
                         />
                       </div>
 
@@ -3117,7 +3160,7 @@
                             setShowWarganegaraDropdown(true);
                           }}
                           onFocus={() => setShowWarganegaraDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700 font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700 font-bold"
                         />
                         {showNationalityDropdown && filteredWarganegaraSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3145,7 +3188,7 @@
                           placeholder="Contoh: 38 THN"
                           value={newPenyandang.umur}
                           onChange={(e) => setNewPenyandang({...newPenyandang, umur: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3153,7 +3196,7 @@
                         <select
                           value={newPenyandang.jantina}
                           onChange={(e) => setNewPenyandang({...newPenyandang, jantina: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none font-bold"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold"
                         >
                           <option value="L">Lelaki</option>
                           <option value="P">Perempuan</option>
@@ -3177,11 +3220,11 @@
                           const norm = normalizePenyandang(p);
                           return (
                             <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                              <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "Tiada Jawatan"} {norm.gaji ? `• ${norm.gaji}` : ''} • Pasport: {norm.pasport || "-"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
+                              <span>{idx + 1}. <strong>{norm.nama}</strong> (<strong className="uppercase">{norm.jawatan || "Tiada Jawatan"}</strong> {norm.gaji ? `• ${norm.gaji}` : ''} • Pasport: {norm.pasport || "-"} • WN: {norm.warganegara || "-"} • Umur: <strong>{norm.umur || "-"}</strong>)</span>
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromNewCompany(idx)}
-                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
+                                className="text-red-600 hover:text-red-800 font-bold text-[10px]"
                               >
                                 Padam Rekod Kakitangan
                               </button>
@@ -3267,7 +3310,7 @@
                         required
                         value={editingCompany.alamat}
                         onChange={(e) => setEditingCompany({...editingCompany, alamat: e.target.value.toUpperCase()})}
-                        className="bg-slate-50 border border-slate-355 rounded-lg px-3 py-2 text-xs text-slate-800"
+                        className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800"
                       />
                     </div>
 
@@ -3423,7 +3466,7 @@
                             setShowEditApplicantDropdown(true);
                           }}
                           onFocus={() => setShowEditApplicantDropdown(true)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-855 focus:outline-none focus:border-blue-700"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-700"
                         />
                         {showEditApplicantDropdown && filteredEditApplicantSuggestions.length > 0 && (
                           <div className="absolute top-[56px] left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
@@ -3443,7 +3486,7 @@
                                   });
                                   setShowEditApplicantDropdown(false);
                                   setEditApplicantSearchQuery("");
-                                  showToast(`Profil ${app.nama} dikesan and telah diisi secara automatik!`, "success");
+                                  showToast(`Profil ${app.nama} dikesan dan telah diisi secara automatik!`, "success");
                                 }}
                                 className="p-2 hover:bg-slate-100 cursor-pointer border-b border-slate-100 text-left text-[11px]"
                               >
@@ -3464,7 +3507,7 @@
                           placeholder="Jawatan dalam syarikat"
                           value={editPenyandang.jawatan}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jawatan: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs uppercase font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3474,7 +3517,7 @@
                           placeholder="Contoh: RM8,500"
                           value={editPenyandang.gaji}
                           onChange={(e) => setEditPenyandang({...editPenyandang, gaji: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3493,7 +3536,7 @@
                           type="date"
                           value={editPenyandang.tarikhLahir}
                           onChange={(e) => handleEditBirthDateChange(e.target.value)}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
                         />
                       </div>
 
@@ -3537,7 +3580,7 @@
                           type="text"
                           value={editPenyandang.umur}
                           onChange={(e) => setEditPenyandang({...editPenyandang, umur: e.target.value.toUpperCase()})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -3545,7 +3588,7 @@
                         <select
                           value={editPenyandang.jantina}
                           onChange={(e) => setEditPenyandang({...editPenyandang, jantina: e.target.value})}
-                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-sans"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs font-sans font-bold"
                         >
                           <option value="L">Lelaki</option>
                           <option value="P">Perempuan</option>
@@ -3555,7 +3598,7 @@
                         <button
                           type="button"
                           onClick={addPenyandangToEditingCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs"
+                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs transition-colors shadow-sm"
                         >
                           + Masukkan Penyandang Baharu Ini
                         </button>
@@ -3563,16 +3606,16 @@
                     </div>
 
                     {editingCompany.penyandang && editingCompany.penyandang.length > 0 && (
-                      <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
+                      <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
                         {editingCompany.penyandang.map((p, idx) => {
                           const norm = normalizePenyandang(p);
                           return (
                             <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0 font-sans">
-                              <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "N/A"} • {norm.gaji || "N/A"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
+                              <span>{idx + 1}. <strong>{norm.nama}</strong> (<strong className="uppercase">{norm.jawatan || "N/A"}</strong> • {norm.gaji || "N/A"} • WN: {norm.warganegara || "-"} • Umur: <strong>{norm.umur || "-"}</strong>)</span>
                               <button
                                 type="button"
                                 onClick={() => removePenyandangFromEditingCompany(idx)}
-                                className="text-red-600 hover:text-red-855 font-bold text-[10px]"
+                                className="text-red-600 hover:text-red-800 font-bold text-[10px] px-2 py-0.5 bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors"
                               >
                                 Padam Rekod
                               </button>
@@ -3596,9 +3639,9 @@
                     </button>
                     <button
                       type="submit"
-                      className="bg-blue-955 hover:bg-blue-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg"
+                      className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow-sm transition-colors"
                     >
-                      Simpan Perubahan & Kemaskini Sheets
+                      Simpan Kemaskini Permohonan
                     </button>
                   </div>
 
