@@ -264,7 +264,7 @@
       return result;
     }
 
-    // ===== FIXED: parseProjectAndDetails – lebih tepat untuk data Google Sheets =====
+    // ===== DIPERBAIKI: parseProjectAndDetails lebih mantap =====
     function parseProjectAndDetails(item) {
       if (!item) return { kegiatan: '', projek: [''], noKontrak: '', tempohProjek: '', ownerProjek: '' };
 
@@ -276,65 +276,92 @@
       let rawTempohProjek = cleanText(item.tempohProjek || '');
       let rawOwnerProjek = cleanText(item.ownerProjek || '');
 
-      const combinedText = rawKegiatan + '\n' + rawProjek;
+      // Combine semuanya untuk mencari tag secara bebas (in case data tersalah map column)
+      const combinedText = `${rawKegiatan}\n${rawProjek}\n${rawNoKontrak}\n${rawTempohProjek}\n${rawOwnerProjek}`;
 
       let kegiatan = rawKegiatan;
-      let projekLines = [];
       let noKontrak = rawNoKontrak;
       let tempohProjek = rawTempohProjek;
       let ownerProjek = rawOwnerProjek;
 
-      // 1. Ekstrak KEGIATAN SYARIKAT (ambil sehingga baris seterusnya)
-      const kegMatch = combinedText.match(/KEGIATAN SYARIKAT:\s*\n\s*➢\s*([^\n]+)/i);
-      if (kegMatch && kegMatch[1]) {
-        kegiatan = kegMatch[1].trim();
+      // Extract Kegiatan
+      if (!kegiatan) {
+          const kegMatch = combinedText.match(/KEGIATAN SYARIKAT\s*:\s*(?:\n|\r)*\s*[➢\-\*]?\s*([^\n]+)/i);
+          if (kegMatch && kegMatch[1]) kegiatan = kegMatch[1].trim();
       }
 
-      // 2. Ekstrak PROJECT (ambil semua baris yang bermula dengan ➢ sehingga tamat atau jumpa label)
-      const projectMatch = combinedText.match(/PROJECT:\s*\n\s*➢\s*([^\n]+(?:\n\s*➢\s*[^\n]+)*)/i);
-      if (projectMatch && projectMatch[1]) {
-        const projBlock = projectMatch[1];
-        projekLines = projBlock.split('\n')
-          .map(l => l.replace(/^➢\s*/, '').trim())
-          .filter(l => l && !/^(NO\.?\s*KONTRAK|TEMPOH\s*PROJEK|OWNER\s*PROJECT|KEGIATAN\s*SYARIKAT|PROJECT:)/i.test(l));
-      }
-
-      // Jika tiada PROJECT, cuba ambil dari rawProjek sebagai baris-baris
-      if (projekLines.length === 0 && rawProjek) {
-        projekLines = rawProjek.split('\n')
-          .map(l => l.replace(/^➢\s*/, '').trim())
-          .filter(l => l && !/^(NO\.?\s*KONTRAK|TEMPOH\s*PROJEK|OWNER\s*PROJECT|KEGIATAN\s*SYARIKAT|PROJECT:)/i.test(l));
-      }
-
-      // 3. Ekstrak NO. KONTRAK
+      // Extract No Kontrak
       if (!noKontrak) {
-        const nokMatch = combinedText.match(/NO\.?\s*KONTRAK\s*:\s*➢?\s*([^\n]+)/i);
-        if (nokMatch && nokMatch[1]) noKontrak = nokMatch[1].trim();
+          const nokMatch = combinedText.match(/NO\.?\s*KONTRAK\s*:\s*[➢\-\*]?\s*([^\n]+)/i);
+          if (nokMatch && nokMatch[1]) noKontrak = nokMatch[1].trim();
       }
 
-      // 4. Ekstrak TEMPOH PROJEK
+      // Extract Tempoh Projek
       if (!tempohProjek) {
-        const tempMatch = combinedText.match(/TEMPOH\s*PROJEK\s*:\s*➢?\s*([^\n]+)/i);
-        if (tempMatch && tempMatch[1]) tempohProjek = tempMatch[1].trim();
+          const tempMatch = combinedText.match(/TEMPOH\s*PROJEK\s*:\s*[➢\-\*]?\s*([^\n]+)/i);
+          if (tempMatch && tempMatch[1]) tempohProjek = tempMatch[1].trim();
       }
 
-      // 5. Ekstrak OWNER PROJECT
+      // Extract Owner Project
       if (!ownerProjek) {
-        const ownMatch = combinedText.match(/OWNER\s*PROJECT\s*:\s*➢?\s*([^\n]+)/i);
-        if (ownMatch && ownMatch[1]) ownerProjek = ownMatch[1].trim();
+          const ownMatch = combinedText.match(/OWNER\s*PROJECT\s*:\s*[➢\-\*]?\s*([^\n]+)/i);
+          if (ownMatch && ownMatch[1]) ownerProjek = ownMatch[1].trim();
       }
 
-      // Pastikan projekLines tidak kosong
-      if (projekLines.length === 0) {
-        projekLines = [""];
+      // Safe extraction of Projek array by evaluating line by line
+      let finalProjekLines = [];
+      const lines = rawProjek.split('\n');
+      
+      let currentSection = 'PROJEK';
+      
+      for (let i = 0; i < lines.length; i++) {
+         let line = lines[i].trim();
+         if (!line) continue;
+
+         let upperLine = line.toUpperCase();
+         
+         if (upperLine.startsWith('KEGIATAN SYARIKAT')) {
+             currentSection = 'KEGIATAN';
+             continue;
+         }
+         if (upperLine.startsWith('PROJECT') || upperLine.startsWith('PROJEK:')) {
+             currentSection = 'PROJEK';
+             continue;
+         }
+         if (upperLine.startsWith('NO. KONTRAK') || upperLine.startsWith('NO KONTRAK')) {
+             currentSection = 'OTHER';
+             continue;
+         }
+         if (upperLine.startsWith('TEMPOH PROJEK')) {
+             currentSection = 'OTHER';
+             continue;
+         }
+         if (upperLine.startsWith('OWNER PROJECT') || upperLine.startsWith('OWNER PROJEK')) {
+             currentSection = 'OTHER';
+             continue;
+         }
+
+         let cleanLine = line.replace(/^[➢\-\*]\s*/, '').trim();
+         
+         if (currentSection === 'PROJEK') {
+             if (cleanLine && cleanLine !== kegiatan && cleanLine !== noKontrak && cleanLine !== tempohProjek && cleanLine !== ownerProjek) {
+                 finalProjekLines.push(cleanLine);
+             }
+         } else if (currentSection === 'KEGIATAN' && !kegiatan) {
+             kegiatan = cleanLine;
+         }
+      }
+
+      if (finalProjekLines.length === 0) {
+          finalProjekLines = [""];
       }
 
       return {
-        kegiatan: kegiatan,
-        projek: projekLines,
-        noKontrak: noKontrak,
-        tempohProjek: tempohProjek,
-        ownerProjek: ownerProjek
+        kegiatan: kegiatan || rawKegiatan || '',
+        projek: finalProjekLines,
+        noKontrak: noKontrak || rawNoKontrak || '',
+        tempohProjek: tempohProjek || rawTempohProjek || '',
+        ownerProjek: ownerProjek || rawOwnerProjek || ''
       };
     }
 
@@ -384,6 +411,7 @@
       }).join("\n");
     }
 
+    // ===== DIPERBAIKI: processRecordsFromSheet - gunakan medan sedia ada =====
     function processRecordsFromSheet(records) {
       if (!Array.isArray(records)) return [];
       return records.map(r => {
@@ -410,17 +438,18 @@
           cleanAddr = parts.slice(1).join('\n').trim();
         }
 
-        const parsedProj = parseProjectAndDetails(r);
+        // Jalankan parseProjectAndDetails pada rekod untuk menyusun semula data yang mungkin berterabur
+        const parsed = parseProjectAndDetails(r);
 
         return {
           ...r,
           namaSyarikat: cleanComp,
           alamat: cleanAddr,
-          kegiatan: parsedProj.kegiatan,
-          projek: parsedProj.projek,
-          noKontrak: parsedProj.noKontrak,
-          tempohProjek: parsedProj.tempohProjek,
-          ownerProjek: parsedProj.ownerProjek,
+          kegiatan: parsed.kegiatan,
+          projek: parsed.projek,
+          noKontrak: parsed.noKontrak,
+          tempohProjek: parsed.tempohProjek,
+          ownerProjek: parsed.ownerProjek,
           penyandang: parsedPenyandang.map(normalizePenyandang),
           ulasan: cleanText(r.ulasan)
         };
@@ -852,17 +881,34 @@
         const cleanAddr = cleanText(item.alamat);
         const parsedProj = parseProjectAndDetails(item);
 
-        const rawProjekArray = parsedProj.projek;
-        const joinedProjects = rawProjekArray.length > 1 
-          ? rawProjekArray.join("\n➢ ") 
-          : rawProjekArray[0] || "-";
+        const rawProjekArray = parsedProj.projek.filter(p => p.trim() !== "");
+        
+        // Format gabungan ini dihantar ke Google Sheets supaya "satu column" menyimpan seluruh data yang selamat
+        let combinedProjekStr = "";
+
+        if (parsedProj.kegiatan) {
+            combinedProjekStr += `KEGIATAN SYARIKAT:\n➢ ${parsedProj.kegiatan}\n\n`;
+        }
+
+        const formattedProjects = rawProjekArray.map(p => `➢ ${p}`).join("\n");
+        combinedProjekStr += `PROJECT:\n${formattedProjects || "➢ -"}\n`;
+
+        if (parsedProj.noKontrak) {
+            combinedProjekStr += `\nNO. KONTRAK: ➢ ${parsedProj.noKontrak}`;
+        }
+        if (parsedProj.tempohProjek) {
+            combinedProjekStr += `\nTEMPOH PROJEK: ➢ ${parsedProj.tempohProjek}`;
+        }
+        if (parsedProj.ownerProjek) {
+            combinedProjekStr += `\nOWNER PROJECT: ➢ ${parsedProj.ownerProjek}`;
+        }
 
         return {
           ...item,
           namaSyarikat: cleanComp,
           alamat: cleanAddr,
           kegiatan: parsedProj.kegiatan,
-          projek: joinedProjects,
+          projek: combinedProjekStr.trim(),
           noKontrak: parsedProj.noKontrak,
           tempohProjek: parsedProj.tempohProjek,
           ownerProjek: parsedProj.ownerProjek,
@@ -2204,7 +2250,7 @@
                   </div>
                 </div>
 
-                {}
+                {/* Main Data Table */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-left text-xs">
@@ -2481,7 +2527,7 @@
                             </div>
                           </div>
 
-                          {}
+                          {/* Bahagian Penyandang untuk Mod Pembentangan */}
                           <div className="flex-1 flex flex-col gap-3 min-h-[220px]">
                             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                               <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
@@ -2593,7 +2639,7 @@
 
                         </div>
 
-                        {}
+                        {/* Panel Kanan: Panel Keputusan */}
                         <div className="lg:col-span-3 bg-slate-900 text-white p-4 rounded-2xl flex flex-col gap-4 relative shadow-lg">
                           
                           <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
