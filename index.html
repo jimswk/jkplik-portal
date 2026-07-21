@@ -979,19 +979,19 @@
               <table>
                 <thead>
                   <tr>
-                    <th rowspan="2" style="width: 5%;">BIL</th>
-                    <th rowspan="2" style="width: 20%;">NAMA SYARIKAT</th>
-                    <th rowspan="2" style="width: 25%;">BUTIRAN PENYANDANG</th>
-                    <th rowspan="2" style="width: 10%;">TEMPOH MOHON</th>
-                    <th colspan="4" style="width: 15%;">PERMOHONAN / WARGANEGARA</th>
-                    <th rowspan="2" style="width: 25%;">NAMA PROJEK</th>
-                    <th rowspan="2" style="width: 15%;">KEPUTUSAN</th>
+                    <th rowspan="2" style="width: 1.17cm;">BIL</th>
+                    <th rowspan="2" style="width: 4.5cm;">NAMA SYARIKAT</th>
+                    <th rowspan="2" style="width: 4.25cm;">BUTIRAN PENYANDANG</th>
+                    <th rowspan="2" style="width: 2.07cm;">TEMPOH MOHON</th>
+                    <th colspan="4" style="width: 4.25cm;">PERMOHONAN / WARGANEGARA</th>
+                    <th rowspan="2" style="width: 6.68cm;">NAMA PROJEK</th>
+                    <th rowspan="2" style="width: 3.94cm;">KEPUTUSAN</th>
                   </tr>
                   <tr>
-                    <th style="width: 3.75%;">B</th>
-                    <th style="width: 3.75%;">L</th>
-                    <th style="width: 3.75%;">T/R</th>
-                    <th style="width: 3.75%;">W/N</th>
+                    <th style="width: 0.8cm;">B</th>
+                    <th style="width: 0.8cm;">L</th>
+                    <th style="width: 0.8cm;">T/R</th>
+                    <th style="width: 1.85cm;">W/N</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1069,13 +1069,13 @@
             wordContent += `
               <tr>
                 <td class="align-center font-bold">${index + 1}.</td>
-                <td class="font-bold uppercase">${item.namaSyarikat}<br/><span style="font-size: 8.5pt; font-weight: normal;">${item.alamat || ""}</span></td>
+                <td class="font-bold uppercase">${item.namaSyarikat}<br/><span style="font-size: 8pt; font-weight: normal;">${item.alamat || ""}</span></td>
                 <td>${penyandangRows}</td>
                 <td class="align-center font-bold">${item.tempohMohon || "-"}</td>
                 <td class="align-center font-bold">${hasPenyandang ? (item.valB || "-") : "-"}</td>
                 <td class="align-center font-bold">${hasPenyandang ? (item.valL || "-") : "-"}</td>
                 <td class="align-center font-bold">${hasPenyandang ? (item.valTR || "-") : "-"}</td>
-                <td class="align-center font-bold" style="font-size: 8.5pt; white-space: pre-line;">${hasPenyandang ? (item.valWN || "-") : "-"}</td>
+                <td class="align-center font-bold" style="font-size: 8pt; white-space: pre-line;">${hasPenyandang ? (item.valWN || "-") : "-"}</td>
                 <td>${projectDetails}</td>
                 <td>${decisionCol}</td>
               </tr>
@@ -2683,19 +2683,19 @@
             <table className="w-full text-[10pt] text-left border border-black">
               <thead>
                 <tr className="bg-slate-200 border-b border-black text-black font-bold text-center text-[11pt]">
-                  <th className="p-1 border-r border-black w-8" rowSpan={2}>BIL</th>
-                  <th className="p-1 border-r border-black w-48" rowSpan={2}>NAMA SYARIKAT</th>
-                  <th className="p-1 border-r border-black w-60" rowSpan={2}>BUTIRAN PENYANDANG</th>
-                  <th className="p-1 border-r border-black w-20" rowSpan={2}>TEMPOH MOHON</th>
-                  <th className="p-1 border-r border-black w-32" colSpan={4}>PERMOHONAN / WARGANEGARA</th>
-                  <th className="p-1 border-r border-black w-64" rowSpan={2}>NAMA PROJEK</th>
-                  <th className="p-1 w-44" rowSpan={2}>KEPUTUSAN</th>
+                  <th className="p-1 border-r border-black" style={{ width: "1.17cm" }} rowSpan={2}>BIL</th>
+                  <th className="p-1 border-r border-black" style={{ width: "4.5cm" }} rowSpan={2}>NAMA SYARIKAT</th>
+                  <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} rowSpan={2}>BUTIRAN PENYANDANG</th>
+                  <th className="p-1 border-r border-black" style={{ width: "2.07cm" }} rowSpan={2}>TEMPOH MOHON</th>
+                  <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} colSpan={4}>PERMOHONAN / WARGANEGARA</th>
+                  <th className="p-1 border-r border-black" style={{ width: "6.68cm" }} rowSpan={2}>NAMA PROJEK</th>
+                  <th className="p-1" style={{ width: "3.94cm" }} rowSpan={2}>KEPUTUSAN</th>
                 </tr>
                 <tr className="bg-slate-100 border-b border-black text-black font-bold text-center text-[11pt]">
-                  <th className="p-1 border-r border-black w-8">B</th>
-                  <th className="p-1 border-r border-black w-8">L</th>
-                  <th className="p-1 border-r border-black w-8">T/R</th>
-                  <th className="p-1 border-r border-black w-12">W/N</th>
+                  <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>B</th>
+                  <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>L</th>
+                  <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>T/R</th>
+                  <th className="p-1 border-r border-black" style={{ width: "1.85cm" }}>W/N</th>
                 </tr>
               </thead>
               <tbody>
