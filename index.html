@@ -456,32 +456,176 @@
 
     function Icon({ name, size = 16, className = "" }) {
       const iconsMap = {
-        database: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></g>,
-        presentation: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /><path d="m10 8 5 3-5 3V8z" /></g>,
-        settings: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></g>,
-        printer: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></g>,
-        word: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M9 15h1l1-3 1 3h1" /><path d="M10 11h4" /></g>,
-        search: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></g>,
-        plusCircle: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></g>,
-        cloudCheck: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></g>,
-        cloudAlert: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></g>,
-        users: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></g>,
-        chevronLeft: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></g>,
-        chevronRight: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></g>,
-        trash: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2-2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></g>,
-        edit: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></g>,
-        alertTriangle: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></g>,
-        checkCircle: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></g>,
-        xCircle: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></g>,
-        fileText: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></g>,
-        check: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></g>,
-        plus: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></g>,
-        upload: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></g>,
-        refresh: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></g>,
-        maximize: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" /></g>,
-        minimize: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4" /></g>,
-        barChart: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></g>,
-        eye: <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></g>
+        database: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3" />
+            <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+            <path d="M3 12A9 3 0 0 0 21 12" />
+          </g>
+        ),
+        presentation: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+            <path d="m10 8 5 3-5 3V8z" />
+          </g>
+        ),
+        settings: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </g>
+        ),
+        printer: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect x="6" y="14" width="12" height="8" />
+          </g>
+        ),
+        word: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <path d="M9 15h1l1-3 1 3h1" />
+            <path d="M10 11h4" />
+          </g>
+        ),
+        search: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </g>
+        ),
+        plusCircle: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </g>
+        ),
+        cloudCheck: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </g>
+        ),
+        cloudAlert: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </g>
+        ),
+        users: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </g>
+        ),
+        chevronLeft: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </g>
+        ),
+        chevronRight: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </g>
+        ),
+        trash: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2-2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+          </g>
+        ),
+        edit: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </g>
+        ),
+        alertTriangle: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </g>
+        ),
+        checkCircle: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </g>
+        ),
+        xCircle: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </g>
+        ),
+        fileText: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </g>
+        ),
+        check: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </g>
+        ),
+        plus: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </g>
+        ),
+        upload: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </g>
+        ),
+        refresh: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 4v6h-6" />
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          </g>
+        ),
+        maximize: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </g>
+        ),
+        minimize: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4" />
+          </g>
+        ),
+        barChart: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="20" x2="12" y2="10" />
+            <line x1="18" y1="20" x2="18" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="16" />
+          </g>
+        ),
+        eye: (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </g>
+        )
       };
 
       return (
@@ -499,8 +643,8 @@
       const [sessionData, setSessionData] = useState({});
 
       const [activeSector, setActiveSector] = useState("og");
-      const [viewMode, setViewMode] = useState("dashboard"); // dashboard, meeting, settings
-      const [presentationTab, setPresentationTab] = useState("slaid"); // slaid, stats_baru, stats_lanjutan, naziran
+      const [viewMode, setViewMode] = useState("dashboard"); // "dashboard", "meeting", "settings"
+      const [presentationTab, setPresentationTab] = useState("slide"); // "slide", "statistik-baru", "statistik-lanjutan", "naziran"
       
       const [isFullscreen, setIsFullscreen] = useState(false);
       const meetingContainerRef = useRef(null);
@@ -559,6 +703,36 @@
 
       const dataOG = activeDataSlice.og || [];
       const dataOthers = activeDataSlice.others || {};
+
+      const currentSectData = useMemo(() => {
+        if (activeSector === "og") return dataOG;
+        return dataOthers[activeSector] || [];
+      }, [activeSector, dataOG, dataOthers]);
+
+      // Menggabungkan semua data merentas sektor untuk fungsi Global (Contoh: Naziran)
+      const allSectorsData = useMemo(() => {
+        const combined = [];
+        dataOG.forEach(item => combined.push({ ...item, sectorCode: "og" }));
+        Object.keys(dataOthers).forEach(sec => {
+          (dataOthers[sec] || []).forEach(item => combined.push({ ...item, sectorCode: sec }));
+        });
+        return combined;
+      }, [dataOG, dataOthers]);
+
+      // Senarai khas Naziran
+      const naziranItems = useMemo(() => {
+        return allSectorsData.filter(item => item.keputusan === "SEMAKAN / NAZIRAN");
+      }, [allSectorsData]);
+
+      // Statistik Baru (Mana-mana item yang mempunyai valB berdaftar)
+      const statistikBaruItems = useMemo(() => {
+        return allSectorsData.filter(item => item.valB && item.valB !== "-" && item.valB !== "0" && item.valB !== "00");
+      }, [allSectorsData]);
+
+      // Statistik Lanjutan (Mana-mana item yang mempunyai valL berdaftar)
+      const statistikLanjutanItems = useMemo(() => {
+        return allSectorsData.filter(item => item.valL && item.valL !== "-" && item.valL !== "0" && item.valL !== "00");
+      }, [allSectorsData]);
 
       const [newCompany, setNewCompany] = useState({
         namaSyarikat: "",
@@ -722,16 +896,19 @@
           let updatedOg = [...currentOg];
           let updatedOthers = { ...currentOthers };
 
-          if (activeSector === "og") {
+          // Use the sectorCode from editingCompany if it exists (from global lists), otherwise fallback to activeSector
+          const targetSector = editingCompany.sectorCode || activeSector;
+
+          if (targetSector === "og") {
             updatedOg = currentOg.map(item => item.id === editingCompany.id ? editingCompany : item);
           } else {
-            updatedOthers[activeSector] = (currentOthers[activeSector] || []).map(item => item.id === editingCompany.id ? editingCompany : item);
+            updatedOthers[targetSector] = (currentOthers[targetSector] || []).map(item => item.id === editingCompany.id ? editingCompany : item);
           }
 
           if (sheetUrl) {
-            const targetListForSync = activeSector === "og" ? updatedOg : updatedOthers[activeSector];
+            const targetListForSync = targetSector === "og" ? updatedOg : updatedOthers[targetSector];
             setTimeout(() => {
-              syncEditRowToGoogleSheets(editingCompany, targetListForSync);
+              syncEditRowToGoogleSheets(editingCompany, targetListForSync, targetSector);
             }, 0);
           }
 
@@ -808,19 +985,26 @@
         return () => document.removeEventListener("fullscreenchange", handleFsChange);
       }, []);
 
+      // Standard save decision for active sector
       function handleSaveDecision(id, keputusan, ulasan) {
+        handleSaveDecisionGlobal(id, activeSector, keputusan, ulasan);
+      }
+
+      // Global save decision (handles cross-sector updates like Naziran)
+      function handleSaveDecisionGlobal(id, itemSector, keputusan, ulasan) {
         setSessionData(prev => {
           const currentSlice = prev[activeCacheKey] || { og: [], others: {} };
           const currentOg = currentSlice.og || [];
           const currentOthers = currentSlice.others || {};
 
-          const updatedOg = currentOg.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
-          const updatedOthers = {};
-          SECTORS_LIST.forEach(s => {
-            if (s.id !== "og") {
-              updatedOthers[s.id] = (currentOthers[s.id] || []).map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
-            }
-          });
+          let updatedOg = [...currentOg];
+          let updatedOthers = { ...currentOthers };
+
+          if (itemSector === "og") {
+            updatedOg = currentOg.map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+          } else {
+            updatedOthers[itemSector] = (currentOthers[itemSector] || []).map(item => item.id === id ? { ...item, keputusan, ulasan } : item);
+          }
 
           return {
             ...prev,
@@ -832,7 +1016,7 @@
         });
 
         if (sheetUrl) {
-          syncSingleRowToGoogleSheets(id, keputusan, ulasan);
+          syncSingleRowToGoogleSheets(id, keputusan, ulasan, itemSector);
         } else {
           showToast("Keputusan disimpan dalam memori sesi.", "info");
         }
@@ -847,7 +1031,6 @@
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`Memulai penyelarasan penuh untuk tab [${sheetName}]...`, "info");
         
-        const currentSectData = activeSector === "og" ? dataOG : (dataOthers[activeSector] || []);
         const preparedData = currentSectData.map(prepareRecordForSync);
 
         try {
@@ -981,8 +1164,6 @@
                 </thead>
                 <tbody>
         `;
-
-        const currentSectData = activeSector === "og" ? dataOG : (dataOthers[activeSector] || []);
 
         if (currentSectData.length === 0) {
           wordContent += `
@@ -1144,7 +1325,7 @@
         }
       }
 
-      async function syncEditRowToGoogleSheets(updatedItem, allItems) {
+      async function syncEditRowToGoogleSheets(updatedItem, allItems, targetSector = activeSector) {
         if (!sheetUrl) return;
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
@@ -1159,7 +1340,7 @@
             body: JSON.stringify({ 
               action: "sync_all", 
               data: preparedData, 
-              activeSector,
+              activeSector: targetSector,
               sheetName: sheetName
             })
           });
@@ -1219,7 +1400,8 @@
         }
       }
 
-      async function syncSingleRowToGoogleSheets(id, keputusan, ulasan) {
+      async function syncSingleRowToGoogleSheets(id, keputusan, ulasan, targetSector = activeSector) {
+        if (!sheetUrl) return;
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`[AUTO-SYNC] Menghantar kemas kini keputusan ID: ${id}...`, "info");
         try {
@@ -1232,7 +1414,7 @@
               id, 
               keputusan, 
               ulasan, 
-              activeSector,
+              activeSector: targetSector,
               sheetName: sheetName
             })
           });
@@ -1506,38 +1688,15 @@
             tempohProjek: "11 JAN 2026 – 10 JAN 2027",
             ownerProjek: "PETRONAS CARIGALI SDN BHD",
             tempohMohon: "06 BULAN",
-            valB: "02",
+            valB: "01",
             valL: "-",
             valTR: "-",
-            valWN: "02 MYS 'A'",
+            valWN: "01 MYS 'A'",
             keputusan: "",
             ulasan: "",
             synced: false,
             penyandang: [
-              { nama: "AHMAD AQMAL BIN RAHMAT", jantina: "L", warganegara: "MYS", pasport: "A72545666", tarikhLahir: "1988-02-25", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000" },
-              { nama: "JOHN DOE", jantina: "L", warganegara: "GBR", pasport: "123456789", tarikhLahir: "1985-05-15", umur: "41 THN", jawatan: "PROJECT MANAGER", gaji: "RM25,000" }
-            ]
-          },
-          {
-            id: `OG-${Date.now()}-2`,
-            bil: 2,
-            namaSyarikat: "TEKNOLOGI MAJU SDN BHD",
-            alamat: "MENARA PNB, KUALA LUMPUR",
-            kegiatan: "IT SERVICES & CONSULTANCY",
-            projek: ["SYSTEM MIGRATION PROJECT PHASE 1"],
-            noKontrak: "IT-2026-001",
-            tempohProjek: "1 TAHUN",
-            ownerProjek: "KEMENTERIAN KESIHATAN",
-            tempohMohon: "12 BULAN",
-            valB: "-",
-            valL: "01",
-            valTR: "-",
-            valWN: "01 IND",
-            keputusan: "SEMAKAN / NAZIRAN",
-            ulasan: "Sila semak dokumen sokongan lampiran B.",
-            synced: false,
-            penyandang: [
-              { nama: "RAJ KAPPOR", jantina: "L", warganegara: "IND", pasport: "R998877", tarikhLahir: "1990-10-10", umur: "36 THN", jawatan: "SENIOR DEVELOPER", gaji: "RM12,000" }
+              { nama: "AHMAD AQMAL BIN RAHMAT", jantina: "L", warganegara: "MYS", pasport: "A72545666", tarikhLahir: "1988-02-25", umur: "38 THN", jawatan: "TECHNICAL EXPERTISE", gaji: "RM15,000" }
             ]
           }
         ];
@@ -1570,7 +1729,7 @@
 
       useEffect(() => {
         const handleKeyDown = (e) => {
-          if (viewMode !== "meeting" || presentationTab !== "slaid") return;
+          if (viewMode !== "meeting" || presentationTab !== "slide") return;
           if (e.key === "ArrowLeft") {
             setCurrentSlideIndex(prev => Math.max(0, prev - 1));
           } else if (e.key === "ArrowRight") {
@@ -1594,11 +1753,6 @@
         return () => document.removeEventListener("click", handleOutsideClick);
       }, []);
 
-      const currentSectData = useMemo(() => {
-        if (activeSector === "og") return dataOG;
-        return dataOthers[activeSector] || [];
-      }, [activeSector, dataOG, dataOthers]);
-
       const filteredData = useMemo(() => {
         return currentSectData.filter(item => {
           const matchSearch = item.namaSyarikat.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -1616,65 +1770,6 @@
           return matchSearch && matchStatus;
         });
       }, [currentSectData, searchQuery, statusFilter]);
-
-      const getStatsData = (type) => {
-        // Gabungkan semua rekod untuk kiraan statistik pertemuan (semua sektor)
-        const allData = [];
-        const activeData = sessionData[activeCacheKey] || { og: [], others: {} };
-        if (activeData.og) allData.push(...activeData.og.map(d => ({ ...d, sectorCode: 'og' })));
-        Object.keys(activeData.others || {}).forEach(sec => {
-          allData.push(...(activeData.others[sec] || []).map(d => ({ ...d, sectorCode: sec })));
-        });
-
-        let companies = 0;
-        let totalPenyandang = 0;
-        const wnCount = {};
-        const sectorCount = {};
-        const companyDetails = [];
-
-        allData.forEach(item => {
-          let isMatch = false;
-          const valBInt = parseInt(item.valB);
-          const valLInt = parseInt(item.valL);
-          
-          if (type === 'baru' && item.valB && item.valB !== '-' && !isNaN(valBInt) && valBInt > 0) isMatch = true;
-          if (type === 'lanjutan' && item.valL && item.valL !== '-' && !isNaN(valLInt) && valLInt > 0) isMatch = true;
-
-          if (isMatch) {
-            companies++;
-            sectorCount[item.sectorCode] = (sectorCount[item.sectorCode] || 0) + 1;
-            
-            const parsedProj = parseProjectAndDetails(item);
-            companyDetails.push({
-              namaSyarikat: item.namaSyarikat,
-              ownerProjek: parsedProj.ownerProjek || item.ownerProjek || "TIADA MAKLUMAT PEMILIK",
-              sectorCode: item.sectorCode,
-              jumlahPenyandang: (item.penyandang || []).length,
-              valB: item.valB,
-              valL: item.valL
-            });
-
-            (item.penyandang || []).forEach(p => {
-              totalPenyandang++;
-              const norm = normalizePenyandang(p);
-              const wn = (norm.warganegara || 'N/A').toUpperCase();
-              wnCount[wn] = (wnCount[wn] || 0) + 1;
-            });
-          }
-        });
-
-        return { companies, totalPenyandang, wnCount, sectorCount, companyDetails };
-      };
-
-      const naziranItems = useMemo(() => {
-        const allData = [];
-        const activeData = sessionData[activeCacheKey] || { og: [], others: {} };
-        if (activeData.og) allData.push(...activeData.og.map(d => ({ ...d, sectorCode: 'og' })));
-        Object.keys(activeData.others || {}).forEach(sec => {
-          allData.push(...(activeData.others[sec] || []).map(d => ({ ...d, sectorCode: sec })));
-        });
-        return allData.filter(item => item.keputusan === "SEMAKAN / NAZIRAN");
-      }, [sessionData, activeCacheKey]);
 
       const stats = useMemo(() => {
         const total = currentSectData.length;
@@ -1938,8 +2033,8 @@
               
               <button
                 onClick={() => {
-                  setViewMode("meeting");
-                  setPresentationTab("slaid");
+                    setViewMode("meeting");
+                    setPresentationTab("slide");
                 }}
                 className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 border transition-all ${
                   viewMode === "meeting"
@@ -1947,7 +2042,7 @@
                     : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
                 }`}
               >
-                <Icon name="presentation" size={14} /> Mod Pembentangan
+                <Icon name="presentation" size={14} /> Mod Slaid Mesyuarat
               </button>
 
               <button
@@ -1980,34 +2075,37 @@
             </div>
           </header>
 
-          <div className="bg-blue-955 text-white py-3 px-6 flex items-center gap-2 overflow-x-auto no-print shadow-inner">
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-widest whitespace-nowrap mr-3">SEKTOR KDN:</span>
-            <div className="flex gap-2">
-              {SECTORS_LIST.map((sect) => (
-                <button
-                  key={sect.id}
-                  onClick={() => {
-                    setActiveSector(sect.id);
-                    setCurrentSlideIndex(0);
-                  }}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-all whitespace-nowrap ${
-                    activeSector === sect.id
-                      ? 'bg-amber-500 text-slate-955 shadow'
-                      : 'bg-blue-900/50 hover:bg-blue-900 text-slate-200'
-                  }`}
-                >
-                  {sect.name}
-                  <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-blue-955 text-[10px] text-amber-300 font-bold">
-                    {sect.id === "og" ? dataOG.length : (dataOthers[sect.id] || []).length}
-                  </span>
-                </button>
-              ))}
+          {/* Sektor Nav - Only show in Dashboard or Meeting Slide */}
+          {(viewMode === "dashboard" || (viewMode === "meeting" && presentationTab === "slide")) && (
+            <div className="bg-blue-955 text-white py-3 px-6 flex items-center gap-2 overflow-x-auto no-print shadow-inner">
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-widest whitespace-nowrap mr-3">SEKTOR KDN:</span>
+              <div className="flex gap-2">
+                {SECTORS_LIST.map((sect) => (
+                  <button
+                    key={sect.id}
+                    onClick={() => {
+                      setActiveSector(sect.id);
+                      setCurrentSlideIndex(0);
+                    }}
+                    className={`px-3 py-1 rounded text-xs font-bold transition-all whitespace-nowrap ${
+                      activeSector === sect.id
+                        ? 'bg-amber-500 text-slate-955 shadow'
+                        : 'bg-blue-900/50 hover:bg-blue-900 text-slate-200'
+                    }`}
+                  >
+                    {sect.name}
+                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-blue-955 text-[10px] text-amber-300 font-bold">
+                      {sect.id === "og" ? dataOG.length : (dataOthers[sect.id] || []).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <main className="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full gap-6 no-print">
 
-            {viewMode !== "meeting" && (
+            {viewMode === "dashboard" && (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-1">
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Syarikat Terlibat</span>
@@ -2053,7 +2151,6 @@
               </div>
             )}
 
-            {}
             {viewMode === "dashboard" && (
               <div className="flex flex-col gap-6">
                 
@@ -2247,7 +2344,7 @@
                                         const matchedIndex = filteredData.findIndex(f => f.id === item.id);
                                         setCurrentSlideIndex(matchedIndex >= 0 ? matchedIndex : 0);
                                         setViewMode("meeting");
-                                        setPresentationTab("slaid");
+                                        setPresentationTab("slide");
                                       }}
                                       className="p-1 hover:bg-slate-100 hover:text-blue-900 rounded transition-colors text-slate-500"
                                       title="Bentangkan Slaid"
@@ -2282,52 +2379,57 @@
               </div>
             )}
 
-            {}
             {viewMode === "meeting" && (
               <div className="flex-1 flex flex-col gap-4" ref={meetingContainerRef}>
                 
-                {/* Navigation Tabs untuk Pembentangan */}
-                <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm mx-auto">
-                  <button 
-                    onClick={() => setPresentationTab("slaid")} 
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${presentationTab === 'slaid' ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-sm' : 'hover:bg-slate-50 text-slate-600 border border-transparent'}`}
+                {/* Pembentangan Tabs Navigation */}
+                <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm sticky top-[72px] z-30">
+                  <button
+                    onClick={() => setPresentationTab("slide")}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                      presentationTab === "slide" ? "bg-amber-100 text-amber-900 border border-amber-300 shadow-sm" : "bg-transparent text-slate-600 hover:bg-slate-100 border border-transparent"
+                    }`}
                   >
-                    <Icon name="presentation" size={14} /> Slaid Utama
+                    <Icon name="presentation" size={16} /> Pembentangan Kes
                   </button>
-                  <button 
-                    onClick={() => setPresentationTab("stats_baru")} 
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${presentationTab === 'stats_baru' ? 'bg-blue-100 text-blue-900 border border-blue-300 shadow-sm' : 'hover:bg-slate-50 text-slate-600 border border-transparent'}`}
+                  <button
+                    onClick={() => setPresentationTab("statistik-baru")}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                      presentationTab === "statistik-baru" ? "bg-blue-100 text-blue-900 border border-blue-300 shadow-sm" : "bg-transparent text-slate-600 hover:bg-slate-100 border border-transparent"
+                    }`}
                   >
-                    <Icon name="barChart" size={14} /> Statistik Baru
+                    <Icon name="barChart" size={16} /> Statistik Baru
                   </button>
-                  <button 
-                    onClick={() => setPresentationTab("stats_lanjutan")} 
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${presentationTab === 'stats_lanjutan' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-sm' : 'hover:bg-slate-50 text-slate-600 border border-transparent'}`}
+                  <button
+                    onClick={() => setPresentationTab("statistik-lanjutan")}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                      presentationTab === "statistik-lanjutan" ? "bg-teal-100 text-teal-900 border border-teal-300 shadow-sm" : "bg-transparent text-slate-600 hover:bg-slate-100 border border-transparent"
+                    }`}
                   >
-                    <Icon name="barChart" size={14} /> Statistik Lanjutan
+                    <Icon name="barChart" size={16} /> Statistik Lanjutan
                   </button>
-                  <button 
-                    onClick={() => setPresentationTab("naziran")} 
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${presentationTab === 'naziran' ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 shadow-sm' : 'hover:bg-slate-50 text-slate-600 border border-transparent'}`}
+                  <button
+                    onClick={() => setPresentationTab("naziran")}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ml-auto ${
+                      presentationTab === "naziran" ? "bg-indigo-900 text-white border border-indigo-900 shadow-sm" : "bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200"
+                    }`}
                   >
-                    <Icon name="eye" size={14} /> Tindakan Naziran ({naziranItems.length})
+                    <Icon name="eye" size={16} /> Tindakan Naziran ({naziranItems.length})
                   </button>
-                  
-                  <div className="ml-auto mr-2">
-                    <button
-                      onClick={toggleFullscreen}
-                      className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors border border-slate-200"
-                      title={isFullscreen ? "Keluar Skrin Penuh" : "Skrin Penuh"}
-                    >
-                      <Icon name={isFullscreen ? "minimize" : "maximize"} size={16} />
-                    </button>
-                  </div>
+                  <button
+                    onClick={toggleFullscreen}
+                    className="p-2 hover:bg-slate-150 rounded-lg text-slate-600 transition-colors border border-transparent hover:border-slate-300 ml-1"
+                    title={isFullscreen ? "Keluar Skrin Penuh" : "Skrin Penuh"}
+                  >
+                    <Icon name={isFullscreen ? "minimize" : "maximize"} size={18} />
+                  </button>
                 </div>
 
-                {presentationTab === "slaid" && (
+                {/* --- TAB: SLIDE PEMBENTANGAN --- */}
+                {presentationTab === "slide" && (
                   filteredData.length === 0 ? (
-                    <div className="bg-white p-12 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center gap-4 h-[500px]">
-                      <h3 className="text-base font-bold text-slate-700">Tiada Data untuk Dibentangkan di Sektor Ini</h3>
+                    <div className="bg-white p-12 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center gap-4">
+                      <h3 className="text-base font-bold text-slate-700">Tiada Data untuk Dibentangkan di Sektor ini</h3>
                       <button onClick={() => setViewMode("dashboard")} className="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded-lg">
                         Kembali ke Jadual Utama
                       </button>
@@ -2347,7 +2449,7 @@
                               <div className="flex flex-col gap-1.5 flex-1">
                                 <div className="flex items-center gap-2.5">
                                   <span className="px-2.5 py-1 rounded bg-slate-100 border border-slate-300 text-slate-700 text-[10px] font-bold">
-                                    SLAID {currentSlideIndex + 1} / {filteredData.length}
+                                    SLAID {currentSlideIndex + 1} DARIPADA {filteredData.length}
                                   </span>
                                   <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
                                     Sektor: {getSectorDisplayName(activeSector)}
@@ -2370,29 +2472,28 @@
                                       </select>
                                     </div>
                                   )}
-
-                                  <div className="ml-auto flex items-center gap-2">
+                                  <div className="ml-auto">
                                     {item.synced ? (
-                                      <span className="text-emerald-600 flex items-center gap-1 text-[10px] font-bold" title="Tersinkron">
-                                        <Icon name="cloudCheck" size={16} /> Tersimpan
+                                      <span className="text-emerald-600" title="Tersinkron">
+                                        <Icon name="cloudCheck" size={20} />
                                       </span>
                                     ) : (
-                                      <span className="text-slate-400 flex items-center gap-1 text-[10px] font-bold" title="Tempatan">
-                                        <Icon name="cloudAlert" size={16} /> Tempatan
+                                      <span className="text-slate-400" title="Tempatan">
+                                        <Icon name="cloudAlert" size={20} />
                                       </span>
                                     )}
                                   </div>
                                 </div>
-                                <h2 className="text-xl font-black text-blue-955 mt-1.5 leading-tight uppercase">
+                                <h2 className="text-xl font-black text-blue-955 mt-1 leading-tight uppercase">
                                   {item.namaSyarikat}
                                 </h2>
-                                <p className="text-xs text-slate-600 leading-relaxed max-w-3xl uppercase">
-                                  <strong>Alamat Syarikat: </strong>{item.alamat || "N/A"}
+                                <p className="text-xs text-slate-600 leading-relaxed max-w-3xl uppercase mt-0.5">
+                                  <strong>Alamat: </strong>{item.alamat || "N/A"}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1 text-xs">
                               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-2">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
                                   Kegiatan Utama Syarikat
@@ -2431,71 +2532,67 @@
                               </div>
                             </div>
 
-                            <div className="flex-1 flex flex-col gap-3 min-h-[220px]">
-                              <div className="flex flex-col gap-2 border-b border-slate-200 pb-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                    <Icon name="users" size={16} className="text-blue-900" /> SENARAI PENYANDANG (JUMLAH KESELURUHAN: {(item.penyandang || []).length} ORANG)
+                            {/* Penyandang Row View */}
+                            <div className="flex-1 flex flex-col mt-2 min-h-[220px]">
+                              <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+                                <span className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                  <Icon name="users" size={16} className="text-blue-900" /> BUTIRAN PENYANDANG
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="bg-blue-955 text-amber-400 font-black px-3 py-1 rounded-lg text-xs uppercase shadow-sm">
+                                    JUMLAH KESELURUHAN: {(item.penyandang || []).length} ORANG
                                   </span>
-                                </div>
-                                <div className="flex gap-2 text-[10px]">
-                                  <span className="bg-blue-50 text-blue-900 font-bold px-2 py-0.5 rounded border border-blue-150">B: {hasPenyandang ? item.valB : "-"}</span>
-                                  <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">L: {hasPenyandang ? item.valL : "-"}</span>
-                                  <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">T/R: {hasPenyandang ? item.valTR : "-"}</span>
-                                  <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200 whitespace-pre-line">WN: {hasPenyandang ? item.valWN : "-"}</span>
-                                  <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">Mohon: {item.tempohMohon}</span>
+                                  <div className="flex gap-1.5 text-[10px] ml-2">
+                                    <span className="bg-blue-50 text-blue-900 font-bold px-2 py-1 rounded border border-blue-150">B: {hasPenyandang ? item.valB : "-"}</span>
+                                    <span className="bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded border border-slate-200">L: {hasPenyandang ? item.valL : "-"}</span>
+                                    <span className="bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded border border-slate-200">T/R: {hasPenyandang ? item.valTR : "-"}</span>
+                                    <span className="bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded border border-slate-200">WN: {hasPenyandang ? item.valWN : "-"}</span>
+                                    <span className="bg-amber-100 text-amber-900 font-bold px-2 py-1 rounded border border-amber-300">TEMPOH: {item.tempohMohon}</span>
+                                  </div>
                                 </div>
                               </div>
                               
-                              <div className={`flex-1 overflow-y-auto border border-slate-200 rounded-lg bg-white ${isFullscreen ? 'max-h-[calc(100vh-360px)]' : 'max-h-[260px]'}`}>
-                                <table className="w-full text-left text-xs border-collapse">
-                                  <thead className="bg-slate-100 sticky top-0 z-10 text-[10px] uppercase text-slate-600">
-                                    <tr>
-                                      <th className="px-3 py-2 font-bold border-b border-slate-200 w-10 text-center">Bil</th>
-                                      <th className="px-3 py-2 font-bold border-b border-slate-200">Nama Penuh</th>
-                                      <th className="px-3 py-2 font-bold border-b border-slate-200">Jawatan</th>
-                                      <th className="px-3 py-2 font-bold border-b border-slate-200 text-center">W/N</th>
-                                      <th className="px-3 py-2 font-bold border-b border-slate-200 text-center">Pasport</th>
-                                      <th className="px-3 py-2 font-bold border-b border-slate-200 text-center">T/Lahir & Umur</th>
-                                      <th className="px-3 py-2 font-bold border-b border-slate-200 text-right">Gaji (RM)</th>
+                              <div className={`flex-1 overflow-y-auto border border-slate-200 rounded-xl ${isFullscreen ? 'max-h-[calc(100vh-340px)]' : 'max-h-[280px]'}`}>
+                                <table className="w-full text-xs text-left">
+                                  <thead className="bg-slate-100 sticky top-0 z-10 border-b border-slate-200 shadow-sm">
+                                    <tr className="text-slate-700 font-bold uppercase text-[10px]">
+                                      <th className="px-3 py-2 text-center w-10 border-r border-slate-200">Bil</th>
+                                      <th className="px-3 py-2 border-r border-slate-200">Nama Penuh & Jantina</th>
+                                      <th className="px-3 py-2 border-r border-slate-200 text-center">Warganegara</th>
+                                      <th className="px-3 py-2 border-r border-slate-200 text-center">No Pasport</th>
+                                      <th className="px-3 py-2 border-r border-slate-200 text-center">Umur / T.Lahir</th>
+                                      <th className="px-3 py-2 border-r border-slate-200">Jawatan</th>
+                                      <th className="px-3 py-2">Gaji (RM)</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-slate-150">
-                                    {(item.penyandang || []).map((p, idx) => {
-                                      const norm = normalizePenyandang(p);
-                                      let formattedDate = norm.tarikhLahir || "";
-                                      if (formattedDate.includes("-")) {
-                                        const s = formattedDate.split("-");
-                                        if (s.length === 3 && s[0].length === 4) {
-                                          formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
-                                        }
-                                      }
-                                      return (
-                                        <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
-                                          <td className="px-3 py-2.5 text-center font-bold text-slate-400">{idx + 1}.</td>
-                                          <td className="px-3 py-2.5 font-bold text-blue-955 uppercase">{norm.nama} <span className="text-[9px] text-slate-400 font-normal">({norm.jantina})</span></td>
-                                          <td className="px-3 py-2.5 font-semibold text-slate-700 uppercase">{norm.jawatan || "-"}</td>
-                                          <td className="px-3 py-2.5 text-center font-bold text-slate-600">{norm.warganegara || "-"}</td>
-                                          <td className="px-3 py-2.5 text-center font-mono text-slate-600">{norm.pasport || "-"}</td>
-                                          <td className="px-3 py-2.5 text-center text-slate-600">
-                                            {formattedDate ? <span>{formattedDate} </span> : null}
-                                            <span className="font-bold">({norm.umur || "-"})</span>
-                                          </td>
-                                          <td className="px-3 py-2.5 text-right font-bold text-blue-900">{norm.gaji || "-"}</td>
-                                        </tr>
-                                      );
-                                    })}
-                                    {(!item.penyandang || item.penyandang.length === 0) && (
-                                      <tr>
-                                        <td colSpan={7} className="px-3 py-6 text-center text-slate-400 italic font-medium">Tiada butiran penyandang didaftarkan.</td>
-                                      </tr>
+                                  <tbody className="divide-y divide-slate-200">
+                                    {(item.penyandang || []).length === 0 ? (
+                                      <tr><td colSpan="7" className="text-center py-4 text-slate-400 font-medium">Tiada rekod penyandang.</td></tr>
+                                    ) : (
+                                      (item.penyandang || []).map((p, idx) => {
+                                        const norm = normalizePenyandang(p);
+                                        return (
+                                          <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
+                                            <td className="px-3 py-2 text-center font-bold text-slate-500 border-r border-slate-100">{idx + 1}.</td>
+                                            <td className="px-3 py-2 border-r border-slate-100 font-bold text-blue-955 break-words">{norm.nama} <span className="text-slate-400 font-normal ml-1">({norm.jantina})</span></td>
+                                            <td className="px-3 py-2 text-center border-r border-slate-100 font-semibold">{norm.warganegara || "-"}</td>
+                                            <td className="px-3 py-2 text-center border-r border-slate-100">{norm.pasport || "-"}</td>
+                                            <td className="px-3 py-2 text-center border-r border-slate-100">
+                                              <div className="font-bold">{norm.umur || "-"}</div>
+                                              {norm.tarikhLahir && <div className="text-[9px] text-slate-500">{norm.tarikhLahir}</div>}
+                                            </td>
+                                            <td className="px-3 py-2 border-r border-slate-100 font-bold uppercase">{norm.jawatan || "-"}</td>
+                                            <td className="px-3 py-2 font-bold text-teal-700">{norm.gaji || "-"}</td>
+                                          </tr>
+                                        );
+                                      })
                                     )}
                                   </tbody>
                                 </table>
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between border-t border-slate-200 pt-3 mt-auto">
+                            <div className="flex items-center justify-between border-t border-slate-200 pt-4 mt-auto">
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => setCurrentSlideIndex(prev => Math.max(0, prev - 1))}
@@ -2511,16 +2608,15 @@
                                 >
                                   <Icon name="chevronRight" size={16} />
                                 </button>
-                                <span className="text-[10px] font-semibold text-slate-500 ml-2 hidden md:inline">
-                                  Gunakan papan kekunci <kbd className="bg-slate-150 px-1 py-0.5 rounded">←</kbd> & <kbd className="bg-slate-150 px-1 py-0.5 rounded">→</kbd>
+                                <span className="text-[10px] font-semibold text-slate-500 ml-2">
+                                  Papan kekunci <kbd className="bg-slate-150 px-1 py-0.5 rounded">←</kbd> & <kbd className="bg-slate-150 px-1 py-0.5 rounded">→</kbd> untuk kawalan.
                                 </span>
                               </div>
-                              
                               <button
                                 onClick={() => setViewMode("dashboard")}
                                 className="text-xs font-bold text-slate-500 hover:text-blue-900 px-3 py-1.5 rounded-lg transition-colors"
                               >
-                                Keluar Paparan
+                                Keluar
                               </button>
                             </div>
 
@@ -2530,92 +2626,61 @@
                             
                             <div className="flex flex-col gap-1 border-b border-slate-800 pb-3">
                               <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                                Keputusan Mesyuarat
+                                Panel Keputusan Slaid
                               </h3>
-                              <p className="text-[9px] text-slate-400 font-medium">Keputusan diselaraskan terus (auto-sync).</p>
+                              <p className="text-[9px] text-slate-400 font-medium">Sektor {getSectorDisplayName(activeSector)}</p>
                             </div>
 
                             <div className="flex flex-col gap-2">
-                              <button
-                                onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)}
-                                className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
-                                  item.keputusan === "LULUS"
-                                    ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]"
-                                    : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
-                                }`}
-                              >
+                              <button onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "LULUS" ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
-                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
-                                    <Icon name="checkCircle" size={13} />
-                                  </div>
+                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="checkCircle" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">LULUS</span>
                                 </div>
-                                {item.keputusan === "LULUS" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
+                                {item.keputusan === "LULUS" && <Icon name="check" size={13} />}
                               </button>
 
-                              <button
-                                onClick={() => handleSaveDecision(item.id, "LULUS BERSYARAT", item.ulasan)}
-                                className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
-                                  item.keputusan === "LULUS BERSYARAT"
-                                    ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]"
-                                    : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
-                                }`}
-                              >
+                              <button onClick={() => handleSaveDecision(item.id, "LULUS BERSYARAT", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "LULUS BERSYARAT" ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
-                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
-                                    <Icon name="alertTriangle" size={13} />
-                                  </div>
+                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="alertTriangle" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">LULUS BERSYARAT</span>
                                 </div>
-                                {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
+                                {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} />}
                               </button>
 
-                              <button
-                                onClick={() => handleSaveDecision(item.id, "TOLAK", item.ulasan)}
-                                className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
-                                  item.keputusan === "TOLAK"
-                                    ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]"
-                                    : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
-                                }`}
-                              >
+                              <button onClick={() => handleSaveDecision(item.id, "TOLAK", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "TOLAK" ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
-                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
-                                    <Icon name="xCircle" size={13} />
-                                  </div>
+                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="xCircle" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">TOLAK</span>
                                 </div>
-                                {item.keputusan === "TOLAK" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
+                                {item.keputusan === "TOLAK" && <Icon name="check" size={13} />}
                               </button>
 
-                              <button
-                                onClick={() => handleSaveDecision(item.id, "SEMAKAN / NAZIRAN", item.ulasan)}
-                                className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
-                                  item.keputusan === "SEMAKAN / NAZIRAN"
-                                    ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]"
-                                    : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"
-                                }`}
-                              >
+                              <button onClick={() => handleSaveDecision(item.id, "SEMAKAN / NAZIRAN", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "SEMAKAN / NAZIRAN" ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
-                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
-                                    <Icon name="eye" size={13} />
-                                  </div>
+                                  <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="fileText" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">SEMAKAN / NAZIRAN</span>
                                 </div>
-                                {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} className="flex-shrink-0 ml-1" />}
+                                {item.keputusan === "SEMAKAN / NAZIRAN" && <Icon name="check" size={13} />}
                               </button>
                             </div>
 
-                            <div className="flex flex-col gap-2 mt-2">
+                            <div className="flex flex-col gap-2 mt-1">
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                <Icon name="edit" size={11} className="text-amber-400" /> Catatan & Ulasan Rasmi
+                                <Icon name="edit" size={11} className="text-amber-400" /> Catatan & Ulasan
                               </label>
                               <textarea
-                                rows={4}
-                                placeholder="Nyatakan justifikasi mesyuarat di sini..."
+                                rows={3}
+                                placeholder="Justifikasi / Ulasan..."
                                 value={item.ulasan || ""}
                                 onChange={(e) => handleSaveDecision(item.id, item.keputusan, e.target.value)}
                                 className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-black focus:outline-none focus:border-amber-500 transition-colors placeholder:text-slate-400 resize-none font-sans font-medium"
                               />
+                            </div>
+
+                            <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-400 font-semibold">
+                              <span className="flex items-center gap-1.5"><Icon name="database" size={11} className="text-emerald-400" /> Pangkalan Data</span>
+                              <span className="text-emerald-400 font-bold">Auto-Simpan</span>
                             </div>
 
                           </div>
@@ -2626,124 +2691,185 @@
                   )
                 )}
 
-                {(presentationTab === "stats_baru" || presentationTab === "stats_lanjutan") && (
-                  (() => {
-                    const statType = presentationTab === "stats_baru" ? 'baru' : 'lanjutan';
-                    const sData = getStatsData(statType);
-                    
-                    return (
-                      <div className="flex-1 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col gap-6">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                          <div>
-                            <h2 className="text-2xl font-black text-blue-955 uppercase">
-                              STATISTIK PERMOHONAN {statType === 'baru' ? 'BARU' : 'LANJUTAN'}
-                            </h2>
-                            <p className="text-sm text-slate-500 font-semibold mt-1">Laporan rumusan mengikut sesi mesyuarat semasa untuk semua sektor KDN.</p>
-                          </div>
-                          <div className={`p-4 rounded-xl ${statType === 'baru' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                            <Icon name="barChart" size={32} />
-                          </div>
-                        </div>
+                {/* --- TAB: STATISTIK BARU --- */}
+                {presentationTab === "statistik-baru" && (
+                  <div className="flex-1 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative flex flex-col gap-6">
+                    <div className="border-b border-slate-200 pb-4">
+                      <h2 className="text-2xl font-black text-blue-900 uppercase">STATISTIK KESELURUHAN PERMOHONAN BARU</h2>
+                      <p className="text-sm text-slate-500 font-semibold mt-1">Sektor KDN (Semua) • Mesyuarat Bil. {meetingNumber}/{meetingYear}</p>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col justify-center text-center gap-2">
-                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Jumlah Syarikat</span>
-                            <span className="text-5xl font-black text-slate-800">{sData.companies}</span>
-                          </div>
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col justify-center text-center gap-2">
-                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Jumlah Penyandang</span>
-                            <span className="text-5xl font-black text-slate-800">{sData.totalPenyandang}</span>
-                          </div>
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col justify-center gap-2">
-                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest text-center">Pecahan Sektor KDN</span>
-                            <div className="mt-2 space-y-2">
-                              {Object.entries(sData.sectorCount).length === 0 ? (
-                                <p className="text-xs text-center text-slate-400">Tiada Data</p>
-                              ) : (
-                                Object.entries(sData.sectorCount).map(([sec, count], i) => (
-                                  <div key={i} className="flex justify-between items-center text-xs font-bold text-slate-700">
-                                    <span className="uppercase">{getSectorDisplayName(sec)}</span>
-                                    <span className="bg-blue-100 text-blue-900 px-2 py-0.5 rounded">{count}</span>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex-1 flex flex-col gap-3">
-                          <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 pb-2">Taburan Mengikut Warganegara</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                            {Object.entries(sData.wnCount).length === 0 ? (
-                              <div className="col-span-full text-slate-400 italic text-sm text-center py-8">Tiada data penyandang.</div>
-                            ) : (
-                              Object.entries(sData.wnCount).map(([wn, count], i) => (
-                                <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 flex justify-between items-center shadow-sm">
-                                  <span className="font-bold text-slate-700 uppercase text-xs">{wn}</span>
-                                  <span className="font-black text-lg text-blue-955">{count}</span>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="mt-2 flex-1 flex flex-col gap-3">
-                          <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 pb-2">Senarai Syarikat & Pemilik Projek ({statType.toUpperCase()})</h3>
-                          <div className="border border-slate-200 rounded-xl overflow-y-auto max-h-[250px] bg-slate-50">
-                            <table className="w-full text-left text-[11px] border-collapse">
-                              <thead className="bg-slate-200/80 sticky top-0 backdrop-blur-sm z-10">
-                                <tr className="text-slate-600">
-                                  <th className="px-4 py-3 font-bold border-b border-slate-200 w-12 text-center">Bil</th>
-                                  <th className="px-4 py-3 font-bold border-b border-slate-200">Nama Syarikat</th>
-                                  <th className="px-4 py-3 font-bold border-b border-slate-200">Sektor KDN</th>
-                                  <th className="px-4 py-3 font-bold border-b border-slate-200">Pemilik Projek (Owner Project)</th>
-                                  <th className="px-4 py-3 font-bold border-b border-slate-200 text-center">Jum. Terlibat</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-200 bg-white">
-                                {sData.companyDetails && sData.companyDetails.length === 0 ? (
-                                  <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400 italic font-medium">Tiada rekod syarikat untuk kategori ini.</td></tr>
-                                ) : (
-                                  (sData.companyDetails || []).map((comp, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                      <td className="px-4 py-2.5 text-center font-bold text-slate-400">{idx + 1}.</td>
-                                      <td className="px-4 py-2.5 font-black text-blue-955 uppercase">{comp.namaSyarikat}</td>
-                                      <td className="px-4 py-2.5 font-bold text-amber-700 uppercase">{getSectorDisplayName(comp.sectorCode)}</td>
-                                      <td className="px-4 py-2.5 font-semibold text-slate-700 uppercase">{comp.ownerProjek}</td>
-                                      <td className="px-4 py-2.5 text-center font-black text-indigo-700 bg-indigo-50/50">
-                                        {statType === 'baru' ? `${comp.valB} BARU` : `${comp.valL} LANJUTAN`} 
-                                        <span className="text-[9px] text-slate-500 block font-normal mt-0.5">({comp.jumlahPenyandang} Kakitangan)</span>
-                                      </td>
-                                    </tr>
-                                  ))
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                        <span className="text-[11px] font-bold text-blue-900 uppercase">Jumlah Syarikat</span>
+                        <div className="text-3xl font-black text-blue-955 mt-1">{statistikBaruItems.length}</div>
                       </div>
-                    );
-                  })()
+                      <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                        <span className="text-[11px] font-bold text-emerald-900 uppercase">Jumlah Pemohon (Baru)</span>
+                        <div className="text-3xl font-black text-emerald-700 mt-1">
+                          {statistikBaruItems.reduce((acc, curr) => acc + (curr.penyandang ? curr.penyandang.length : 0), 0)}
+                        </div>
+                      </div>
+                      <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 col-span-2">
+                        <span className="text-[11px] font-bold text-amber-900 uppercase">Pecahan Warganegara (Baru)</span>
+                        <div className="text-xs font-bold text-amber-800 mt-2 leading-relaxed flex flex-wrap gap-2">
+                          {(() => {
+                            const wnCounts = {};
+                            statistikBaruItems.forEach(item => {
+                              (item.penyandang || []).forEach(p => {
+                                const norm = normalizePenyandang(p);
+                                const wn = (norm.warganegara || "N/A").trim().toUpperCase();
+                                wnCounts[wn] = (wnCounts[wn] || 0) + 1;
+                              });
+                            });
+                            const entries = Object.entries(wnCounts);
+                            if (entries.length === 0) return <span>Tiada Data</span>;
+                            return entries.map(([wn, count], idx) => (
+                              <span key={idx} className="bg-white px-2 py-1 rounded border border-amber-300 shadow-sm">{wn}: {count}</span>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 mt-2">
+                      <h3 className="text-sm font-bold text-slate-800 mb-3 uppercase">Senarai Syarikat & Pemilik Projek (Baru)</h3>
+                      <div className="border border-slate-200 rounded-xl overflow-hidden max-h-[400px] overflow-y-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-slate-100 sticky top-0 border-b border-slate-200">
+                            <tr className="text-slate-700 font-bold uppercase text-[10px]">
+                              <th className="px-4 py-3 border-r border-slate-200 w-12 text-center">Bil</th>
+                              <th className="px-4 py-3 border-r border-slate-200">Nama Syarikat</th>
+                              <th className="px-4 py-3 border-r border-slate-200">Sektor</th>
+                              <th className="px-4 py-3 border-r border-slate-200">Pemilik Projek (Owner)</th>
+                              <th className="px-4 py-3 text-center">Jum. Mohon</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200">
+                            {statistikBaruItems.length === 0 ? (
+                              <tr><td colSpan="5" className="text-center py-6 text-slate-400">Tiada permohonan baru berdaftar.</td></tr>
+                            ) : (
+                              statistikBaruItems.map((item, idx) => {
+                                const p = parseProjectAndDetails(item);
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">{idx + 1}.</td>
+                                    <td className="px-4 py-3 font-bold text-blue-955 uppercase border-r border-slate-100">{item.namaSyarikat}</td>
+                                    <td className="px-4 py-3 text-slate-700 font-semibold border-r border-slate-100 uppercase">{getSectorDisplayName(item.sectorCode)}</td>
+                                    <td className="px-4 py-3 text-slate-800 font-bold uppercase border-r border-slate-100">{p.ownerProjek || "-"}</td>
+                                    <td className="px-4 py-3 text-center font-black text-emerald-600">{(item.penyandang || []).length}</td>
+                                  </tr>
+                                )
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
+                {/* --- TAB: STATISTIK LANJUTAN --- */}
+                {presentationTab === "statistik-lanjutan" && (
+                  <div className="flex-1 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative flex flex-col gap-6">
+                    <div className="border-b border-slate-200 pb-4">
+                      <h2 className="text-2xl font-black text-teal-900 uppercase">STATISTIK KESELURUHAN PERMOHONAN LANJUTAN</h2>
+                      <p className="text-sm text-slate-500 font-semibold mt-1">Sektor KDN (Semua) • Mesyuarat Bil. {meetingNumber}/{meetingYear}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
+                        <span className="text-[11px] font-bold text-teal-900 uppercase">Jumlah Syarikat</span>
+                        <div className="text-3xl font-black text-teal-955 mt-1">{statistikLanjutanItems.length}</div>
+                      </div>
+                      <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                        <span className="text-[11px] font-bold text-emerald-900 uppercase">Jumlah Pemohon (Lanjutan)</span>
+                        <div className="text-3xl font-black text-emerald-700 mt-1">
+                          {statistikLanjutanItems.reduce((acc, curr) => acc + (curr.penyandang ? curr.penyandang.length : 0), 0)}
+                        </div>
+                      </div>
+                      <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-200 col-span-2">
+                        <span className="text-[11px] font-bold text-indigo-900 uppercase">Pecahan Warganegara (Lanjutan)</span>
+                        <div className="text-xs font-bold text-indigo-800 mt-2 leading-relaxed flex flex-wrap gap-2">
+                          {(() => {
+                            const wnCounts = {};
+                            statistikLanjutanItems.forEach(item => {
+                              (item.penyandang || []).forEach(p => {
+                                const norm = normalizePenyandang(p);
+                                const wn = (norm.warganegara || "N/A").trim().toUpperCase();
+                                wnCounts[wn] = (wnCounts[wn] || 0) + 1;
+                              });
+                            });
+                            const entries = Object.entries(wnCounts);
+                            if (entries.length === 0) return <span>Tiada Data</span>;
+                            return entries.map(([wn, count], idx) => (
+                              <span key={idx} className="bg-white px-2 py-1 rounded border border-indigo-300 shadow-sm">{wn}: {count}</span>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 mt-2">
+                      <h3 className="text-sm font-bold text-slate-800 mb-3 uppercase">Senarai Syarikat & Pemilik Projek (Lanjutan)</h3>
+                      <div className="border border-slate-200 rounded-xl overflow-hidden max-h-[400px] overflow-y-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-slate-100 sticky top-0 border-b border-slate-200">
+                            <tr className="text-slate-700 font-bold uppercase text-[10px]">
+                              <th className="px-4 py-3 border-r border-slate-200 w-12 text-center">Bil</th>
+                              <th className="px-4 py-3 border-r border-slate-200">Nama Syarikat</th>
+                              <th className="px-4 py-3 border-r border-slate-200">Sektor</th>
+                              <th className="px-4 py-3 border-r border-slate-200">Pemilik Projek (Owner)</th>
+                              <th className="px-4 py-3 text-center">Jum. Mohon</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200">
+                            {statistikLanjutanItems.length === 0 ? (
+                              <tr><td colSpan="5" className="text-center py-6 text-slate-400">Tiada permohonan lanjutan berdaftar.</td></tr>
+                            ) : (
+                              statistikLanjutanItems.map((item, idx) => {
+                                const p = parseProjectAndDetails(item);
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">{idx + 1}.</td>
+                                    <td className="px-4 py-3 font-bold text-blue-955 uppercase border-r border-slate-100">{item.namaSyarikat}</td>
+                                    <td className="px-4 py-3 text-slate-700 font-semibold border-r border-slate-100 uppercase">{getSectorDisplayName(item.sectorCode)}</td>
+                                    <td className="px-4 py-3 text-slate-800 font-bold uppercase border-r border-slate-100">{p.ownerProjek || "-"}</td>
+                                    <td className="px-4 py-3 text-center font-black text-teal-600">{(item.penyandang || []).length}</td>
+                                  </tr>
+                                )
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* --- TAB: NAZIRAN --- */}
                 {presentationTab === "naziran" && (
-                  <div className="flex-1 bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm relative flex flex-col gap-6 h-[500px]">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                  <div className="flex-1 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm relative flex flex-col gap-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-4 px-2">
                       <div>
                         <h2 className="text-2xl font-black text-indigo-900 uppercase flex items-center gap-2">
                           <Icon name="eye" size={24} /> TINDAKAN NAZIRAN
                         </h2>
                         <p className="text-sm text-slate-500 font-semibold mt-1">Senarai permohonan yang menunggu keputusan muktamad (Lulus/Tolak) selepas naziran.</p>
                       </div>
-                      <div className="bg-indigo-100 text-indigo-900 font-black px-4 py-2 rounded-xl text-lg border border-indigo-200">
-                        {naziranItems.length} Tertunggak
+                      <div className="flex items-center gap-3">
+                        <button onClick={handlePrint} className="bg-white hover:bg-slate-100 text-indigo-900 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
+                          <Icon name="printer" size={18} /> Cetak Laporan
+                        </button>
+                        <div className="bg-indigo-100 text-indigo-900 font-black px-4 py-2 rounded-xl text-lg border border-indigo-200">
+                          {naziranItems.length} Tertunggak
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-4">
+                    <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-5">
                       {naziranItems.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center flex-1 text-slate-400 gap-2">
+                        <div className="flex flex-col items-center justify-center flex-1 text-slate-400 gap-2 h-64 bg-white rounded-xl border border-slate-200">
                           <Icon name="checkCircle" size={48} className="text-emerald-300" />
                           <p className="font-bold">Syabas! Tiada kes naziran tertunggak buat masa ini.</p>
                         </div>
@@ -2754,141 +2880,117 @@
                           
                           return (
                             <div key={item.id || idx} className="bg-white border border-slate-300 rounded-2xl flex flex-col overflow-hidden shadow-sm hover:shadow transition-shadow">
-                              <div className="bg-slate-50 border-b border-slate-200 p-4 flex flex-col md:flex-row justify-between items-start gap-4">
+                              {/* Header Naziran Card */}
+                              <div className="bg-indigo-50 border-b border-indigo-100 p-4 flex flex-col md:flex-row justify-between items-start gap-4">
                                 <div className="flex-1">
-                                  <span className="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Naziran: Sektor {getSectorDisplayName(item.sectorCode)}</span>
-                                  <h3 className="text-lg font-black text-blue-955 uppercase mt-2.5 leading-tight">{item.namaSyarikat}</h3>
-                                  <p className="text-[11px] text-slate-600 font-medium uppercase mt-1.5">{item.alamat || "Tiada Maklumat Alamat"}</p>
-                                </div>
-                                <div className="md:text-right flex flex-col gap-1.5 md:items-end bg-white p-3 rounded-lg border border-slate-200 w-full md:w-auto">
-                                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Ulasan Semasa Naziran:</span>
-                                  <span className="text-[11px] text-slate-700 italic font-semibold max-w-sm text-left line-clamp-3">
-                                    "{item.ulasan || "Tiada catatan ulasan sebelumnya."}"
+                                  <span className="bg-indigo-200 text-indigo-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                                    Mesyuarat Bil. {meetingNumber}/{meetingYear} • Sektor {getSectorDisplayName(item.sectorCode)}
                                   </span>
+                                  <h3 className="text-lg font-black text-blue-955 uppercase mt-3 leading-tight">{item.namaSyarikat}</h3>
+                                  <p className="text-xs text-slate-600 mt-1 uppercase"><strong>ALAMAT:</strong> {item.alamat}</p>
+                                </div>
+                                <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-sm flex flex-col gap-1 w-full md:w-1/3">
+                                  <span className="text-[10px] font-bold text-amber-700 uppercase"><Icon name="alertTriangle" size={12} className="inline mr-1 -mt-0.5" />Ulasan Tertunggak</span>
+                                  <p className="text-xs font-semibold text-slate-700 italic leading-relaxed">"{item.ulasan || "Tiada ulasan ditinggalkan semasa draf."}"</p>
                                 </div>
                               </div>
 
-                              <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-6 bg-white">
-                                <div className="flex flex-col gap-4">
-                                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900 block mb-2 border-b border-slate-200 pb-1.5">Kegiatan Syarikat</span>
-                                    <p className="text-[11px] text-slate-700 leading-relaxed italic whitespace-pre-line">{parsedProj.kegiatan || "-"}</p>
-                                  </div>
-                                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block mb-2 border-b border-slate-200 pb-1.5">Perincian Projek</span>
-                                    <div className="text-[11px] flex flex-col gap-2.5">
-                                      <div>
-                                        <span className="text-slate-400 text-[9px] uppercase font-bold block mb-0.5">Senarai Projek:</span>
-                                        {parsedProj.projek.map((p, i) => <p key={i} className="text-slate-800 font-semibold leading-relaxed">➢ {p}</p>)}
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
-                                        <div>
-                                          <span className="text-slate-400 text-[9px] uppercase font-bold block mb-0.5">No Kontrak:</span>
-                                          <p className="text-slate-800 font-bold break-words">{parsedProj.noKontrak || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="text-slate-400 text-[9px] uppercase font-bold block mb-0.5">Tempoh Projek:</span>
-                                          <p className="text-slate-800 font-bold">{parsedProj.tempohProjek || "-"}</p>
-                                        </div>
-                                      </div>
-                                      <div className="pt-2 border-t border-slate-200">
-                                        <span className="text-slate-400 text-[9px] uppercase font-bold block mb-0.5">Pemilik Projek:</span>
-                                        <p className="text-blue-955 font-bold uppercase">{parsedProj.ownerProjek || "-"}</p>
-                                      </div>
-                                    </div>
-                                  </div>
+                              {/* Project Details */}
+                              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-200 bg-slate-50/50 text-xs">
+                                <div className="flex flex-col gap-1.5">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">Kegiatan Syarikat</span>
+                                  <p className="text-slate-700 font-semibold whitespace-pre-line">{parsedProj.kegiatan || "-"}</p>
                                 </div>
-
-                                <div className="flex flex-col gap-3">
-                                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                      <Icon name="users" size={14} className="text-indigo-600" /> Senarai Penyandang ({(item.penyandang || []).length})
-                                    </span>
-                                    <div className="flex gap-1.5 text-[9px]">
-                                      <span className="bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200">B: {hasPenyandang ? item.valB : "-"}</span>
-                                      <span className="bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200">L: {hasPenyandang ? item.valL : "-"}</span>
-                                      <span className="bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200">T/R: {hasPenyandang ? item.valTR : "-"}</span>
+                                <div className="flex flex-col gap-2">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Perincian Projek</span>
+                                  <div className="flex flex-col gap-1">
+                                    {parsedProj.projek.map((proj, pIdx) => (
+                                      <p key={pIdx} className="text-slate-800 font-bold">➢ {proj}</p>
+                                    ))}
+                                    <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-slate-200">
+                                      <div><span className="text-slate-400 text-[9px] uppercase block font-bold">No. Kontrak</span><span className="font-bold text-slate-800">{parsedProj.noKontrak || "-"}</span></div>
+                                      <div><span className="text-slate-400 text-[9px] uppercase block font-bold">Tempoh</span><span className="font-bold text-slate-800">{parsedProj.tempohProjek || "-"}</span></div>
+                                      <div className="col-span-2"><span className="text-slate-400 text-[9px] uppercase block font-bold">Pemilik (Owner)</span><span className="font-bold text-blue-900">{parsedProj.ownerProjek || "-"}</span></div>
                                     </div>
-                                  </div>
-                                  
-                                  <div className="border border-slate-200 rounded-xl overflow-y-auto max-h-[300px] bg-slate-50">
-                                    <table className="w-full text-left text-[10px] border-collapse">
-                                      <thead className="bg-slate-200/60 sticky top-0 backdrop-blur-sm z-10">
-                                        <tr className="text-slate-600">
-                                          <th className="px-3 py-2 font-bold border-b border-slate-200 w-8 text-center">Bil</th>
-                                          <th className="px-3 py-2 font-bold border-b border-slate-200">Nama Penuh & Jawatan</th>
-                                          <th className="px-3 py-2 font-bold border-b border-slate-200 text-center">Maklumat (W/N & Pasport)</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-slate-200 bg-white">
-                                        {(item.penyandang || []).length === 0 ? (
-                                          <tr><td colSpan={3} className="px-3 py-6 text-center text-slate-400 italic font-medium">Tiada rekod penyandang.</td></tr>
-                                        ) : (
-                                          item.penyandang.map((p, pIdx) => {
-                                            const norm = normalizePenyandang(p);
-                                            return (
-                                              <tr key={pIdx} className="hover:bg-slate-50 transition-colors">
-                                                <td className="px-3 py-2.5 text-center font-bold text-slate-400 align-top">{pIdx + 1}.</td>
-                                                <td className="px-3 py-2.5 align-top">
-                                                  <div className="font-bold text-blue-955 uppercase">{norm.nama}</div>
-                                                  <div className="text-[9px] text-slate-600 uppercase font-semibold mt-0.5">{norm.jawatan || "-"}</div>
-                                                  <div className="text-blue-900 font-bold mt-1 bg-blue-50 w-fit px-1.5 py-0.5 rounded border border-blue-100">GAJI: {norm.gaji || "-"}</div>
-                                                </td>
-                                                <td className="px-3 py-2.5 align-top text-center">
-                                                  <div className="font-bold text-slate-700 uppercase bg-slate-100 w-fit mx-auto px-2 py-0.5 rounded border border-slate-200">{norm.warganegara || "-"}</div>
-                                                  <div className="font-mono text-slate-500 font-semibold mt-1.5">{norm.pasport || "-"}</div>
-                                                  <div className="text-slate-500 font-medium mt-0.5">{norm.umur || "-"}</div>
-                                                </td>
-                                              </tr>
-                                            )
-                                          })
-                                        )}
-                                      </tbody>
-                                    </table>
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="bg-slate-900 p-4 md:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border-t border-slate-300">
-                                <div className="flex-1 flex flex-col gap-1.5">
-                                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Icon name="edit" size={10} className="text-indigo-400" /> Ulasan Keputusan Akhir (Opsional)
-                                  </label>
-                                  <input 
-                                    type="text" 
-                                    id={`ulasan-naziran-${item.id}`}
-                                    defaultValue={item.ulasan}
-                                    placeholder="Masukkan keputusan atau justifikasi rasmi selepas naziran di sini..." 
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500 font-medium transition-colors"
+                              {/* Penyandang Table in Naziran */}
+                              <div className="p-4 flex flex-col gap-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
+                                    <Icon name="users" size={14} className="text-blue-900" /> Senarai Penyandang ({(item.penyandang || []).length} Orang)
+                                  </span>
+                                  <div className="flex gap-1.5 text-[10px]">
+                                    <span className="bg-blue-50 text-blue-900 font-bold px-2 py-0.5 rounded border border-blue-150">B: {hasPenyandang ? item.valB : "-"}</span>
+                                    <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">L: {hasPenyandang ? item.valL : "-"}</span>
+                                    <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">T/R: {hasPenyandang ? item.valTR : "-"}</span>
+                                    <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200 whitespace-pre-line">WN: {hasPenyandang ? item.valWN : "-"}</span>
+                                  </div>
+                                </div>
+                                <div className="border border-slate-200 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                                  <table className="w-full text-xs text-left">
+                                    <thead className="bg-slate-100 sticky top-0 border-b border-slate-200 shadow-sm">
+                                      <tr className="text-slate-700 font-bold uppercase text-[10px]">
+                                        <th className="px-3 py-2 text-center w-10 border-r border-slate-200">Bil</th>
+                                        <th className="px-3 py-2 border-r border-slate-200">Nama Penuh & Jantina</th>
+                                        <th className="px-3 py-2 border-r border-slate-200 text-center">Warganegara</th>
+                                        <th className="px-3 py-2 border-r border-slate-200 text-center">No Pasport</th>
+                                        <th className="px-3 py-2 border-r border-slate-200">Jawatan & Umur</th>
+                                        <th className="px-3 py-2">Gaji (RM)</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200">
+                                      {(item.penyandang || []).length === 0 ? (
+                                        <tr><td colSpan="6" className="text-center py-4 text-slate-400 font-medium">Tiada rekod penyandang.</td></tr>
+                                      ) : (
+                                        (item.penyandang || []).map((p, pIdx) => {
+                                          const norm = normalizePenyandang(p);
+                                          return (
+                                            <tr key={pIdx} className="hover:bg-slate-50 transition-colors">
+                                              <td className="px-3 py-2 text-center font-bold text-slate-500 border-r border-slate-100">{pIdx + 1}.</td>
+                                              <td className="px-3 py-2 border-r border-slate-100 font-bold text-slate-800 break-words">{norm.nama} <span className="text-slate-400 font-normal">({norm.jantina})</span></td>
+                                              <td className="px-3 py-2 text-center border-r border-slate-100 font-semibold">{norm.warganegara || "-"}</td>
+                                              <td className="px-3 py-2 text-center border-r border-slate-100 font-semibold">{norm.pasport || "-"}</td>
+                                              <td className="px-3 py-2 border-r border-slate-100">
+                                                <div className="font-bold uppercase">{norm.jawatan || "-"}</div>
+                                                <div className="text-[9px] text-slate-500 mt-0.5">{norm.umur || "-"} {norm.tarikhLahir ? `(TL: ${norm.tarikhLahir})` : ''}</div>
+                                              </td>
+                                              <td className="px-3 py-2 font-bold text-teal-700">{norm.gaji || "-"}</td>
+                                            </tr>
+                                          );
+                                        })
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+
+                              {/* Action Footer */}
+                              <div className="bg-slate-100 p-4 border-t border-slate-300 flex flex-col md:flex-row gap-4 items-end">
+                                <div className="flex-1 w-full">
+                                  <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 block">Kemaskini Ulasan Akhir Naziran (Auto-Simpan)</label>
+                                  <textarea
+                                    rows={2}
+                                    placeholder="Taip ulasan muktamad selepas keputusan naziran..."
+                                    value={item.ulasan || ""}
+                                    onChange={(e) => handleSaveDecisionGlobal(item.id, item.sectorCode, item.keputusan, e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 resize-none font-semibold shadow-inner"
                                   />
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2.5 justify-end">
-                                  <button 
-                                    onClick={() => {
-                                      const newUlasan = document.getElementById(`ulasan-naziran-${item.id}`).value;
-                                      handleSaveDecision(item.id, "LULUS", newUlasan);
-                                    }}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-[11px] shadow-sm flex-1 md:flex-none"
+                                <div className="flex gap-2 w-full md:w-auto shrink-0">
+                                  <button
+                                    onClick={() => handleSaveDecisionGlobal(item.id, item.sectorCode, "LULUS", item.ulasan)}
+                                    className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
                                   >
-                                    <Icon name="checkCircle" size={15} /> LULUSKAN
+                                    <Icon name="checkCircle" size={16} /> LULUSKAN
                                   </button>
-                                  <button 
-                                    onClick={() => {
-                                      const newUlasan = document.getElementById(`ulasan-naziran-${item.id}`).value;
-                                      handleSaveDecision(item.id, "LULUS BERSYARAT", newUlasan);
-                                    }}
-                                    className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-[11px] shadow-sm flex-1 md:flex-none"
+                                  <button
+                                    onClick={() => handleSaveDecisionGlobal(item.id, item.sectorCode, "TOLAK", item.ulasan)}
+                                    className="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
                                   >
-                                    <Icon name="alertTriangle" size={15} /> BERSYARAT
-                                  </button>
-                                  <button 
-                                    onClick={() => {
-                                      const newUlasan = document.getElementById(`ulasan-naziran-${item.id}`).value;
-                                      handleSaveDecision(item.id, "TOLAK", newUlasan);
-                                    }}
-                                    className="bg-red-600 hover:bg-red-500 text-white font-bold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-[11px] shadow-sm flex-1 md:flex-none"
-                                  >
-                                    <Icon name="xCircle" size={15} /> TOLAK
+                                    <Icon name="xCircle" size={16} /> TOLAK
                                   </button>
                                 </div>
                               </div>
@@ -2903,7 +3005,6 @@
               </div>
             )}
 
-            {}
             {viewMode === "settings" && (
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto w-full flex flex-col gap-6">
                 <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -3003,135 +3104,155 @@
 
           {}
           <div className="hidden print:block bg-white text-black p-2 print-page font-sans">
-            <div className="text-center flex flex-col gap-1 pb-3 mb-3 border-b border-black">
-              <h1 className="text-xs font-bold uppercase tracking-tight">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</h1>
-              <h2 className="text-[11px] font-bold uppercase">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</h2>
-              <h3 className="text-[10px] font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {getSectorDisplayName(activeSector)}</h3>
-              {officerName && <p className="text-[9px] font-medium mt-0.5">Disediakan Oleh Pegawai Penilai: {officerName}</p>}
-            </div>
+            {(() => {
+              const isPrintingNaziran = viewMode === "meeting" && presentationTab === "naziran";
+              const itemsToPrint = isPrintingNaziran ? naziranItems : currentSectData;
+              const printMainTitle = isPrintingNaziran ? "SENARAI TINDAKAN NAZIRAN & SEMAKAN" : "SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM";
+              const printSectorText = isPrintingNaziran ? "KESELURUHAN SEKTOR KDN" : getSectorDisplayName(activeSector);
 
-            <table className="w-full text-[10pt] text-left border border-black" style={{ tableLayout: "fixed", width: "100%" }}>
-              <colgroup>
-                <col style={{ width: "1.17cm" }} />
-                <col style={{ width: "4.5cm" }} />
-                <col style={{ width: "4.25cm" }} />
-                <col style={{ width: "2.07cm" }} />
-                <col style={{ width: "0.8cm" }} />
-                <col style={{ width: "0.8cm" }} />
-                <col style={{ width: "0.8cm" }} />
-                <col style={{ width: "1.85cm" }} />
-                <col style={{ width: "6.68cm" }} />
-                <col style={{ width: "3.94cm" }} />
-              </colgroup>
-              <thead>
-                <tr className="bg-slate-200 border-b border-black text-black font-bold text-center text-[11pt]">
-                  <th className="p-1 border-r border-black" style={{ width: "1.17cm" }} rowSpan={2}>BIL</th>
-                  <th className="p-1 border-r border-black" style={{ width: "4.5cm" }} rowSpan={2}>NAMA SYARIKAT</th>
-                  <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} rowSpan={2}>BUTIRAN PENYANDANG</th>
-                  <th className="p-1 border-r border-black" style={{ width: "2.07cm" }} rowSpan={2}>TEMPOH MOHON</th>
-                  <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} colSpan={4}>PERMOHONAN / WARGANEGARA</th>
-                  <th className="p-1 border-r border-black" style={{ width: "6.68cm" }} rowSpan={2}>NAMA PROJEK</th>
-                  <th className="p-1" style={{ width: "3.94cm" }} rowSpan={2}>KEPUTUSAN</th>
-                </tr>
-                <tr className="bg-slate-100 border-b border-black text-black font-bold text-center text-[11pt]">
-                  <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>B</th>
-                  <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>L</th>
-                  <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>T/R</th>
-                  <th className="p-1 border-r border-black" style={{ width: "1.85cm" }}>W/N</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentSectData.map((item, idx) => {
-                  const hasPenyandang = item.penyandang && item.penyandang.length > 0;
-                  const parsedProj = parseProjectAndDetails(item);
+              return (
+                <>
+                  <div className="text-center flex flex-col gap-1 pb-3 mb-3 border-b border-black">
+                    <h1 className="text-xs font-bold uppercase tracking-tight">{printMainTitle}</h1>
+                    <h2 className="text-[11px] font-bold uppercase">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</h2>
+                    <h3 className="text-[10px] font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {printSectorText}</h3>
+                    {officerName && <p className="text-[9px] font-medium mt-0.5">Disediakan Oleh Pegawai Penilai: {officerName}</p>}
+                  </div>
 
-                  return (
-                    <tr key={item.id} className="border-b border-black font-sans text-[10pt]">
-                      <td className="p-2 text-center font-bold border-r border-black align-top" style={{ width: "1.17cm" }}>{idx + 1}.</td>
-                      
-                      <td className="p-2 border-r border-black align-top" style={{ width: "4.5cm" }}>
-                        <div className="font-bold uppercase text-black leading-tight">{item.namaSyarikat}</div>
-                        <div className="text-[9pt] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
-                      </td>
-                      
-                      <td className="p-2 border-r border-black align-top" style={{ width: "4.25cm" }}>
-                        <div className="flex flex-col gap-2">
-                          {(item.penyandang || []).map((p, pidx) => {
-                            const norm = normalizePenyandang(p);
-                            let formattedDate = norm.tarikhLahir || "";
-                            if (formattedDate.includes("-")) {
-                              const s = formattedDate.split("-");
-                              if (s.length === 3 && s[0].length === 4) {
-                                formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
-                              }
-                            }
-                            return (
-                              <div key={pidx} className="text-[10pt] leading-relaxed">
-                                <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {formattedDate ? `${formattedDate} (` : ''}<b>{norm.umur || "-"}</b>{formattedDate ? ')' : ''} – <span className="font-bold uppercase">{norm.jawatan || "-"}</span>
-                                <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"}</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      
-                      <td className="p-2 text-center border-r border-black align-top font-semibold" style={{ width: "2.07cm" }}>{item.tempohMohon}</td>
-                      
-                      <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valB || "-") : "-"}</td>
-                      <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valL || "-") : "-"}</td>
-                      <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valTR || "-") : "-"}</td>
-                      <td className="p-2 text-center border-r border-black align-top font-bold text-[9.5pt] uppercase whitespace-pre-line leading-relaxed" style={{ width: "1.85cm" }}>{hasPenyandang ? (item.valWN || "-") : "-"}</td>
-                      
-                      <td className="p-2 border-r border-black align-top" style={{ width: "6.68cm" }}>
-                        <div className="flex flex-col gap-2 text-[10pt] leading-relaxed">
-                          <div>
-                            <span className="font-bold uppercase block text-black">KEGIATAN SYARIKAT</span>
-                            <p className="text-slate-800 italic whitespace-pre-line">➢ {parsedProj.kegiatan || "-"}</p>
-                          </div>
-                          <div className="pt-1.5 border-t border-slate-300">
-                            <span className="font-bold uppercase block text-black">PROJECT:</span>
-                            {parsedProj.projek.map((proj, pIdx) => (
-                              <p key={pIdx} className="text-slate-800 font-semibold">➢ {proj}</p>
-                            ))}
-                            {parsedProj.noKontrak && <p className="text-slate-800 font-bold">➢ NO. KONTRAK : {parsedProj.noKontrak}</p>}
-                            {parsedProj.tempohProjek && <p className="text-slate-800 font-bold">➢ TEMPOH PROJEK : {parsedProj.tempohProjek}</p>}
-                            {parsedProj.ownerProjek && <p className="text-black font-bold">➢ OWNER PROJECT : {parsedProj.ownerProjek}</p>}
-                          </div>
-                        </div>
-                      </td>
-                      
-                      <td className="p-2 align-top text-left" style={{ width: "3.94cm" }}>
-                        <div className="flex flex-col gap-1.5 text-[10pt] font-semibold text-black">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-mono">{item.keputusan === "LULUS" ? "☒" : "☐"}</span>
-                            <span>LULUS</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-mono">{item.keputusan === "LULUS BERSYARAT" ? "☒" : "☐"}</span>
-                            <span>LULUS BERSYARAT</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-mono">{item.keputusan === "TOLAK" ? "☒" : "☐"}</span>
-                            <span>TOLAK</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-mono">{item.keputusan === "SEMAKAN / NAZIRAN" ? "☒" : "☐"}</span>
-                            <span>SEMAKAN / NAZIRAN</span>
-                          </div>
-                          
-                          <div className="mt-2.5 pt-1.5 border-t border-slate-300 text-[9.5pt]">
-                            <strong>ULASAN :</strong>
-                            {item.ulasan ? (
-                              <p className="text-slate-900 italic mt-1 leading-normal font-bold">"{item.ulasan}"</p>
-                            ) : null}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  <table className="w-full text-[10pt] text-left border border-black" style={{ tableLayout: "fixed", width: "100%" }}>
+                    <colgroup>
+                      <col style={{ width: "1.17cm" }} />
+                      <col style={{ width: "4.5cm" }} />
+                      <col style={{ width: "4.25cm" }} />
+                      <col style={{ width: "2.07cm" }} />
+                      <col style={{ width: "0.8cm" }} />
+                      <col style={{ width: "0.8cm" }} />
+                      <col style={{ width: "0.8cm" }} />
+                      <col style={{ width: "1.85cm" }} />
+                      <col style={{ width: "6.68cm" }} />
+                      <col style={{ width: "3.94cm" }} />
+                    </colgroup>
+                    <thead>
+                      <tr className="bg-slate-200 border-b border-black text-black font-bold text-center text-[11pt]">
+                        <th className="p-1 border-r border-black" style={{ width: "1.17cm" }} rowSpan={2}>BIL</th>
+                        <th className="p-1 border-r border-black" style={{ width: "4.5cm" }} rowSpan={2}>NAMA SYARIKAT</th>
+                        <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} rowSpan={2}>BUTIRAN PENYANDANG</th>
+                        <th className="p-1 border-r border-black" style={{ width: "2.07cm" }} rowSpan={2}>TEMPOH MOHON</th>
+                        <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} colSpan={4}>PERMOHONAN / WARGANEGARA</th>
+                        <th className="p-1 border-r border-black" style={{ width: "6.68cm" }} rowSpan={2}>NAMA PROJEK</th>
+                        <th className="p-1" style={{ width: "3.94cm" }} rowSpan={2}>KEPUTUSAN</th>
+                      </tr>
+                      <tr className="bg-slate-100 border-b border-black text-black font-bold text-center text-[11pt]">
+                        <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>B</th>
+                        <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>L</th>
+                        <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>T/R</th>
+                        <th className="p-1 border-r border-black" style={{ width: "1.85cm" }}>W/N</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itemsToPrint.length === 0 ? (
+                        <tr>
+                          <td colSpan="10" className="p-4 text-center font-bold italic border-b border-black">Tiada rekod untuk dicetak.</td>
+                        </tr>
+                      ) : (
+                        itemsToPrint.map((item, idx) => {
+                          const hasPenyandang = item.penyandang && item.penyandang.length > 0;
+                          const parsedProj = parseProjectAndDetails(item);
+
+                          return (
+                            <tr key={item.id} className="border-b border-black font-sans text-[10pt]">
+                              <td className="p-2 text-center font-bold border-r border-black align-top" style={{ width: "1.17cm" }}>{idx + 1}.</td>
+                              
+                              <td className="p-2 border-r border-black align-top" style={{ width: "4.5cm" }}>
+                                <div className="font-bold uppercase text-black leading-tight">
+                                  {item.namaSyarikat}
+                                  {isPrintingNaziran && <div className="text-[8pt] text-indigo-800 mt-1.5">[SEKTOR: {getSectorDisplayName(item.sectorCode)}]</div>}
+                                </div>
+                                <div className="text-[9pt] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
+                              </td>
+                              
+                              <td className="p-2 border-r border-black align-top" style={{ width: "4.25cm" }}>
+                                <div className="flex flex-col gap-2">
+                                  {(item.penyandang || []).map((p, pidx) => {
+                                    const norm = normalizePenyandang(p);
+                                    let formattedDate = norm.tarikhLahir || "";
+                                    if (formattedDate.includes("-")) {
+                                      const s = formattedDate.split("-");
+                                      if (s.length === 3 && s[0].length === 4) {
+                                        formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
+                                      }
+                                    }
+                                    return (
+                                      <div key={pidx} className="text-[10pt] leading-relaxed">
+                                        <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {formattedDate ? `${formattedDate} (` : ''}<b>{norm.umur || "-"}</b>{formattedDate ? ')' : ''} – <span className="font-bold uppercase">{norm.jawatan || "-"}</span>
+                                        <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"}</div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </td>
+                              
+                              <td className="p-2 text-center border-r border-black align-top font-semibold" style={{ width: "2.07cm" }}>{item.tempohMohon}</td>
+                              
+                              <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valB || "-") : "-"}</td>
+                              <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valL || "-") : "-"}</td>
+                              <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valTR || "-") : "-"}</td>
+                              <td className="p-2 text-center border-r border-black align-top font-bold text-[9.5pt] uppercase whitespace-pre-line leading-relaxed" style={{ width: "1.85cm" }}>{hasPenyandang ? (item.valWN || "-") : "-"}</td>
+                              
+                              <td className="p-2 border-r border-black align-top" style={{ width: "6.68cm" }}>
+                                <div className="flex flex-col gap-2 text-[10pt] leading-relaxed">
+                                  <div>
+                                    <span className="font-bold uppercase block text-black">KEGIATAN SYARIKAT</span>
+                                    <p className="text-slate-800 italic whitespace-pre-line">➢ {parsedProj.kegiatan || "-"}</p>
+                                  </div>
+                                  <div className="pt-1.5 border-t border-slate-300">
+                                    <span className="font-bold uppercase block text-black">PROJECT:</span>
+                                    {parsedProj.projek.map((proj, pIdx) => (
+                                      <p key={pIdx} className="text-slate-800 font-semibold">➢ {proj}</p>
+                                    ))}
+                                    {parsedProj.noKontrak && <p className="text-slate-800 font-bold">➢ NO. KONTRAK : {parsedProj.noKontrak}</p>}
+                                    {parsedProj.tempohProjek && <p className="text-slate-800 font-bold">➢ TEMPOH PROJEK : {parsedProj.tempohProjek}</p>}
+                                    {parsedProj.ownerProjek && <p className="text-black font-bold">➢ OWNER PROJECT : {parsedProj.ownerProjek}</p>}
+                                  </div>
+                                </div>
+                              </td>
+                              
+                              <td className="p-2 align-top text-left" style={{ width: "3.94cm" }}>
+                                <div className="flex flex-col gap-1.5 text-[10pt] font-semibold text-black">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[12px] font-mono">{item.keputusan === "LULUS" ? "☒" : "☐"}</span>
+                                    <span>LULUS</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[12px] font-mono">{item.keputusan === "LULUS BERSYARAT" ? "☒" : "☐"}</span>
+                                    <span>LULUS BERSYARAT</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[12px] font-mono">{item.keputusan === "TOLAK" ? "☒" : "☐"}</span>
+                                    <span>TOLAK</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[12px] font-mono">{item.keputusan === "SEMAKAN / NAZIRAN" ? "☒" : "☐"}</span>
+                                    <span>SEMAKAN / NAZIRAN</span>
+                                  </div>
+                                  
+                                  <div className="mt-2.5 pt-1.5 border-t border-slate-300 text-[9.5pt]">
+                                    <strong>ULASAN :</strong>
+                                    {item.ulasan ? (
+                                      <p className="text-slate-900 italic mt-1 leading-normal font-bold">"{item.ulasan}"</p>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              );
+            })()}
           </div>
 
           {showAddModal && (
