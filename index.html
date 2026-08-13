@@ -440,6 +440,16 @@
         return lines.map(t => t.replace(/^[➢\-\*\s]+/, '').trim()).join("\n➢ ");
     }
 
+    function formatDateForInput(dateStr) {
+      if (!dateStr) return "";
+      if (dateStr.includes("-") && dateStr.split("-")[0].length === 4) return dateStr;
+      const parts = dateStr.split(/[\.\/]/);
+      if (parts.length === 3 && parts[2].length === 4) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+      return dateStr;
+    }
+
     function prepareRecordForSync(item) {
       return {
         ...item,
@@ -755,6 +765,9 @@
         nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
       });
 
+      const [editingPenyandangIndex, setEditingPenyandangIndex] = useState(null);
+      const [editingEditCompanyPenyandangIndex, setEditingEditCompanyPenyandangIndex] = useState(null);
+
       const displayEvaluators = useMemo(() => {
         const list = [...availableEvaluators];
         if (officerName && !list.includes(officerName)) {
@@ -818,6 +831,12 @@
         normalizedItem.tempohProjek = parsed.tempohProjek;
         normalizedItem.ownerProjek = parsed.ownerProjek;
         setEditingCompany(normalizedItem); 
+        setEditingEditCompanyPenyandangIndex(null);
+        setEditPenyandang({
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+        });
+        setEditNationalityQuery("");
+        setEditApplicantSearchQuery("");
         setShowEditModal(true);
       }
 
@@ -852,7 +871,12 @@
         }
         setEditingCompany(prev => {
           if (!prev) return prev;
-          const updatedPenyandang = [...(prev.penyandang || []), editPenyandang];
+          let updatedPenyandang = [...(prev.penyandang || [])];
+          if (editingEditCompanyPenyandangIndex !== null) {
+            updatedPenyandang[editingEditCompanyPenyandangIndex] = editPenyandang;
+          } else {
+            updatedPenyandang.push(editPenyandang);
+          }
           const { valB, valWN } = calculateBAndWN(updatedPenyandang);
           return {
             ...prev,
@@ -866,10 +890,42 @@
         });
         setEditNationalityQuery("");
         setEditApplicantSearchQuery("");
-        showToast("Penyandang berjaya ditambah ke senarai draf kemaskini.", "info");
+        setEditingEditCompanyPenyandangIndex(null);
+        showToast(editingEditCompanyPenyandangIndex !== null ? "Penyandang berjaya dikemaskini." : "Penyandang berjaya ditambah ke senarai draf kemaskini.", "info");
+      }
+
+      function cancelEditEditingPenyandang() {
+        setEditPenyandang({
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+        });
+        setEditNationalityQuery("");
+        setEditApplicantSearchQuery("");
+        setEditingEditCompanyPenyandangIndex(null);
+      }
+
+      function triggerEditEditingPenyandang(idx) {
+        if (!editingCompany) return;
+        const p = editingCompany.penyandang[idx];
+        const norm = normalizePenyandang(p);
+        setEditPenyandang({
+          nama: norm.nama || "",
+          jantina: norm.jantina || "L",
+          warganegara: norm.warganegara || "",
+          pasport: norm.pasport || "",
+          tarikhLahir: formatDateForInput(norm.tarikhLahir),
+          umur: norm.umur || "",
+          jawatan: norm.jawatan || "",
+          gaji: norm.gaji || ""
+        });
+        setEditNationalityQuery(norm.warganegara || "");
+        setEditApplicantSearchQuery(norm.nama || "");
+        setEditingEditCompanyPenyandangIndex(idx);
       }
 
       function removePenyandangFromEditingCompany(idx) {
+        if (editingEditCompanyPenyandangIndex !== null) {
+          cancelEditEditingPenyandang();
+        }
         setEditingCompany(prev => {
           if (!prev) return prev;
           const filtered = (prev.penyandang || []).filter((_, i) => i !== idx);
@@ -1577,7 +1633,12 @@
       function addPenyandangToNewCompany() {
         if (!newPenyandang.nama) return;
         setNewCompany(prev => {
-          const updatedPenyandang = [...prev.penyandang, newPenyandang];
+          let updatedPenyandang = [...prev.penyandang];
+          if (editingPenyandangIndex !== null) {
+            updatedPenyandang[editingPenyandangIndex] = newPenyandang;
+          } else {
+            updatedPenyandang.push(newPenyandang);
+          }
           const { valB, valWN } = calculateBAndWN(updatedPenyandang);
           return {
             ...prev,
@@ -1590,9 +1651,41 @@
           nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
         });
         setNationalityQuery("");
+        setApplicantSearchQuery("");
+        setEditingPenyandangIndex(null);
+      }
+
+      function cancelEditNewPenyandang() {
+        setNewPenyandang({
+          nama: "", jantina: "L", warganegara: "", pasport: "", tarikhLahir: "", umur: "", jawatan: "", gaji: ""
+        });
+        setNationalityQuery("");
+        setApplicantSearchQuery("");
+        setEditingPenyandangIndex(null);
+      }
+
+      function triggerEditNewPenyandang(idx) {
+        const p = newCompany.penyandang[idx];
+        const norm = normalizePenyandang(p);
+        setNewPenyandang({
+          nama: norm.nama || "",
+          jantina: norm.jantina || "L",
+          warganegara: norm.warganegara || "",
+          pasport: norm.pasport || "",
+          tarikhLahir: formatDateForInput(norm.tarikhLahir),
+          umur: norm.umur || "",
+          jawatan: norm.jawatan || "",
+          gaji: norm.gaji || ""
+        });
+        setNationalityQuery(norm.warganegara || "");
+        setApplicantSearchQuery(norm.nama || "");
+        setEditingPenyandangIndex(idx);
       }
 
       function removePenyandangFromNewCompany(idx) {
+        if (editingPenyandangIndex !== null) {
+          cancelEditNewPenyandang();
+        }
         setNewCompany(prev => {
           const filtered = prev.penyandang.filter((_, i) => i !== idx);
           const { valB, valWN } = calculateBAndWN(filtered);
@@ -1674,6 +1767,7 @@
         setCompanySearchQuery("");
         setOwnerSearchQuery("");
         setShowAddModal(false);
+        setEditingPenyandangIndex(null);
       }
 
       function loadDemoData() {
@@ -3655,13 +3749,22 @@
                           <option value="P">Perempuan</option>
                         </select>
                       </div>
-                      <div className="flex items-end md:col-span-4 mt-2">
+                      <div className="flex items-end md:col-span-4 mt-2 gap-2">
+                        {editingPenyandangIndex !== null && (
+                          <button
+                            type="button"
+                            onClick={cancelEditNewPenyandang}
+                            className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 px-4 rounded text-xs transition-colors"
+                          >
+                            Batal Edit
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={addPenyandangToNewCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs border border-blue-900 shadow-sm transition-colors"
+                          className="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs border border-blue-900 shadow-sm transition-colors"
                         >
-                          + Tambah Pemohon Kakitangan ke Senarai
+                          {editingPenyandangIndex !== null ? "Simpan Kemaskini Penyandang" : "+ Masukkan Penyandang Baharu Ini"}
                         </button>
                       </div>
                     </div>
@@ -3671,15 +3774,24 @@
                         {newCompany.penyandang.map((p, idx) => {
                           const norm = normalizePenyandang(p);
                           return (
-                            <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0">
+                            <div key={idx} className={`flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0 ${editingPenyandangIndex === idx ? 'bg-amber-50 p-1 -mx-1 rounded' : ''}`}>
                               <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "Tiada Jawatan"} {norm.gaji ? `• ${norm.gaji}` : ''} • Pasport: {norm.pasport || "-"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
-                              <button
-                                type="button"
-                                onClick={() => removePenyandangFromNewCompany(idx)}
-                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
-                              >
-                                Padam Rekod Kakitangan
-                              </button>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => triggerEditNewPenyandang(idx)}
+                                  className="text-blue-600 hover:text-blue-850 font-bold text-[10px]"
+                                >
+                                  Edit Rekod
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removePenyandangFromNewCompany(idx)}
+                                  className="text-red-600 hover:text-red-850 font-bold text-[10px]"
+                                >
+                                  Padam Rekod Kakitangan
+                                </button>
+                              </div>
                             </div>
                           );
                         })}
@@ -4043,13 +4155,22 @@
                           <option value="P">Perempuan</option>
                         </select>
                       </div>
-                      <div className="flex items-end md:col-span-4 mt-2">
+                      <div className="flex items-end md:col-span-4 mt-2 gap-2">
+                        {editingEditCompanyPenyandangIndex !== null && (
+                          <button
+                            type="button"
+                            onClick={cancelEditEditingPenyandang}
+                            className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 px-4 rounded text-xs transition-colors"
+                          >
+                            Batal Edit
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={addPenyandangToEditingCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs transition-colors shadow-sm"
+                          className="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs transition-colors shadow-sm"
                         >
-                          + Masukkan Penyandang Baharu Ini
+                          {editingEditCompanyPenyandangIndex !== null ? "Simpan Kemaskini Penyandang" : "+ Masukkan Penyandang Baharu Ini"}
                         </button>
                       </div>
                     </div>
@@ -4059,15 +4180,24 @@
                         {editingCompany.penyandang.map((p, idx) => {
                           const norm = normalizePenyandang(p);
                           return (
-                            <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0 font-sans">
+                            <div key={idx} className={`flex items-center justify-between text-xs border-b border-slate-200 pb-1.5 last:border-0 last:pb-0 font-sans ${editingEditCompanyPenyandangIndex === idx ? 'bg-amber-50 p-1 -mx-1 rounded' : ''}`}>
                               <span>{idx + 1}. <strong>{norm.nama}</strong> ({norm.jawatan || "N/A"} • {norm.gaji || "N/A"} • WN: {norm.warganegara || "-"} • Umur: {norm.umur || "-"})</span>
-                              <button
-                                type="button"
-                                onClick={() => removePenyandangFromEditingCompany(idx)}
-                                className="text-red-600 hover:text-red-850 font-bold text-[10px]"
-                              >
-                                Padam Rekod
-                              </button>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => triggerEditEditingPenyandang(idx)}
+                                  className="text-blue-600 hover:text-blue-850 font-bold text-[10px]"
+                                >
+                                  Edit Rekod
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removePenyandangFromEditingCompany(idx)}
+                                  className="text-red-600 hover:text-red-850 font-bold text-[10px]"
+                                >
+                                  Padam Rekod
+                                </button>
+                              </div>
                             </div>
                           );
                         })}
