@@ -962,9 +962,15 @@
           }
 
           if (sheetUrl) {
-            const targetListForSync = targetSector === "og" ? updatedOg : updatedOthers[targetSector];
+            // HIMPUNKAN KESEMUA DATA SEKTOR.
+            // Ini untuk memastikan apabila 'sync_all' dipanggil, rekod sektor lain tidak akan terpadam oleh Google Sheets.
+            const allCurrentData = [...updatedOg];
+            Object.values(updatedOthers).forEach(arr => {
+                if (Array.isArray(arr)) allCurrentData.push(...arr);
+            });
+            
             setTimeout(() => {
-              syncEditRowToGoogleSheets(editingCompany, targetListForSync, targetSector);
+              syncEditRowToGoogleSheets(editingCompany, allCurrentData, targetSector);
             }, 0);
           }
 
@@ -1087,7 +1093,13 @@
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
         addLog(`Memulai penyelarasan penuh untuk tab [${sheetName}]...`, "info");
         
-        const preparedData = currentSectData.map(prepareRecordForSync);
+        // HIMPUNKAN KESEMUA DATA DARI SEMUA SEKTOR
+        // Menghalang pepijat di mana sheet memadam sektor lain kerana hanya satu sektor dihantar
+        const allCurrentData = [...dataOG];
+        Object.values(dataOthers).forEach(arr => {
+            if (Array.isArray(arr)) allCurrentData.push(...arr);
+        });
+        const preparedData = allCurrentData.map(prepareRecordForSync);
 
         try {
           const res = await fetch(sheetUrl, {
