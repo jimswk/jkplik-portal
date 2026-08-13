@@ -1550,10 +1550,11 @@
           let updatedOg = [...currentOg];
           let updatedOthers = { ...currentOthers };
 
+          // Pastikan perbandingan ID dilakukan menggunakan string untuk mengelakkan ralat 'tidak dapat dipadam'
           if (activeSector === "og") {
-            updatedOg = currentOg.filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
+            updatedOg = currentOg.filter(item => String(item.id) !== String(id)).map((item, i) => ({ ...item, bil: i + 1 }));
           } else {
-            updatedOthers[activeSector] = (currentOthers[activeSector] || []).filter(item => item.id !== id).map((item, i) => ({ ...item, bil: i + 1 }));
+            updatedOthers[activeSector] = (currentOthers[activeSector] || []).filter(item => String(item.id) !== String(id)).map((item, i) => ({ ...item, bil: i + 1 }));
           }
 
           if (sheetUrl) {
@@ -3690,14 +3691,14 @@
                     <button
                       type="button"
                       onClick={() => setShowAddModal(false)}
-                      className="bg-transparent text-slate-500 hover:text-slate-700 text-xs font-bold px-4 py-2"
+                      className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
                     >
                       Batal Pendaftaran
                     </button>
                     <button
                       type="submit"
                       disabled={newCompany.penyandang.length === 0}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2.5 rounded-lg disabled:opacity-50 transition-colors shadow-sm"
                     >
                       Selesaikan Pendaftaran Permohonan
                     </button>
@@ -4046,7 +4047,7 @@
                         <button
                           type="button"
                           onClick={addPenyandangToEditingCompany}
-                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs"
+                          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded text-xs transition-colors shadow-sm"
                         >
                           + Masukkan Penyandang Baharu Ini
                         </button>
@@ -4081,13 +4082,13 @@
                         setShowEditModal(false);
                         setEditingCompany(null);
                       }}
-                      className="bg-transparent text-slate-500 hover:text-slate-700 text-xs font-bold px-4 py-2"
+                      className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
-                      className="bg-blue-955 hover:bg-blue-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg"
+                      className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow-sm transition-colors"
                     >
                       Simpan Kemaskini Permohonan
                     </button>
