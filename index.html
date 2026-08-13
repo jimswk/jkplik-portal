@@ -144,9 +144,16 @@
       return (sectorId || "").toUpperCase();
     }
 
-    function getSheetName(meetingNumber, meetingYear, officerName) {
+    function getSheetName(meetingNumber, meetingYear, officerName, sectorId) {
       const cleanOfficer = (officerName || "").trim() ? ` (${(officerName || "").trim().toUpperCase()})` : '';
-      return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}`;
+      let sectorSuffix = "";
+      if (sectorId === "og") sectorSuffix = " O&G";
+      else if (sectorId === "perkhidmatan") sectorSuffix = " PERKHIDMATAN";
+      else if (sectorId === "kerajaan") sectorSuffix = " KERAJAAN";
+      else if (sectorId === "lanjutan") sectorSuffix = " LANJUTAN";
+      else if (sectorId === "kelulusan_dasar") sectorSuffix = " KELULUSAN DASAR";
+      
+      return `Bil. ${meetingNumber}/${meetingYear}${cleanOfficer}${sectorSuffix}`;
     }
 
     function normalizePenyandang(p) {
@@ -1090,16 +1097,10 @@
           return;
         }
         setIsSyncing(true);
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName, activeSector);
         addLog(`Memulai penyelarasan penuh untuk tab [${sheetName}]...`, "info");
         
-        // HIMPUNKAN KESEMUA DATA DARI SEMUA SEKTOR
-        // Menghalang pepijat di mana sheet memadam sektor lain kerana hanya satu sektor dihantar
-        const allCurrentData = [...dataOG];
-        Object.values(dataOthers).forEach(arr => {
-            if (Array.isArray(arr)) allCurrentData.push(...arr);
-        });
-        const preparedData = allCurrentData.map(prepareRecordForSync);
+        const preparedData = currentSectData.map(prepareRecordForSync);
 
         try {
           const res = await fetch(sheetUrl, {
@@ -1335,9 +1336,10 @@
         showToast("Dokumen format Word berjaya draf dan dimuat turun!", "success");
       }
 
-      async function loadCurrentMeetingFromSheets(targetTabName) {
+      async function loadCurrentMeetingFromSheets() {
         if (!sheetUrl) return;
-        addLog(`[AUTO-SYNC] Menyemak jika tab "${targetTabName}" wujud di Google Sheets...`, "info");
+        const baseName = `Bil. ${meetingNumber}/${meetingYear}${officerName.trim() ? ` (${officerName.trim().toUpperCase()})` : ''}`;
+        addLog(`[AUTO-SYNC] Menyemak helaian berkaitan "${baseName}" di Google Sheets...`, "info");
         try {
           const listRes = await fetch(sheetUrl, {
             method: "POST",
@@ -1346,19 +1348,31 @@
             body: JSON.stringify({ action: "get_sheets_list" })
           });
           const listResult = await listRes.json();
-          if (listResult.status === "success" && listResult.sheets.includes(targetTabName)) {
-            addLog(`[AUTO-SYNC] Tab ditemui! Memuat turun data terkini dari awan untuk "${targetTabName}"...`, "info");
+          if (listResult.status === "success") {
+            const sheetsToLoad = listResult.sheets.filter(sh => sh.startsWith(baseName));
             
-            const dataRes = await fetch(sheetUrl, {
-              method: "POST",
-              mode: "cors",
-              redirect: "follow",
-              body: JSON.stringify({ action: "load_sheet_data", sheetName: targetTabName })
-            });
-            const dataResult = await dataRes.json();
-            if (dataResult.status === "success") {
-              const records = dataResult.records || [];
-              const normalizedRecords = processRecordsFromSheet(records);
+            if (sheetsToLoad.length > 0) {
+              addLog(`[AUTO-SYNC] Ditemui ${sheetsToLoad.length} tab sektor. Memuat turun data...`, "info");
+              
+              const fetchPromises = sheetsToLoad.map(shName => 
+                fetch(sheetUrl, {
+                  method: "POST",
+                  mode: "cors",
+                  redirect: "follow",
+                  body: JSON.stringify({ action: "load_sheet_data", sheetName: shName })
+                }).then(res => res.json())
+              );
+              
+              const results = await Promise.all(fetchPromises);
+              let allRecords = [];
+              
+              results.forEach(res => {
+                if (res.status === "success" && res.records) {
+                  allRecords = allRecords.concat(res.records);
+                }
+              });
+
+              const normalizedRecords = processRecordsFromSheet(allRecords);
 
               const ogRecords = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith("OG-"));
               const newOthers = {};
@@ -1375,30 +1389,30 @@
                   others: newOthers
                 }
               }));
-              addLog(`[AUTO-SYNC] Berjaya memuatkan ${records.length} rekod dari Google Sheets. Data selari!`, "success");
-              showToast("Penyelarasan automatik dari Google Sheets berjaya dilakukan!", "success");
+              addLog(`[AUTO-SYNC] Berjaya memuatkan ${allRecords.length} rekod dari semua sektor. Data selari!`, "success");
+              showToast("Penyelarasan automatik pelbagai sektor berjaya dilakukan!", "success");
+            } else {
+              addLog(`[AUTO-SYNC] Tiada tab "${baseName}" wujud di awan. Memulai draf bersih.`, "info");
+              setSessionData(prev => ({
+                ...prev,
+                [activeCacheKey]: {
+                  og: [],
+                  others: {}
+                }
+              }));
             }
-          } else {
-            addLog(`[AUTO-SYNC] Tab "${targetTabName}" belum wujud di awan. Memulai draf bersih untuk pegawai ini.`, "info");
-            setSessionData(prev => ({
-              ...prev,
-              [activeCacheKey]: {
-                og: [],
-                others: {}
-              }
-            }));
           }
         } catch (err) {
           addLog(`[AUTO-SYNC] Sambungan ke awan gagal: ${err.message}`, "error");
         }
       }
 
-      async function syncEditRowToGoogleSheets(updatedItem, allItems, targetSector = activeSector) {
+      async function syncEditRowToGoogleSheets(updatedItem, targetListForSync, targetSector = activeSector) {
         if (!sheetUrl) return;
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
-        addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di Google Sheets...`, "info");
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName, targetSector);
+        addLog(`[AUTO-SYNC] Mengemaskini perubahan "${updatedItem.namaSyarikat}" di tab [${sheetName}]...`, "info");
         
-        const preparedData = allItems.map(prepareRecordForSync);
+        const preparedData = targetListForSync.map(prepareRecordForSync);
 
         try {
           await fetch(sheetUrl, {
@@ -1421,8 +1435,8 @@
 
       async function syncAddRowToGoogleSheets(item) {
         if (!sheetUrl) return;
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
-        addLog(`[AUTO-SYNC] Menghantar "${item.namaSyarikat}" ke Google Sheets...`, "info");
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName, activeSector);
+        addLog(`[AUTO-SYNC] Menghantar "${item.namaSyarikat}" ke tab [${sheetName}]...`, "info");
         
         const preparedItem = prepareRecordForSync(item);
 
@@ -1447,10 +1461,10 @@
         }
       }
 
-      async function syncDeleteRowFromGoogleSheets(id) {
+      async function syncDeleteRowFromGoogleSheets(id, itemSector) {
         if (!sheetUrl) return;
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
-        addLog(`[AUTO-SYNC] Memadam ID ${id} di Google Sheets...`, "info");
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName, itemSector);
+        addLog(`[AUTO-SYNC] Memadam ID ${id} di tab [${sheetName}]...`, "info");
         try {
           await fetch(sheetUrl, {
             method: "POST",
@@ -1470,8 +1484,8 @@
 
       async function syncSingleRowToGoogleSheets(id, keputusan, ulasan, targetSector = activeSector) {
         if (!sheetUrl) return;
-        const sheetName = getSheetName(meetingNumber, meetingYear, officerName);
-        addLog(`[AUTO-SYNC] Menghantar kemas kini keputusan ID: ${id}...`, "info");
+        const sheetName = getSheetName(meetingNumber, meetingYear, officerName, targetSector);
+        addLog(`[AUTO-SYNC] Menghantar kemas kini keputusan ID: ${id} ke tab [${sheetName}]...`, "info");
         try {
           await fetch(sheetUrl, {
             method: "POST",
@@ -1552,55 +1566,6 @@
         }
       }
 
-      async function loadPastSheetData(selectedSheetName) {
-        setIsLoadingArchive(true);
-        addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
-        try {
-          const res = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "load_sheet_data", sheetName: selectedSheetName })
-          });
-          const result = await res.json();
-          if (result.status === "success") {
-            const records = result.records || [];
-            const normalizedRecords = processRecordsFromSheet(records);
-
-            const ogRecords = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith("OG-"));
-            const newOthers = {};
-            SECTORS_LIST.forEach(s => {
-              if (s.id !== "og") {
-                newOthers[s.id] = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith(`${s.id.toUpperCase()}-`));
-              }
-            });
-
-            setSessionData(prev => ({
-              ...prev,
-              [activeCacheKey]: {
-                og: ogRecords,
-                others: newOthers
-              }
-            }));
-
-            const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
-            if (match) {
-              setMeetingNumber(match[1]);
-              setMeetingYear(match[2]);
-            }
-
-            showToast(`Berjaya memuatkan ${records.length} data daripada tab ${selectedSheetName}!`, "success");
-            setShowArchiveModal(false);
-          } else {
-            showToast("Isu dikesan semasa memuat turun data arkib.", "error");
-          }
-        } catch (err) {
-          showToast("Ralat semasa memanggil API Sheets.", "error");
-        } finally {
-          setIsLoadingArchive(false);
-        }
-      }
-
       function triggerDeleteItem(id) {
         setConfirmModal({
           show: true,
@@ -1617,8 +1582,17 @@
 
           let updatedOg = [...currentOg];
           let updatedOthers = { ...currentOthers };
+          
+          let itemSector = activeSector;
+          const ogItem = currentOg.find(item => String(item.id) === String(id));
+          if (!ogItem) {
+            Object.keys(currentOthers).forEach(sec => {
+              if ((currentOthers[sec] || []).find(item => String(item.id) === String(id))) itemSector = sec;
+            });
+          } else {
+            itemSector = "og";
+          }
 
-          // Pastikan perbandingan ID dilakukan menggunakan string untuk mengelakkan ralat 'tidak dapat dipadam'
           if (activeSector === "og") {
             updatedOg = currentOg.filter(item => String(item.id) !== String(id)).map((item, i) => ({ ...item, bil: i + 1 }));
           } else {
@@ -1626,7 +1600,7 @@
           }
 
           if (sheetUrl) {
-            syncDeleteRowFromGoogleSheets(id);
+            syncDeleteRowFromGoogleSheets(id, itemSector);
           }
 
           return {
@@ -1824,10 +1798,8 @@
       }, [meetingNumber, meetingYear]);
 
       useEffect(() => {
-        const currentTabName = getSheetName(meetingNumber, meetingYear, officerName);
-        
         const delayDebounce = setTimeout(() => {
-          loadCurrentMeetingFromSheets(currentTabName);
+          loadCurrentMeetingFromSheets();
           fetchGlobalHistory();
         }, 1200);
 
@@ -1994,12 +1966,21 @@
         );
       }, [ownerSearchQuery, uniqueOwners]);
 
+      const uniquePastMeetings = useMemo(() => {
+        const bases = new Set();
+        pastSheets.forEach(sh => {
+          let base = sh.replace(/\s+(O&G|PERKHIDMATAN|KERAJAAN|LANJUTAN|KELULUSAN DASAR)$/i, "");
+          bases.add(base);
+        });
+        return Array.from(bases);
+      }, [pastSheets]);
+
       const filteredPastSheets = useMemo(() => {
-        if (!archiveSearchQuery) return pastSheets;
-        return pastSheets.filter(sh => 
+        if (!archiveSearchQuery) return uniquePastMeetings;
+        return uniquePastMeetings.filter(sh => 
           sh.toLowerCase().includes(archiveSearchQuery.toLowerCase())
         );
-      }, [archiveSearchQuery, pastSheets]);
+      }, [archiveSearchQuery, uniquePastMeetings]);
 
       const filteredApplicantSuggestions = useMemo(() => {
         if (!applicantSearchQuery) return [];
@@ -2297,7 +2278,7 @@
                     )}
 
                     <button
-                      onClick={() => loadCurrentMeetingFromSheets(getSheetName(meetingNumber, meetingYear, officerName))}
+                      onClick={() => loadCurrentMeetingFromSheets()}
                       className="bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-1.5 transition-colors"
                       title="Kemaskini & Muat Terkini"
                     >
