@@ -1614,14 +1614,23 @@
             itemSector = "og";
           }
 
-          if (activeSector === "og") {
+          let listToSync = [];
+          
+          // Kira semula nombor Bil. 1, 2, 3, 4 secara automatik selepas rekod ditapis/dibuang
+          if (itemSector === "og") {
             updatedOg = currentOg.filter(item => String(item.id) !== String(id)).map((item, i) => ({ ...item, bil: i + 1 }));
+            listToSync = updatedOg;
           } else {
-            updatedOthers[activeSector] = (currentOthers[activeSector] || []).filter(item => String(item.id) !== String(id)).map((item, i) => ({ ...item, bil: i + 1 }));
+            updatedOthers[itemSector] = (currentOthers[itemSector] || []).filter(item => String(item.id) !== String(id)).map((item, i) => ({ ...item, bil: i + 1 }));
+            listToSync = updatedOthers[itemSector];
           }
 
           if (sheetUrl) {
-            syncDeleteRowFromGoogleSheets(id, itemSector);
+            // Daripada guna fungsi padam biasa, kita paksa TULIS SEMULA (overwrite) sheet 
+            // dengan senarai terbaru yang nombor Bil nya telah pun disusun rapi!
+            setTimeout(() => {
+              syncEditRowToGoogleSheets({ id: null, namaSyarikat: "Pemadaman Data & Penyusunan Semula" }, listToSync, itemSector);
+            }, 0);
           }
 
           return {
@@ -1633,7 +1642,7 @@
           };
         });
         
-        showToast("Rekod berjaya dipadam.", "success");
+        showToast("Rekod berjaya dipadam & No. Bil disusun semula secara automatik.", "success");
         setConfirmModal({ show: false, action: null, message: "" });
       }
 
