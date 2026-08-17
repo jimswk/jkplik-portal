@@ -106,6 +106,42 @@
     const GOOGLE_APPS_SCRIPT_LALAI = "https://script.google.com/macros/s/AKfycbycALnA7COdF32Zmo2ijfwQYqC0LaNijlbBH7Lh54T7fjBZAn-RMBC56RR8ze94vQif6Q/exec";
     const DEFAULT_EVALUATORS = ["SUFFARI", "IMELDA", "EVELYN", "FREDDIE", "HARTINI"];
 
+    const fetchQueue = [];
+    let isFetchingGAS = false;
+
+    async function fetchFromGAS(url, payload) {
+      return new Promise((resolve, reject) => {
+        fetchQueue.push(async () => {
+          try {
+            const response = await fetch(url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+              },
+              body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            resolve(data);
+          } catch (e) {
+            reject(e);
+          }
+        });
+        processGASQueue();
+      });
+    }
+
+    async function processGASQueue() {
+      if (isFetchingGAS || fetchQueue.length === 0) return;
+      isFetchingGAS = true;
+      try {
+        const task = fetchQueue.shift();
+        await task();
+      } finally {
+        isFetchingGAS = false;
+        processGASQueue();
+      }
+    }
+
     const WORLD_COUNTRIES = [
       { name: "MALAYSIA", code: "MYS" }, { name: "INDONESIA", code: "IDN" }, { name: "SINGAPORE", code: "SGP" },
       { name: "THAILAND", code: "THA" }, { name: "PHILIPPINES", code: "PHL" }, { name: "VIETNAM", code: "VNM" },
@@ -1012,13 +1048,7 @@
         if (!sheetUrl) return;
         addLog(`Mengekstrak nama penilai dari Google Sheets untuk Sesi Bil. ${number}/${year}...`, "info");
         try {
-          const listRes = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "get_sheets_list" })
-          });
-          const listResult = await listRes.json();
+          const listResult = await fetchFromGAS(sheetUrl, { action: "get_sheets_list" });
           if (listResult.status === "success") {
             const sheets = listResult.sheets || [];
             const regex = new RegExp(`Bil\\.\\s*${number}/${year}\\s*\\(([^)]+)\\)`, 'i');
@@ -1103,18 +1133,12 @@
         const preparedData = currentSectData.map(prepareRecordForSync);
 
         try {
-          const res = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({
-              action: "sync_all",
-              data: preparedData,
-              activeSector,
-              sheetName: sheetName
-            })
+          const result = await fetchFromGAS(sheetUrl, {
+            action: "sync_all",
+            data: preparedData,
+            activeSector,
+            sheetName: sheetName
           });
-          const result = await res.json();
           if (result.status === "success") {
             addLog(`Penyelarasan penuh berjaya untuk Sektor ${getSectorDisplayName(activeSector)}!`, "success");
             showToast("Penyelarasan pangkalan data penuh ke Google Sheets selesai!", "success");
@@ -1341,13 +1365,7 @@
         const baseName = `Bil. ${meetingNumber}/${meetingYear}${officerName.trim() ? ` (${officerName.trim().toUpperCase()})` : ''}`;
         addLog(`[AUTO-SYNC] Menyemak helaian berkaitan "${baseName}" di Google Sheets...`, "info");
         try {
-          const listRes = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "get_sheets_list" })
-          });
-          const listResult = await listRes.json();
+          const listResult = await fetchFromGAS(sheetUrl, { action: "get_sheets_list" });
           if (listResult.status === "success") {
             const sheetsToLoad = listResult.sheets.filter(sh => sh.startsWith(baseName));
             
@@ -1355,12 +1373,7 @@
               addLog(`[AUTO-SYNC] Ditemui ${sheetsToLoad.length} tab sektor. Memuat turun data...`, "info");
               
               const fetchPromises = sheetsToLoad.map(shName => 
-                fetch(sheetUrl, {
-                  method: "POST",
-                  mode: "cors",
-                  redirect: "follow",
-                  body: JSON.stringify({ action: "load_sheet_data", sheetName: shName })
-                }).then(res => res.json())
+                fetchFromGAS(sheetUrl, { action: "load_sheet_data", sheetName: shName })
               );
               
               const results = await Promise.all(fetchPromises);
@@ -1415,16 +1428,11 @@
         const preparedData = targetListForSync.map(prepareRecordForSync);
 
         try {
-          await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ 
-              action: "sync_all", 
-              data: preparedData, 
-              activeSector: targetSector,
-              sheetName: sheetName
-            })
+          await fetchFromGAS(sheetUrl, { 
+            action: "sync_all", 
+            data: preparedData, 
+            activeSector: targetSector,
+            sheetName: sheetName
           });
           addLog(`[AUTO-SYNC] Maklumat "${updatedItem.namaSyarikat}" dikemaskini di Google Sheets.`, "success");
           markAsSynced(updatedItem.id, true);
@@ -1441,16 +1449,11 @@
         const preparedItem = prepareRecordForSync(item);
 
         try {
-          await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ 
-              action: "add_row", 
-              item: preparedItem, 
-              activeSector,
-              sheetName: sheetName
-            })
+          await fetchFromGAS(sheetUrl, { 
+            action: "add_row", 
+            item: preparedItem, 
+            activeSector,
+            sheetName: sheetName
           });
           addLog(`[AUTO-SYNC] "${item.namaSyarikat}" berjaya disegerakkan.`, "success");
           markAsSynced(item.id, true);
@@ -1466,15 +1469,10 @@
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName, itemSector);
         addLog(`[AUTO-SYNC] Memadam ID ${id} di tab [${sheetName}]...`, "info");
         try {
-          await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ 
-              action: "delete_row", 
-              id,
-              sheetName: sheetName
-            })
+          await fetchFromGAS(sheetUrl, { 
+            action: "delete_row", 
+            id,
+            sheetName: sheetName
           });
           addLog(`[AUTO-SYNC] Pemadaman ID ${id} berjaya daripada Google Sheets.`, "success");
         } catch (err) {
@@ -1487,18 +1485,13 @@
         const sheetName = getSheetName(meetingNumber, meetingYear, officerName, targetSector);
         addLog(`[AUTO-SYNC] Menghantar kemas kini keputusan ID: ${id} ke tab [${sheetName}]...`, "info");
         try {
-          await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ 
-              action: "update", 
-              id, 
-              keputusan, 
-              ulasan, 
-              activeSector: targetSector,
-              sheetName: sheetName
-            })
+          await fetchFromGAS(sheetUrl, { 
+            action: "update", 
+            id, 
+            keputusan, 
+            ulasan, 
+            activeSector: targetSector,
+            sheetName: sheetName
           });
           addLog(`[AUTO-SYNC] ID ${id} dikemas kini di Google Sheets.`, "success");
           markAsSynced(id, true);
@@ -1510,13 +1503,7 @@
       async function fetchGlobalHistory() {
         if (!sheetUrl) return;
         try {
-          const res = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "get_global_history" })
-          });
-          const result = await res.json();
+          const result = await fetchFromGAS(sheetUrl, { action: "get_global_history" });
           if (result.status === "success") {
             setGlobalCompanies(result.companies || []);
             setGlobalOwners(result.owners || []);
@@ -1546,13 +1533,7 @@
         }
         setIsLoadingArchive(true);
         try {
-          const res = await fetch(sheetUrl, {
-            method: "POST",
-            mode: "cors",
-            redirect: "follow",
-            body: JSON.stringify({ action: "get_sheets_list" })
-          });
-          const result = await res.json();
+          const result = await fetchFromGAS(sheetUrl, { action: "get_sheets_list" });
           if (result.status === "success") {
             setPastSheets(result.sheets || []);
             setShowArchiveModal(true);
@@ -1561,6 +1542,49 @@
           }
         } catch (err) {
           showToast("Ralat sambungan API dikesan.", "error");
+        } finally {
+          setIsLoadingArchive(false);
+        }
+      }
+
+      async function loadPastSheetData(selectedSheetName) {
+        setIsLoadingArchive(true);
+        addLog(`Memuatkan rekod arkib dari tab [${selectedSheetName}]...`, "info");
+        try {
+          const result = await fetchFromGAS(sheetUrl, { action: "load_sheet_data", sheetName: selectedSheetName });
+          if (result.status === "success") {
+            const records = result.records || [];
+            const normalizedRecords = processRecordsFromSheet(records);
+
+            const ogRecords = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith("OG-"));
+            const newOthers = {};
+            SECTORS_LIST.forEach(s => {
+              if (s.id !== "og") {
+                newOthers[s.id] = normalizedRecords.filter(r => r.id && r.id.toString().toUpperCase().startsWith(`${s.id.toUpperCase()}-`));
+              }
+            });
+
+            setSessionData(prev => ({
+              ...prev,
+              [activeCacheKey]: {
+                og: ogRecords,
+                others: newOthers
+              }
+            }));
+
+            const match = selectedSheetName.match(/Bil\.?\s*(\d+)[-\/](\d+)/i);
+            if (match) {
+              setMeetingNumber(match[1]);
+              setMeetingYear(match[2]);
+            }
+
+            showToast(`Berjaya memuatkan ${records.length} data daripada tab ${selectedSheetName}!`, "success");
+            setShowArchiveModal(false);
+          } else {
+            showToast("Isu dikesan semasa memuat turun data arkib.", "error");
+          }
+        } catch (err) {
+          showToast("Ralat semasa memanggil API Sheets.", "error");
         } finally {
           setIsLoadingArchive(false);
         }
@@ -2720,7 +2744,7 @@
                             </div>
 
                             <div className="flex flex-col gap-2">
-                              <button onClick={() => handleSaveDecision(item.id, "LULUS", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "LULUS" ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
+                              <button onClick={() => handleSaveDecision(item.id, item.keputusan === "LULUS" ? "" : "LULUS", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "LULUS" ? "bg-emerald-600/20 text-emerald-400 border-emerald-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
                                   <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS" ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="checkCircle" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">LULUS</span>
@@ -2728,7 +2752,7 @@
                                 {item.keputusan === "LULUS" && <Icon name="check" size={13} />}
                               </button>
 
-                              <button onClick={() => handleSaveDecision(item.id, "LULUS BERSYARAT", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "LULUS BERSYARAT" ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
+                              <button onClick={() => handleSaveDecision(item.id, item.keputusan === "LULUS BERSYARAT" ? "" : "LULUS BERSYARAT", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "LULUS BERSYARAT" ? "bg-amber-600/20 text-amber-400 border-amber-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
                                   <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "LULUS BERSYARAT" ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="alertTriangle" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">LULUS BERSYARAT</span>
@@ -2736,7 +2760,7 @@
                                 {item.keputusan === "LULUS BERSYARAT" && <Icon name="check" size={13} />}
                               </button>
 
-                              <button onClick={() => handleSaveDecision(item.id, "TOLAK", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "TOLAK" ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
+                              <button onClick={() => handleSaveDecision(item.id, item.keputusan === "TOLAK" ? "" : "TOLAK", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "TOLAK" ? "bg-red-600/20 text-red-400 border-red-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
                                   <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "TOLAK" ? 'bg-red-500/20 text-red-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="xCircle" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">TOLAK</span>
@@ -2744,7 +2768,7 @@
                                 {item.keputusan === "TOLAK" && <Icon name="check" size={13} />}
                               </button>
 
-                              <button onClick={() => handleSaveDecision(item.id, "SEMAKAN / NAZIRAN", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "SEMAKAN / NAZIRAN" ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
+                              <button onClick={() => handleSaveDecision(item.id, item.keputusan === "SEMAKAN / NAZIRAN" ? "" : "SEMAKAN / NAZIRAN", item.ulasan)} className={`w-full p-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${item.keputusan === "SEMAKAN / NAZIRAN" ? "bg-indigo-600/20 text-indigo-400 border-indigo-500 shadow font-bold scale-[1.01]" : "bg-slate-950/60 text-slate-300 border-slate-800 hover:border-slate-700"}`}>
                                 <div className="flex items-center gap-2 text-xs min-w-0">
                                   <div className={`p-1.5 rounded-full flex-shrink-0 ${item.keputusan === "SEMAKAN / NAZIRAN" ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}><Icon name="fileText" size={13} /></div>
                                   <span className="text-[11px] tracking-wide font-semibold uppercase">SEMAKAN / NAZIRAN</span>
@@ -3069,13 +3093,13 @@
                                 </div>
                                 <div className="flex gap-2 w-full md:w-auto shrink-0">
                                   <button
-                                    onClick={() => handleSaveDecisionGlobal(item.id, item.sectorCode, "LULUS", item.ulasan)}
+                                    onClick={() => handleSaveDecisionGlobal(item.id, item.sectorCode, item.keputusan === "LULUS" ? "" : "LULUS", item.ulasan)}
                                     className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
                                   >
                                     <Icon name="checkCircle" size={16} /> LULUSKAN
                                   </button>
                                   <button
-                                    onClick={() => handleSaveDecisionGlobal(item.id, item.sectorCode, "TOLAK", item.ulasan)}
+                                    onClick={() => handleSaveDecisionGlobal(item.id, item.sectorCode, item.keputusan === "TOLAK" ? "" : "TOLAK", item.ulasan)}
                                     className="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
                                   >
                                     <Icon name="xCircle" size={16} /> TOLAK
