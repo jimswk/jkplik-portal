@@ -3658,13 +3658,291 @@
 
           </main>
 
+          {}
           <div className="hidden print:block bg-white text-black p-2 print-page font-sans">
-            <div className="text-center flex flex-col gap-1 pb-3 mb-3 border-b border-black">
-              <h1 className="text-xs font-bold uppercase tracking-tight">SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM</h1>
-              <h2 className="text-[11px] font-bold uppercase">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</h2>
-              <h3 className="text-[10px] font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {getSectorDisplayName(activeSector)}</h3>
-              <p className="text-[9px] font-medium mt-0.5">Disediakan Oleh Pegawai Penilai: {officerName}</p>
-            </div>
+            {currentUser && currentUser.role === "Admin" ? (
+              /* LAPORAN KHAS CETAKAN EKSEKUTIF UNTUK PENTADBIR SISTEM (ADMIN) */
+              <div className="flex flex-col gap-4">
+                <div className="text-center flex flex-col gap-1 pb-3 mb-2 border-b-2 border-black">
+                  <h1 className="text-sm font-bold uppercase tracking-tight">LAPORAN RUMUSAN EKSEKUTIF MESYUARAT</h1>
+                  <h2 className="text-xs font-bold uppercase">JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK) MALAYSIA</h2>
+                  <h3 className="text-xs font-bold">BIL. {meetingNumber}/{meetingYear} – KESELURUHAN SEKTOR & PEGAWAI PENILAI</h3>
+                  <p className="text-[9pt] font-medium mt-0.5">Disediakan Oleh: {currentUser.officerName} (Pentadbir Sistem) • Tarikh Cetakan: {new Date().toLocaleDateString('ms-MY')}</p>
+                </div>
+
+                {adminOverviewData ? (
+                  <div className="flex flex-col gap-4">
+                    {/* Ringkasan Angka Utama */}
+                    <div className="grid grid-cols-4 gap-2 border border-black p-2 bg-slate-50 text-center text-xs">
+                      <div>
+                        <div className="text-[9pt] font-bold text-slate-600 uppercase">Jumlah Permohonan</div>
+                        <div className="text-base font-black">{adminOverviewData.totalCases} Kes</div>
+                      </div>
+                      <div>
+                        <div className="text-[9pt] font-bold text-slate-600 uppercase">Kadar Selesai</div>
+                        <div className="text-base font-black">{adminOverviewData.completionRate}%</div>
+                      </div>
+                      <div>
+                        <div className="text-[9pt] font-bold text-slate-600 uppercase">Jumlah Pemohon</div>
+                        <div className="text-base font-black">{adminOverviewData.totalApplicants} Orang</div>
+                      </div>
+                      <div>
+                        <div className="text-[9pt] font-bold text-slate-600 uppercase">Pegawai Bertugas</div>
+                        <div className="text-base font-black">{adminOverviewData.officersSummary.length} Orang</div>
+                      </div>
+                    </div>
+
+                    {/* Ringkasan Keputusan Mesyuarat */}
+                    <table className="w-full text-xs border border-black border-collapse text-center">
+                      <thead className="bg-slate-150 font-bold uppercase text-[10pt]">
+                        <tr>
+                          <th className="p-1.5 border border-black">Syor Lulus</th>
+                          <th className="p-1.5 border border-black">Lulus Bersyarat</th>
+                          <th className="p-1.5 border border-black">Syor Tolak</th>
+                          <th className="p-1.5 border border-black">Semakan / Naziran</th>
+                          <th className="p-1.5 border border-black">Belum Diputuskan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="font-bold text-[11pt]">
+                          <td className="p-2 border border-black">{adminOverviewData.globalDecisions.lulus}</td>
+                          <td className="p-2 border border-black">{adminOverviewData.globalDecisions.lulusBersyarat}</td>
+                          <td className="p-2 border border-black">{adminOverviewData.globalDecisions.tolak}</td>
+                          <td className="p-2 border border-black">{adminOverviewData.globalDecisions.semakan}</td>
+                          <td className="p-2 border border-black">{adminOverviewData.globalDecisions.belum}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {/* Jadual Prestasi Pegawai Penilai */}
+                    <div className="mt-2">
+                      <div className="font-bold text-xs uppercase mb-1">Kemajuan & Beban Kerja Pegawai Penilai:</div>
+                      <table className="w-full text-xs border border-black border-collapse text-left">
+                        <thead className="bg-slate-100 font-bold uppercase text-[9pt]">
+                          <tr>
+                            <th className="p-1.5 border border-black text-center w-8">Bil</th>
+                            <th className="p-1.5 border border-black">Nama Pegawai Penilai</th>
+                            <th className="p-1.5 border border-black text-center">Jumlah Kes</th>
+                            <th className="p-1.5 border border-black text-center">Pemohon</th>
+                            <th className="p-1.5 border border-black text-center">Kemajuan (%)</th>
+                            <th className="p-1.5 border border-black text-center">Lulus</th>
+                            <th className="p-1.5 border border-black text-center">Bersyarat</th>
+                            <th className="p-1.5 border border-black text-center">Tolak</th>
+                            <th className="p-1.5 border border-black text-center">Naziran</th>
+                            <th className="p-1.5 border border-black text-center">Belum</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adminOverviewData.officersSummary.map((off, idx) => (
+                            <tr key={idx} className="border-b border-black">
+                              <td className="p-1.5 border border-black text-center font-bold">{idx + 1}.</td>
+                              <td className="p-1.5 border border-black font-bold uppercase">{off.officerName}</td>
+                              <td className="p-1.5 border border-black text-center font-bold">{off.totalCases}</td>
+                              <td className="p-1.5 border border-black text-center">{off.totalApplicants}</td>
+                              <td className="p-1.5 border border-black text-center font-bold">{off.progressPct}%</td>
+                              <td className="p-1.5 border border-black text-center">{off.lulus}</td>
+                              <td className="p-1.5 border border-black text-center">{off.lulusBersyarat}</td>
+                              <td className="p-1.5 border border-black text-center">{off.tolak}</td>
+                              <td className="p-1.5 border border-black text-center">{off.semakan}</td>
+                              <td className="p-1.5 border border-black text-center">{off.belum}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pecahan Sektor KDN */}
+                    <div className="mt-2">
+                      <div className="font-bold text-xs uppercase mb-1">Ringkasan Mengikut Sektor KDN:</div>
+                      <table className="w-full text-xs border border-black border-collapse text-left">
+                        <thead className="bg-slate-100 font-bold uppercase text-[9pt]">
+                          <tr>
+                            <th className="p-1.5 border border-black">Sektor KDN</th>
+                            <th className="p-1.5 border border-black text-center">Jumlah Kes</th>
+                            <th className="p-1.5 border border-black text-center">Lulus</th>
+                            <th className="p-1.5 border border-black text-center">Bersyarat</th>
+                            <th className="p-1.5 border border-black text-center">Tolak</th>
+                            <th className="p-1.5 border border-black text-center">Naziran</th>
+                            <th className="p-1.5 border border-black text-center">Belum</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.keys(adminOverviewData.sectorMap).map((secKey, sIdx) => {
+                            const sec = adminOverviewData.sectorMap[secKey];
+                            return (
+                              <tr key={sIdx} className="border-b border-black">
+                                <td className="p-1.5 border border-black font-bold uppercase">{sec.name}</td>
+                                <td className="p-1.5 border border-black text-center font-bold">{sec.total}</td>
+                                <td className="p-1.5 border border-black text-center">{sec.lulus}</td>
+                                <td className="p-1.5 border border-black text-center">{sec.lulusBersyarat}</td>
+                                <td className="p-1.5 border border-black text-center">{sec.tolak}</td>
+                                <td className="p-1.5 border border-black text-center">{sec.semakan}</td>
+                                <td className="p-1.5 border border-black text-center">{sec.belum}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 font-bold italic text-slate-500">
+                    Sila tekan butang "Muat Terkini Data Keseluruhan" pada dashboard eksekutif terlebih dahulu sebelum mencetak.
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* LAPORAN JADUAL RASMI UNTUK PEGAWAI PENILAI (FORMAT A4 LANDSCAPE) */
+              (() => {
+                const isPrintingNaziran = viewMode === "meeting" && presentationTab === "naziran";
+                const itemsToPrint = isPrintingNaziran ? naziranItems : currentSectData;
+                const printMainTitle = isPrintingNaziran ? "SENARAI TINDAKAN NAZIRAN & SEMAKAN" : "SYARIKAT DAN PERMOHONAN YANG DIBENTANGKAN DALAM";
+                const printSectorText = isPrintingNaziran ? "KESELURUHAN SEKTOR KDN" : getSectorDisplayName(activeSector);
+
+                return (
+                  <>
+                    <div className="text-center flex flex-col gap-1 pb-3 mb-3 border-b border-black">
+                      <h1 className="text-xs font-bold uppercase tracking-tight">{printMainTitle}</h1>
+                      <h2 className="text-[11px] font-bold uppercase">MESYUARAT JAWATANKUASA PAS LAWATAN IKHTISAS (JKPLIK)</h2>
+                      <h3 className="text-[10px] font-bold">BIL. {meetingNumber}/{meetingYear} – SEKTOR {printSectorText}</h3>
+                      {officerName && <p className="text-[9px] font-medium mt-0.5">Disediakan Oleh Pegawai Penilai: {officerName}</p>}
+                    </div>
+
+                    <table className="w-full text-[10pt] text-left border border-black" style={{ tableLayout: "fixed", width: "100%" }}>
+                      <colgroup>
+                        <col style={{ width: "1.17cm" }} />
+                        <col style={{ width: "4.5cm" }} />
+                        <col style={{ width: "4.25cm" }} />
+                        <col style={{ width: "2.07cm" }} />
+                        <col style={{ width: "0.8cm" }} />
+                        <col style={{ width: "0.8cm" }} />
+                        <col style={{ width: "0.8cm" }} />
+                        <col style={{ width: "1.85cm" }} />
+                        <col style={{ width: "6.68cm" }} />
+                        <col style={{ width: "3.94cm" }} />
+                      </colgroup>
+                      <thead>
+                        <tr className="bg-slate-200 border-b border-black text-black font-bold text-center text-[11pt]">
+                          <th className="p-1 border-r border-black" style={{ width: "1.17cm" }} rowSpan={2}>BIL</th>
+                          <th className="p-1 border-r border-black" style={{ width: "4.5cm" }} rowSpan={2}>NAMA SYARIKAT</th>
+                          <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} rowSpan={2}>BUTIRAN PENYANDANG</th>
+                          <th className="p-1 border-r border-black" style={{ width: "2.07cm" }} rowSpan={2}>TEMPOH MOHON</th>
+                          <th className="p-1 border-r border-black" style={{ width: "4.25cm" }} colSpan={4}>PERMOHONAN / WARGANEGARA</th>
+                          <th className="p-1 border-r border-black" style={{ width: "6.68cm" }} rowSpan={2}>NAMA PROJEK</th>
+                          <th className="p-1" style={{ width: "3.94cm" }} rowSpan={2}>KEPUTUSAN</th>
+                        </tr>
+                        <tr className="bg-slate-100 border-b border-black text-black font-bold text-center text-[11pt]">
+                          <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>B</th>
+                          <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>L</th>
+                          <th className="p-1 border-r border-black" style={{ width: "0.8cm" }}>T/R</th>
+                          <th className="p-1 border-r border-black" style={{ width: "1.85cm" }}>W/N</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {itemsToPrint.length === 0 ? (
+                          <tr>
+                            <td colSpan="10" className="p-4 text-center font-bold italic border-b border-black">Tiada permohonan berdaftar untuk dicetak bagi sesi ini.</td>
+                          </tr>
+                        ) : (
+                          itemsToPrint.map((item, idx) => {
+                            const hasPenyandang = item.penyandang && item.penyandang.length > 0;
+                            const parsedProj = parseProjectAndDetails(item);
+
+                            return (
+                              <tr key={item.id} className="border-b border-black font-sans text-[10pt]">
+                                <td className="p-2 text-center font-bold border-r border-black align-top" style={{ width: "1.17cm" }}>{idx + 1}.</td>
+                                
+                                <td className="p-2 border-r border-black align-top" style={{ width: "4.5cm" }}>
+                                  <div className="font-bold uppercase text-black leading-tight">
+                                    {item.namaSyarikat}
+                                    {isPrintingNaziran && <div className="text-[8pt] text-indigo-800 mt-1.5">[SEKTOR: {getSectorDisplayName(item.sectorCode)}]</div>}
+                                  </div>
+                                  <div className="text-[9pt] text-slate-800 mt-1.5 uppercase leading-tight">{item.alamat}</div>
+                                </td>
+                                
+                                <td className="p-2 border-r border-black align-top" style={{ width: "4.25cm" }}>
+                                  <div className="flex flex-col gap-2">
+                                    {(item.penyandang || []).map((p, pidx) => {
+                                      const norm = normalizePenyandang(p);
+                                      let formattedDate = norm.tarikhLahir || "";
+                                      if (formattedDate.includes("-")) {
+                                        const s = formattedDate.split("-");
+                                        if (s.length === 3 && s[0].length === 4) {
+                                          formattedDate = `${s[2]}.${s[1]}.${s[0]}`;
+                                        }
+                                      }
+                                      return (
+                                        <div key={pidx} className="text-[10pt] leading-relaxed">
+                                          <span className="font-bold">{pidx + 1}. {norm.nama}</span> / {norm.jantina} / {norm.warganegara || "-"} / {norm.pasport || "-"} / {formattedDate ? `${formattedDate} (` : ''}<b>{norm.umur || "-"}</b>{formattedDate ? ')' : ''} – <span className="font-bold uppercase">{norm.jawatan || "-"}</span>
+                                          <div className="font-bold mt-0.5">GAJI: {norm.gaji || "-"}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </td>
+                                
+                                <td className="p-2 text-center border-r border-black align-top font-semibold" style={{ width: "2.07cm" }}>{item.tempohMohon}</td>
+                                
+                                <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valB || "-") : "-"}</td>
+                                <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valL || "-") : "-"}</td>
+                                <td className="p-2 text-center border-r border-black align-top font-bold" style={{ width: "0.8cm" }}>{hasPenyandang ? (item.valTR || "-") : "-"}</td>
+                                <td className="p-2 text-center border-r border-black align-top font-bold text-[9.5pt] uppercase whitespace-pre-line leading-relaxed" style={{ width: "1.85cm" }}>{hasPenyandang ? (item.valWN || "-") : "-"}</td>
+                                
+                                <td className="p-2 border-r border-black align-top" style={{ width: "6.68cm" }}>
+                                  <div className="flex flex-col gap-2 text-[10pt] leading-relaxed">
+                                    <div>
+                                      <span className="font-bold uppercase block text-black">KEGIATAN SYARIKAT</span>
+                                      <p className="text-slate-800 italic whitespace-pre-line">➢ {parsedProj.kegiatan || "-"}</p>
+                                    </div>
+                                    <div className="pt-1.5 border-t border-slate-300">
+                                      <span className="font-bold uppercase block text-black">PROJECT:</span>
+                                      {parsedProj.projek.map((proj, pIdx) => (
+                                        <p key={pIdx} className="text-slate-800 font-semibold">➢ {proj}</p>
+                                      ))}
+                                      {parsedProj.noKontrak && <p className="text-slate-800 font-bold">➢ NO. KONTRAK : {parsedProj.noKontrak}</p>}
+                                      {parsedProj.tempohProjek && <p className="text-slate-800 font-bold">➢ TEMPOH PROJEK : {parsedProj.tempohProjek}</p>}
+                                      {parsedProj.ownerProjek && <p className="text-black font-bold">➢ OWNER PROJECT : {parsedProj.ownerProjek}</p>}
+                                    </div>
+                                  </div>
+                                </td>
+                                
+                                <td className="p-2 align-top text-left" style={{ width: "3.94cm" }}>
+                                  <div className="flex flex-col gap-1.5 text-[10pt] font-semibold text-black">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[12px] font-mono">{item.keputusan === "LULUS" ? "☒" : "☐"}</span>
+                                      <span>LULUS</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[12px] font-mono">{item.keputusan === "LULUS BERSYARAT" ? "☒" : "☐"}</span>
+                                      <span>LULUS BERSYARAT</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[12px] font-mono">{item.keputusan === "TOLAK" ? "☒" : "☐"}</span>
+                                      <span>TOLAK</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[12px] font-mono">{item.keputusan === "SEMAKAN / NAZIRAN" ? "☒" : "☐"}</span>
+                                      <span>SEMAKAN / NAZIRAN</span>
+                                    </div>
+                                    
+                                    <div className="mt-2.5 pt-1.5 border-t border-slate-300 text-[9.5pt]">
+                                      <strong>ULASAN :</strong>
+                                      {item.ulasan ? (
+                                        <p className="text-slate-900 italic mt-1 leading-normal font-bold">"{item.ulasan}"</p>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </>
+                );
+              })()
+            )}
           </div>
 
           {}
