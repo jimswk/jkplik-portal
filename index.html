@@ -677,7 +677,9 @@
     function App() {
       const [currentUser, setCurrentUser] = useState(() => {
         try {
-          const saved = localStorage.getItem("jkplik_active_user");
+          /* Membersihkan sebarang simpanan localStorage lama supaya hanya bergantung pada sesi aktif */
+          localStorage.removeItem("jkplik_active_user");
+          const saved = sessionStorage.getItem("jkplik_active_user");
           return saved ? JSON.parse(saved) : null;
         } catch(e) {
           return null;
@@ -851,7 +853,8 @@
           if (res.status === "success" && res.user) {
             setCurrentUser(res.user);
             setOfficerName(res.user.officerName);
-            localStorage.setItem("jkplik_active_user", JSON.stringify(res.user));
+            /* Simpan sesi dalam sessionStorage - akan dipadam automatik bila browser ditutup */
+            sessionStorage.setItem("jkplik_active_user", JSON.stringify(res.user));
             showToast(`Selamat kembali, Pegawai ${res.user.officerName}!`, "success");
           } else {
             setLoginError(res.message || "ID Pengguna atau Kata Laluan tidak sah.");
@@ -870,7 +873,7 @@
           action: () => {
             setCurrentUser(null);
             setOfficerName("");
-            localStorage.removeItem("jkplik_active_user");
+            sessionStorage.removeItem("jkplik_active_user");
             setSessionData({});
             setConfirmModal({ show: false, action: null, message: "" });
             showToast("Anda telah berjaya log keluar.", "info");
